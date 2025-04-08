@@ -1,6 +1,13 @@
+// TODO:
 type Data = {
 
 }
+// TODO:
 
 type RPCData = Data & {}
-export type { Data, RPCData }
+
+// TODO:
+type Event = {
+  blockHeight: bigint
+}
+export type { Data, RPCData, Event }

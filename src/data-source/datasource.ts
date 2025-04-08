@@ -40,7 +40,7 @@ interface DataSource<T extends Data> {
    * Alternatively async initialisation logic can be pushed into the iterator,
    * which would allow this method to be sync
    */
-  read (height: bigint): Promise<AsyncIterator<T>>;
+  read (height: bigint): any;
 
   /**
    * Destory the source and clean up resources.
