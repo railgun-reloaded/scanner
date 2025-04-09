@@ -4,7 +4,7 @@ import { Contract, JsonRpcProvider, Network, WebSocketProvider } from 'ethers'
 
 import { delay, promiseTimeout } from '../../utils'
 
-const SCAN_CHUNKS = 500
+const SCAN_CHUNKS = 1000n
 const EVENTS_SCAN_TIMEOUT = 5000
 const SCAN_TIMEOUT_ERROR_MESSAGE = 'getLogs request timed out after 5 seconds.'
 const RAILGUN_SCAN_START_BLOCK = 14693000n
@@ -169,7 +169,7 @@ class EthersProvider<T = any> extends EventEmitter implements AsyncIterable<T> {
    * @returns - An async generator that yields events
    * @yields T - The data read from the source
    */
-  async * from (options:{ startBlock: number, endBlock: number }) {
+  async * from (options:{ startBlock: bigint, endBlock: bigint }) {
     const { startBlock, endBlock } = options
     this.startBlock = BigInt(startBlock)
     // this.lastScannedBlock = BigInt(endBlock)
@@ -177,7 +177,7 @@ class EthersProvider<T = any> extends EventEmitter implements AsyncIterable<T> {
     // const TOTAL_BLOCKS = BigInt(endBlock) - BigInt(startBlock)
     let currentOffset = startBlock
     while (true) {
-      if (currentOffset > endBlock) {
+      if (currentOffset >= endBlock) {
         break
       }
       const startChunk = currentOffset
@@ -187,8 +187,8 @@ class EthersProvider<T = any> extends EventEmitter implements AsyncIterable<T> {
         SCAN_TIMEOUT_ERROR_MESSAGE
       )
       yield events
-      currentOffset += SCAN_CHUNKS + 1
-      this.lastScannedBlock = BigInt(currentOffset - 1)// scan is inclusive
+      currentOffset += SCAN_CHUNKS + 1n
+      this.lastScannedBlock = currentOffset - 1n// scan is inclusive
       if (currentOffset > endBlock) {
         currentOffset = endBlock
       }
