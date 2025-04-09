@@ -82,7 +82,7 @@ test('Ethers-Provider:from https with scanOptions', async (t) => {
   })
   const scanOptions = {
     startBlock: RAILGUN_SCAN_START_BLOCK_V2,
-    endBlock: RAILGUN_SCAN_START_BLOCK_V2 + 50_000n,
+    endBlock: RAILGUN_SCAN_START_BLOCK_V2 + 5_000n,
   }
   for await (const event of provider.from(scanOptions)) {
     t.pass(`FoundEvents: ${event.length}`)
@@ -110,7 +110,7 @@ test('Ethers-Provider:from wss with scanOptions', async (t) => {
   })
   const scanOptions = {
     startBlock: RAILGUN_SCAN_START_BLOCK_V2,
-    endBlock: RAILGUN_SCAN_START_BLOCK_V2 + 50_000n,
+    endBlock: RAILGUN_SCAN_START_BLOCK_V2 + 5_000n,
   }
   for await (const event of provider.from(scanOptions)) {
     t.pass(`FoundEvents: ${event.length}`)

@@ -1,6 +1,6 @@
 import EventEmitter from 'node:events'
 
-import type { PublicClient } from 'viem'
+import type { HttpTransport, PublicClient, WebSocketTransport } from 'viem'
 import { createPublicClient, getContract, http, webSocket } from 'viem'
 import { arbitrum, bsc, mainnet, polygon } from 'viem/chains'
 
@@ -39,7 +39,7 @@ class ViemProvider<T = any> extends EventEmitter implements AsyncIterable<T> {
   /**
    *  contract
    */
-  contract
+  contract?
   /**
    * event queue
    */
@@ -73,6 +73,10 @@ class ViemProvider<T = any> extends EventEmitter implements AsyncIterable<T> {
    */
   unwatchContractEvents?: () => void
   /**
+   *  transport WebSocketTransport | HttpTransport<undefined, false>
+   */
+  transport?: WebSocketTransport | HttpTransport<undefined, false>
+  /**
    * constructor for EthersProvider
    * @param url - The provider URL
    * @param address - The contract address
@@ -91,14 +95,13 @@ class ViemProvider<T = any> extends EventEmitter implements AsyncIterable<T> {
     this.syncing = false
     this.startBlock = BigInt(0)
     const network = this.chainIdToNetwork(options.chainId)
+    // TODO: wss seems to not close out properly, leaving node process hanging.
+    this.transport = options.ws ? webSocket(url, options.transportConfig) : http(url, options.transportConfig)
 
-    // cons
     this.provider = createPublicClient({
-      transport:
-        options.ws ? webSocket(url, options.transportConfig) : http(url, options.transportConfig),
+      transport: this.transport,
       chain: network,
     })
-
     this.contract = getContract({
       address,
       abi,
@@ -157,7 +160,7 @@ class ViemProvider<T = any> extends EventEmitter implements AsyncIterable<T> {
     })
 
     this.unwatchContractEvents = this.provider.watchContractEvent({
-      address: this.contract.address,
+      address: this.contract!.address,
       abi: this.abi,
       /**
        *  Called when a new block is mined.
@@ -165,7 +168,7 @@ class ViemProvider<T = any> extends EventEmitter implements AsyncIterable<T> {
        */
       onLogs: (logs) => {
         this.eventQueue.push(logs as unknown as T)
-        // this.emit('event', logs)
+        this.emit('event', logs)
       }
     })
 
@@ -237,7 +240,7 @@ class ViemProvider<T = any> extends EventEmitter implements AsyncIterable<T> {
       }
       const events = await promiseTimeout(
         this.provider.getContractEvents({
-          address: this.contract.address,
+          address: this.contract!.address,
           abi: this.abi,
           fromBlock: startChunk,
           toBlock: startChunk + SCAN_CHUNKS,
@@ -257,15 +260,27 @@ class ViemProvider<T = any> extends EventEmitter implements AsyncIterable<T> {
 
   /**
    * Destroy the provider
-   * @returns - A promise that resolves when the provider is destroyed
    */
   async destroy () {
+    console.log('Destroying provider')
     // Logic to destroy the provider and iterators
     this.unwatchBlocks?.()
     this.unwatchContractEvents?.()
     this.syncing = false
     // provider doesnt supply any destroy methods?
+    // console.log('Transport', this.transport())
+    // @ts-ignore
+    if ('getSocket' in this.transport({}).value) {
+      console.log('GET SOCKET FOUND')
+      // @ts-ignore
+      const socket = await (this.transport({}).value.getSocket())
+      if (socket) {
+        await socket.close()
+      }
+    }
+    delete this.transport
     delete this.provider
+    delete this.contract
   }
 }
 
