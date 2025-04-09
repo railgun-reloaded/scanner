@@ -85,8 +85,8 @@ class EthersProvider<T = any> extends EventEmitter implements AsyncIterable<T> {
     this.contract = new Contract(address, abi, this.provider)
     this.initialized = false
     this.initializedPromise = new Promise((resolve) => {
-      this.setupListeners()
       this.initializedResolve = resolve
+      this.setupListeners()
     })
   }
 
