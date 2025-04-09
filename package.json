@@ -20,7 +20,7 @@
     "build": "tsc --build",
     "clean": "tsc --build --clean",
     "lint": "npx eslint",
-    "test": "npm run build && NODE_OPTIONS=--enable-source-maps brittle --coverage test/**/*.test.js"
+    "test": "npm run build && NODE_OPTIONS=--enable-source-maps brittle --coverage test/**/*.test.js && npm run clean"
   },
   "devDependencies": {
     "@railgun-reloaded/eslint-config": "1.1.0",
