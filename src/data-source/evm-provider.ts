@@ -1,4 +1,7 @@
+import type { ContractEventPayload } from 'ethers'
+
 import type { DataSource } from './datasource'
+import type { EthersProvider } from './evm-provider/providers/ethers'
 import type { Event, RPCData } from './types'
 
 /**
@@ -19,14 +22,31 @@ class EVMProvider implements DataSource<RPCData> {
    *  Is the source still ingesting data?
    */
   syncing: boolean
-
   /**
-   *  Creates an instance of the EVMProvider class.
+   * Provides the most recent updates from its source.
    */
-  constructor () {
+  provider: EthersProvider<ContractEventPayload>
+
+  // TODO: alter provider to be more ROBUST
+  /**
+   * Creates an instance of the EVMProvider class.
+   * @param provider - The provider to use for connecting to the EVM-compatible blockchain.
+   */
+  constructor (provider: EthersProvider<ContractEventPayload>) {
     // TODO: load up events from storage?
 
     this.syncing = false
+    this.provider = provider
+    // BE SURE TO CALL THIS PRIOR TO USING THE PROVIDER
+    // HERE NOW TO GET IT WORKING
+    this.initialize()
+  }
+
+  /**
+   * Initializes the provider and prepares it for use.
+   */
+  async initialize (): Promise<void> {
+    await this.provider.awaitInitialized()
   }
 
   /**
@@ -59,14 +79,22 @@ class EVMProvider implements DataSource<RPCData> {
    * TODO:
    * @param height TODO:
    * @returns Promise<AsyncGenerator<Event[] | undefined>>
+   * @yields Event[] | undefined
    */
   // TODO: fix return type, remove undefined
 
-  async read (height:bigint) {
-    const thisref = this
-    return async function * () {
-      // TODO:
-      yield thisref.events[parseInt(height.toString())]
+  async * read (height:bigint): AsyncGenerator<Event | undefined> {
+    console.log('HEIGHT', height)
+    while (true) {
+      for await (const event of this.provider) {
+        const { blockNumber } = event.log
+
+        const output = {
+          blockHeight: BigInt(blockNumber),
+          event
+        }
+        yield output
+      }
     }
   }
 }

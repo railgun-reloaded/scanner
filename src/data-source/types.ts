@@ -1,3 +1,5 @@
+import type { ContractEventPayload } from 'ethers'
+
 // TODO:
 type Data = {
 
@@ -9,5 +11,6 @@ type RPCData = Data & {}
 // TODO:
 type Event = {
   blockHeight: bigint
+  event: ContractEventPayload
 }
 export type { Data, RPCData, Event }

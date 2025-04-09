@@ -1,5 +1,5 @@
-import test from 'brittle'
+// import test from 'brittle'
 
-test('test', (t) => {
-  t.pass('test')
-})
+// test('test', (t) => {
+//   t.pass('test')
+// })
