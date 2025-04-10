@@ -254,9 +254,9 @@ class ViemProvider<T = any> extends EventEmitter implements AsyncIterable<T> {
       yield events
       currentOffset += SCAN_CHUNKS + 1n
       this.lastScannedBlock = currentOffset - 1n// scan is inclusive
-      if (currentOffset > endBlock) {
-        currentOffset = endBlock
-      }
+      // if (currentOffset > endBlock) {
+      //   currentOffset = endBlock
+      // }
       await delay(250) // Delay to avoid rate limiting, can avoid this with forking...
     }
   }
