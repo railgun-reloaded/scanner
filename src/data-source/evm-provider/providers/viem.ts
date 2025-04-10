@@ -1,7 +1,7 @@
 import EventEmitter from 'node:events'
 
 import type { HttpTransport, PublicClient, WebSocketTransport } from 'viem'
-import { createPublicClient, getContract, http } from 'viem'
+import { createPublicClient, getContract, http, webSocket } from 'viem'
 import { arbitrum, bsc, mainnet, polygon } from 'viem/chains'
 
 import { delay, promiseTimeout } from '../../utils'
@@ -96,10 +96,10 @@ class ViemProvider<T = any> extends EventEmitter implements AsyncIterable<T> {
     this.startBlock = BigInt(0)
     const network = this.chainIdToNetwork(options.chainId)
     // TODO: wss seems to not close out properly, leaving node process hanging.
-    // this.transport = options.ws ? webSocket(url, options.transportConfig) : http(url)
+    this.transport = options.ws ? webSocket(url, options.transportConfig) : http(url)
 
     this.provider = createPublicClient({
-      transport: http(url),
+      transport: this.transport,
       chain: network,
     })
     this.contract = getContract({
@@ -247,7 +247,10 @@ class ViemProvider<T = any> extends EventEmitter implements AsyncIterable<T> {
         }),
         EVENTS_SCAN_TIMEOUT,
         SCAN_TIMEOUT_ERROR_MESSAGE
-      )
+      ).catch((err) => {
+        this.emit('error', err)
+        return []
+      })
       yield events
       currentOffset += SCAN_CHUNKS + 1n
       this.lastScannedBlock = currentOffset - 1n// scan is inclusive
@@ -270,15 +273,15 @@ class ViemProvider<T = any> extends EventEmitter implements AsyncIterable<T> {
     // provider doesnt supply any destroy methods?
     // console.log('Transport', this.transport())
     // @ts-ignore
-    // if ('getSocket' in this.transport({}).value) {
-    //   console.log('GET SOCKET FOUND')
-    //   // @ts-ignore
-    //   const socket = await (this.transport({}).value.getSocket())
-    //   if (socket) {
-    //     await socket.close()
-    //   }
-    // }
-    // delete this.transport
+    if ('getSocket' in this.transport({}).value) {
+      console.log('GET SOCKET FOUND')
+      // @ts-ignore
+      const socket = await (this.transport({}).value.getSocket())
+      if (socket) {
+        await socket.close()
+      }
+    }
+    delete this.transport
     delete this.provider
     delete this.contract
   }
