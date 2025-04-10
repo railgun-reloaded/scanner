@@ -60,6 +60,7 @@ class EVMProvider implements DataSource<RPCData> {
         return event.blockHeight
       }
     }
+    // none found.
     return BigInt(0)
   }
 

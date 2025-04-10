@@ -6,7 +6,7 @@ import { arbitrum, bsc, mainnet, polygon } from 'viem/chains'
 
 import { delay, promiseTimeout } from '../../utils'
 
-const SCAN_CHUNKS = 1000n
+const SCAN_CHUNKS = 500n
 const EVENTS_SCAN_TIMEOUT = 5000
 const SCAN_TIMEOUT_ERROR_MESSAGE = 'getLogs request timed out after 5 seconds.'
 const RAILGUN_SCAN_START_BLOCK = 14693000n
@@ -272,15 +272,15 @@ class ViemProvider<T = any> extends EventEmitter implements AsyncIterable<T> {
     this.syncing = false
     // provider doesnt supply any destroy methods?
     // console.log('Transport', this.transport())
-    // @ts-ignore
-    if ('getSocket' in this.transport({}).value) {
-      console.log('GET SOCKET FOUND')
-      // @ts-ignore
-      const socket = await (this.transport({}).value.getSocket())
-      if (socket) {
-        await socket.close()
-      }
-    }
+    // // @ts-ignore
+    // if ('getSocket' in this.transport({}).value) {
+    //   console.log('GET SOCKET FOUND')
+    //   // @ts-ignore
+    //   const socket = await (this.transport({}).value.getSocket())
+    //   if (socket) {
+    //     await socket.close()
+    //   }
+    // }
     delete this.transport
     delete this.provider
     delete this.contract
