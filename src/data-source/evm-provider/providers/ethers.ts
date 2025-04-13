@@ -82,6 +82,8 @@ class EthersProvider<T = any> extends EventEmitter implements AsyncIterable<T> {
         staticNetwork: network,
         batchMaxCount: 2,
       })
+      // TODO: separate this out, pollingContract & scanningContract
+      // TODO: create latestEvents[] and syncedEvents[]
     this.contract = new Contract(address, abi, this.provider)
     this.initialized = false
     this.initializedPromise = new Promise((resolve) => {
@@ -117,6 +119,7 @@ class EthersProvider<T = any> extends EventEmitter implements AsyncIterable<T> {
       // TODO: Handle contract event - properly
       // console.log('Contract event:', event)
       this.eventQueue.push(event)
+      // these events go into latestEvents[]
     })
     this.initialized = true
     this.syncing = true
@@ -186,6 +189,7 @@ class EthersProvider<T = any> extends EventEmitter implements AsyncIterable<T> {
         EVENTS_SCAN_TIMEOUT,
         SCAN_TIMEOUT_ERROR_MESSAGE
       )
+      // these get pushed into syncedEvents[]
       yield events
       currentOffset += SCAN_CHUNKS + 1n
       this.lastScannedBlock = currentOffset - 1n// scan is inclusive
