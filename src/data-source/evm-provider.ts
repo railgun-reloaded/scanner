@@ -108,7 +108,7 @@ class EVMProvider implements DataSource<RPCData> {
     this.events = []
     this.syncing = false
     await this.provider.destroy()
-    // @ts-ignore -- no need to require optional. we are destroying it.
+    // @ts-ignore -- no need to require optional.
     delete this.provider
     if (error) {
       throw error

@@ -1,7 +1,7 @@
+import { RailgunSmartWalletV21 } from '@railgun-reloaded/contract-abis'
 import { test } from 'brittle'
 import dotenv from 'dotenv'
 
-import { ABIRailgunSmartWallet } from '../../../../../src/abi/abi'
 import { RAILGUN_SCAN_START_BLOCK_V2, ViemProvider } from '../../../../../src/data-source/evm-provider/providers/viem'
 
 dotenv.config()
@@ -19,7 +19,7 @@ test('Viem-Provider:iterator https', async (t) => {
   const provider = new ViemProvider(
     TEST_RPC_URL!,
     TEST_CONTRACT_ADDRESS,
-    ABIRailgunSmartWallet,
+    RailgunSmartWalletV21,
     { chainId: 1, ws: false }
   )
   await provider.initializedPromise
@@ -73,7 +73,7 @@ test('Viem-Provider:from https with scanOptions', async (t) => {
   const provider = new ViemProvider(
     TEST_RPC_URL!,
     TEST_CONTRACT_ADDRESS,
-    ABIRailgunSmartWallet,
+    RailgunSmartWalletV21,
     { chainId: 1, ws: false }
   )
   await provider.initializedPromise
@@ -129,7 +129,7 @@ test('Viem-Provider:chainIdToNetwork', async (t) => {
   const provider = new ViemProvider(
     TEST_RPC_URL!,
     TEST_CONTRACT_ADDRESS,
-    ABIRailgunSmartWallet,
+    RailgunSmartWalletV21,
     { chainId: 1, ws: false }
   )
 

@@ -1,7 +1,7 @@
+import { RailgunSmartWalletV21 } from '@railgun-reloaded/contract-abis'
 import { test } from 'brittle'
 import dotenv from 'dotenv'
 
-import { ABIRailgunSmartWallet } from '../../../../../src/abi/abi'
 import { EthersProvider, RAILGUN_SCAN_START_BLOCK_V2 } from '../../../../../src/data-source/evm-provider/providers/ethers'
 import { delay } from '../../../../../src/data-source/utils'
 
@@ -20,7 +20,7 @@ test('Ethers-Provider:iterator https', async (t) => {
   const provider = new EthersProvider(
     TEST_RPC_URL!,
     TEST_CONTRACT_ADDRESS,
-    ABIRailgunSmartWallet,
+    RailgunSmartWalletV21,
     { chainId: 1, ws: false }
   )
   await provider.initializedPromise
@@ -46,7 +46,7 @@ test('Ethers-Provider:iterator wss', async (t) => {
   const provider = new EthersProvider(
     TEST_RPC_URL_WSS!,
     TEST_CONTRACT_ADDRESS,
-    ABIRailgunSmartWallet,
+    RailgunSmartWalletV21,
     { chainId: 1, ws: true }
   )
   await provider.initializedPromise
@@ -73,7 +73,7 @@ test('Ethers-Provider:from https with scanOptions', async (t) => {
   const provider = new EthersProvider(
     TEST_RPC_URL!,
     TEST_CONTRACT_ADDRESS,
-    ABIRailgunSmartWallet,
+    RailgunSmartWalletV21,
     { chainId: 1, ws: false }
   )
   await provider.initializedPromise
@@ -102,7 +102,7 @@ test('Ethers-Provider:from wss with scanOptions', async (t) => {
   const provider = new EthersProvider(
     TEST_RPC_URL_WSS!,
     TEST_CONTRACT_ADDRESS,
-    ABIRailgunSmartWallet,
+    RailgunSmartWalletV21,
     { chainId: 1, ws: true }
   )
   await provider.initializedPromise
@@ -129,7 +129,7 @@ test('Ethers-Provider:setupListeners registers block event handler', async (t) =
   const provider = new EthersProvider(
     TEST_RPC_URL!,
     TEST_CONTRACT_ADDRESS,
-    ABIRailgunSmartWallet,
+    RailgunSmartWalletV21,
     { chainId: 1, ws: false }
   )
 
@@ -171,7 +171,7 @@ test('Ethers-Provider:setupListeners properly queues contract events', async (t)
   const provider = new EthersProvider(
     TEST_RPC_URL!,
     TEST_CONTRACT_ADDRESS,
-    ABIRailgunSmartWallet,
+    RailgunSmartWalletV21,
     { chainId: 1, ws: false }
   )
 
@@ -213,7 +213,7 @@ test('Ethers-Provider:destroy removes all listeners', async (t) => {
   const provider = new EthersProvider(
     TEST_RPC_URL!,
     TEST_CONTRACT_ADDRESS,
-    ABIRailgunSmartWallet,
+    RailgunSmartWalletV21,
     { chainId: 1, ws: false }
   )
 
@@ -247,7 +247,7 @@ test('Ethers-Provider:setupListeners initializes contract and provider correctly
   const validProvider = new EthersProvider(
     TEST_RPC_URL!,
     TEST_CONTRACT_ADDRESS,
-    ABIRailgunSmartWallet,
+    RailgunSmartWalletV21,
     { chainId: 1, ws: false }
   )
   await validProvider.initializedPromise
