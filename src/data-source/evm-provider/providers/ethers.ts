@@ -6,8 +6,8 @@ import type { NetworkName } from '../../../globals'
 import { getAbiForNetworkBlockRange } from '../../../utils'
 import { delay, promiseTimeout } from '../../utils'
 
-const SCAN_CHUNKS = 1000n
-const EVENTS_SCAN_TIMEOUT = 5000
+const SCAN_CHUNKS = 500_000n
+const EVENTS_SCAN_TIMEOUT = 2000
 const SCAN_TIMEOUT_ERROR_MESSAGE = 'getLogs request timed out after 5 seconds.'
 const RAILGUN_SCAN_START_BLOCK = 14693000n
 const RAILGUN_SCAN_START_BLOCK_V2 = 16076000n

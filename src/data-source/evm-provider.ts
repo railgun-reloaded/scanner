@@ -167,9 +167,12 @@ class EVMProvider implements DataSource<RPCData> {
       }
       // Use the resolved endBlockNumber instead of endBlock which could be 'latest'
       const blockHeight = endBlockNumber
-      // TODO fix this typeshit
-      // @ts-ignore
-      yield { blockHeight, event: target }
+      //
+      for (const e of event) {
+        // console.log('event')
+        // @ts-ignore TODO: Fix this
+        yield { blockHeight, event: e }
+      }
     }
     // this will effectively kill the read iterator above
     // this.syncing = false

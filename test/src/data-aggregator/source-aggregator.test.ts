@@ -8,7 +8,7 @@ import { EVMProvider } from '../../../src/data-source/evm-provider.js'
 import { NetworkName, RailgunProxyDeploymentBlock } from '../../../src/globals/constants.js'
 
 dotenv.config()
-const TEST_RPC_URL = process.env['TEST_RPC_URL_HTTPS']
+const TEST_RPC_URL = 'http://127.0.0.1:8545'// process.env['TEST_RPC_URL_HTTPS']
 const TEST_CONTRACT_ADDRESS = '0xFA7093CDD9EE6932B4eb2c9e1cde7CE00B1FA4b9'
 
 /**
@@ -47,9 +47,9 @@ solo('Source should sync from zero state given a single evm provider', async (t)
   await aggregator.sync()
   const START_TESTING_BLOCK = RailgunProxyDeploymentBlock[NetworkName.Ethereum]
   // Kills source to exit test.
-  setTimeout(async () => {
-    await datasource.destroy()
-  }, 50_000)
+  // setTimeout(async () => {
+  //   await datasource.destroy()
+  // }, 50_000)
   for await (const event of (await aggregator.read(BigInt(START_TESTING_BLOCK)))) {
     // console.log('FoundEvent', event)
     // t.pass('EVM-Provider:http:iterator FoundEvent')

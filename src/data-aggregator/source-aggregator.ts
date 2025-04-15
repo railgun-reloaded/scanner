@@ -96,29 +96,60 @@ class SourceAggregator<T extends Data> {
    */
   async sync () {
     // check localCache, if none make it.
-    const block = readFile(this.storage)
+    const block = readFile<{ blockHeight: bigint; events: any[] }>(this.storage)
     const events = []
-    const startBlock = BigInt(RailgunProxyDeploymentBlock[NetworkName.Ethereum])
+    let startBlock = BigInt(RailgunProxyDeploymentBlock[NetworkName.Ethereum])
     if (block) {
-      // console.log('DataStorageFound')
+      // console.log('DataStorageFound')//
+      // we have found storage. lets load it.
+
+      const { events: storedEvents } = block
+      console.log('StoredEvents', storedEvents.length)
+      // const val = 0n
+      const lastBlockEvent =
+      storedEvents?.find((event) => {
+        // console.log('LastBlockEvent', event)
+        if (event != null) {
+          return true
+          // val = BigInt(event.event.blockNumber)
+          // lastBlockEvent = now.blockNumber
+          // console.log(now)
+        }
+        return false
+        // return val
+      })
+
+      console.log('StartBlock', lastBlockEvent)
+      startBlock = BigInt(lastBlockEvent.event.blockNumber) + 1n
     } else {
       // console.log('Creating DataBank')
 
       // scan events from all sources.
       // get startBlock from here
       // pull latest block from datastore.
+
     }
     for (const source of this.sources) {
       for await (const event of source.from({
         startBlock,
-        endBlock: 22271555n,
+        endBlock: 'latest',
       })) {
         if (event) {
-          console.log('FoundEvent', event?.event?.eventName)
+          // console.log('FoundEvent', event?.event?.eventName)
+          // @ts-ignore
+          // console.log('FoundEvent', event)
+          // for (const e of) {
           events.push(event)
+          // }
         }
-        saveFile(this.storage, { events })
       }
+      saveFile(this.storage, { events })
+      let total = 0
+      for (const event of events) {
+        total += event.event.log.args.length
+      }
+      console.log('FlatEvents', total)
+      console.log('FoundEvents', events.length)
     }
   }
 }
