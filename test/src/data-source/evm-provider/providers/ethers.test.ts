@@ -4,6 +4,7 @@ import dotenv from 'dotenv'
 
 import { EthersProvider, RAILGUN_SCAN_START_BLOCK_V2 } from '../../../../../src/data-source/evm-provider/providers/ethers'
 import { delay } from '../../../../../src/data-source/utils'
+import { NetworkName } from '../../../../../src/globals/constants'
 
 dotenv.config()
 
@@ -18,6 +19,7 @@ test('Ethers-Provider:iterator https', async (t) => {
     t.fail('TEST_RPC_URL is not set')
   }
   const provider = new EthersProvider(
+    NetworkName.Ethereum,
     TEST_RPC_URL!,
     TEST_CONTRACT_ADDRESS,
     RailgunSmartWalletV21,
@@ -44,6 +46,7 @@ test('Ethers-Provider:iterator wss', async (t) => {
     t.fail('TEST_RPC_URL_WSS is not set')
   }
   const provider = new EthersProvider(
+    NetworkName.Ethereum,
     TEST_RPC_URL_WSS!,
     TEST_CONTRACT_ADDRESS,
     RailgunSmartWalletV21,
@@ -71,6 +74,7 @@ test('Ethers-Provider:from https with scanOptions', async (t) => {
     t.fail('TEST_RPC_URL is not set')
   }
   const provider = new EthersProvider(
+    NetworkName.Ethereum,
     TEST_RPC_URL!,
     TEST_CONTRACT_ADDRESS,
     RailgunSmartWalletV21,
@@ -100,6 +104,7 @@ test('Ethers-Provider:from wss with scanOptions', async (t) => {
     t.fail('TEST_RPC_URL_WSS is not set')
   }
   const provider = new EthersProvider(
+    NetworkName.Ethereum,
     TEST_RPC_URL_WSS!,
     TEST_CONTRACT_ADDRESS,
     RailgunSmartWalletV21,
@@ -127,6 +132,7 @@ test('Ethers-Provider:setupListeners registers block event handler', async (t) =
   }
 
   const provider = new EthersProvider(
+    NetworkName.Ethereum,
     TEST_RPC_URL!,
     TEST_CONTRACT_ADDRESS,
     RailgunSmartWalletV21,
@@ -169,6 +175,7 @@ test('Ethers-Provider:setupListeners properly queues contract events', async (t)
   }
 
   const provider = new EthersProvider(
+    NetworkName.Ethereum,
     TEST_RPC_URL!,
     TEST_CONTRACT_ADDRESS,
     RailgunSmartWalletV21,
@@ -211,6 +218,7 @@ test('Ethers-Provider:destroy removes all listeners', async (t) => {
   }
 
   const provider = new EthersProvider(
+    NetworkName.Ethereum,
     TEST_RPC_URL!,
     TEST_CONTRACT_ADDRESS,
     RailgunSmartWalletV21,
@@ -245,6 +253,7 @@ test('Ethers-Provider:setupListeners initializes contract and provider correctly
 
   // Test that provider is correctly initialized
   const validProvider = new EthersProvider(
+    NetworkName.Ethereum,
     TEST_RPC_URL!,
     TEST_CONTRACT_ADDRESS,
     RailgunSmartWalletV21,

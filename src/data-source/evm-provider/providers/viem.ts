@@ -265,7 +265,7 @@ class ViemProvider<T = any> extends EventEmitter implements AsyncIterable<T> {
    * Destroy the provider
    */
   async destroy () {
-    console.log('Destroying provider')
+    // console.log('Destroying provider')
     // Logic to destroy the provider and iterators
     this.unwatchBlocks?.()
     this.unwatchContractEvents?.()

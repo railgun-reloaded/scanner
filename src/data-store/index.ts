@@ -3,11 +3,31 @@ import fs from 'node:fs'
 import * as msgpk from '@msgpack/msgpack'
 
 /**
+ *  Reads a file and decodes its contents using MessagePack.
+ * @param filePath - Path of the file to read.
+ * @returns The decoded data or undefined if the file does not exist or an error occurs.
+ */
+const readFile = <T>(filePath: string) => {
+  if (!fs.existsSync(filePath)) {
+    console.error(`File not found: ${filePath}`)
+    return undefined
+  }
+  try {
+    const data = fs.readFileSync(filePath)
+    const decoded = msgpk.decode(data)
+    return decoded as T
+  } catch (error) {
+    console.error(`Error reading or parsing file: ${filePath}`, error)
+    return undefined
+  }
+}
+
+/**
  * Saves a JSON file to the specified path.
  * @param filePath - The path to the file where the data will be saved
  * @param data - The data to be saved
  */
-const saveJSONFile = (filePath: string, data: any) => {
+const saveFile = (filePath: string, data: any) => {
   try {
     // this is because treehandler is expecting stringified json object
     // giving it bigints will give invalid merkle root
@@ -41,4 +61,4 @@ const stringifyBigInts = (obj: any): any => {
   return obj
 }
 
-export { saveJSONFile }
+export { saveFile, readFile }

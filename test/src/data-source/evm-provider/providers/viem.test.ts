@@ -140,7 +140,6 @@ test('Viem-Provider:chainIdToNetwork', async (t) => {
   t.is(provider.chainIdToNetwork(137).name, 'Polygon')
 
   // Test unsupported chain ID
-  console.log('Should throw an error for unsupported chain ID')
   t.test('Should throw an error for unsupported chain ID', (a) => {
     try {
       provider.chainIdToNetwork(999)

@@ -46,7 +46,7 @@ const getAbiForNetworkBlockRange = (networkName: NetworkName, start: bigint, end
   }
 
   const filteredUpgrades = networkUpgrades.filter((upgrade: NetworkUpgrade) => {
-    return upgrade.blockHeight >= start && upgrade.blockHeight <= end
+    return start >= upgrade.blockHeight && end >= upgrade.blockHeight
   })
 
   if (filteredUpgrades.length === 0) {

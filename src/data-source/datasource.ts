@@ -48,6 +48,11 @@ interface DataSource<T extends Data> {
    * If an error is provided, this should be thrown from all active iterators.
    */
   destroy(error?: Error): void;
+
+  // initialize hook
+  initialize(): Promise<void>;
+
+  from (options: { startBlock: bigint, endBlock: bigint | 'latest' }): AsyncGenerator<T | undefined>;
 }
 
 export type { DataSource }

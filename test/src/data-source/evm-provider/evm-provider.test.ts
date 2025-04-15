@@ -5,6 +5,7 @@ import { ABIRailgunSmartWallet } from '../../../../src/abi/abi'
 import { EVMProvider } from '../../../../src/data-source'
 import { EthersProvider, RAILGUN_SCAN_START_BLOCK_V2 } from '../../../../src/data-source/evm-provider/providers/ethers'
 import { delay } from '../../../../src/data-source/utils'
+import { NetworkName } from '../../../../src/globals/constants'
 const TEST_CONTRACT_ADDRESS = '0xFA7093CDD9EE6932B4eb2c9e1cde7CE00B1FA4b9'
 dotenv.config()
 const TEST_RPC_URL = process.env['TEST_RPC_URL_HTTPS']
@@ -18,6 +19,7 @@ const getTestEVMProvider = () => {
     throw new Error('TEST_RPC_URL is not set')
   }
   const provider = new EthersProvider(
+    NetworkName.Ethereum,
     TEST_RPC_URL!,
     TEST_CONTRACT_ADDRESS,
     ABIRailgunSmartWallet,
@@ -54,7 +56,7 @@ test('EVM-Provider:EthersProvider:read (iterator)', async (t) => {
 
   for await (const event of datasource.read()) {
     // console.log('FoundEvent', event)
-    t.pass(`EVM-Provider:http:iterator FoundEvent: ${event?.event.fragment.name}`)
+    t.pass('EVM-Provider:http:iterator FoundEvent: }' + event)
   }
 
   t.is(datasource.syncing, false)
@@ -85,7 +87,8 @@ test('EVM-Provider:EthersProvider:from', async (t) => {
   }
   for await (const event of datasource.from(scanOptions)) {
     // console.log('FoundEvent', event)
-    t.pass(`EVM-Provider:http:iterator FoundEvent: ${event.length}`)
+    // con
+    t.pass(`EVM-Provider:http:iterator FoundEvent: ${event?.blockHeight}`)
   }
 
   // setTimeout(async () => {

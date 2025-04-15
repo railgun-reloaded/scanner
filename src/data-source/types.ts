@@ -2,7 +2,8 @@ import type { ContractEventPayload } from 'ethers'
 
 // TODO:
 type Data = {
-
+  blockHeight: bigint
+  event: ContractEventPayload
 }
 // TODO:
 

@@ -53,7 +53,8 @@ class EVMProvider implements DataSource<RPCData> {
     this.provider = provider
     // BE SURE TO CALL THIS PRIOR TO USING THE PROVIDER
     // HERE NOW TO GET IT WORKING
-    this.initialize()
+    // aggregator will call this function upon source map initilization.
+    // this.initialize()
   }
 
   /**
@@ -151,20 +152,27 @@ class EVMProvider implements DataSource<RPCData> {
    * @returns - An async generator that yields events
    * @yields T - The data read from the source
    */
-  async * from (options: { startBlock: bigint, endBlock: bigint }) {
+  async * from (options: { startBlock: bigint, endBlock: bigint | 'latest' }): AsyncGenerator<RPCData | undefined> {
     const { startBlock, endBlock } = options
     this.syncing = true
-    for await (const event of this.provider.from({ startBlock, endBlock })) {
+    // TODO:  latest blockcalculation
+    const endBlockNumber = endBlock === 'latest' ? this.blockHeight : endBlock
+    for await (const event of this.provider.from({ startBlock, endBlock: endBlockNumber })) {
       const target = event[event.length - 1]
       if (typeof target !== 'undefined') {
         if ('blockNumber' in target) {
-          console.log('setting blockheight', target.blockNumber)
+          // console.log('setting blockheight', target.blockNumber)
           this.blockHeight = BigInt(target.blockNumber)
         }
       }
-      yield event
+      // Use the resolved endBlockNumber instead of endBlock which could be 'latest'
+      const blockHeight = endBlockNumber
+      // TODO fix this typeshit
+      // @ts-ignore
+      yield { blockHeight, event: target }
     }
-    this.syncing = false
+    // this will effectively kill the read iterator above
+    // this.syncing = false
   }
 }
 

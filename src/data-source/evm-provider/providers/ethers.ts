@@ -2,6 +2,8 @@ import EventEmitter from 'node:events'
 
 import { Contract, JsonRpcProvider, Network, WebSocketProvider } from 'ethers'
 
+import type { NetworkName } from '../../../globals'
+import { getAbiForNetworkBlockRange } from '../../../utils'
 import { delay, promiseTimeout } from '../../utils'
 
 const SCAN_CHUNKS = 1000n
@@ -59,7 +61,18 @@ class EthersProvider<T = any> extends EventEmitter implements AsyncIterable<T> {
   initializedResolve: any
 
   /**
+   * contract address
+   */
+  address: string
+
+  /**
+   * network name
+   */
+  network: NetworkName
+
+  /**
    * constructor for EthersProvider
+   * @param networkName - The network name
    * @param url - The provider URL
    * @param address - The contract address
    * @param abi - The contract ABI
@@ -67,13 +80,14 @@ class EthersProvider<T = any> extends EventEmitter implements AsyncIterable<T> {
    * @param options.ws - Whether to use WebSocket or not
    * @param options.chainId - The chain ID
    */
-  constructor (url: string, address: string, abi: any, options: { chainId: number, ws?: boolean /* add in more options later */ }) {
+  constructor (networkName: NetworkName, url: string, address: string, abi: any, options: { chainId: number, ws?: boolean /* add in more options later */ }) {
     super()
     // Initialization code if needed
     this.url = url
     this.lastScannedBlock = BigInt(0)
     this.syncing = false
     this.startBlock = BigInt(0)
+    this.network = networkName
     const network = Network.from(options.chainId)
     this.provider = options.ws
       ? new WebSocketProvider(url)
@@ -84,6 +98,7 @@ class EthersProvider<T = any> extends EventEmitter implements AsyncIterable<T> {
       })
       // TODO: separate this out, pollingContract & scanningContract
       // TODO: create latestEvents[] and syncedEvents[]
+    this.address = address
     this.contract = new Contract(address, abi, this.provider)
     this.initialized = false
     this.initializedPromise = new Promise((resolve) => {
@@ -184,19 +199,34 @@ class EthersProvider<T = any> extends EventEmitter implements AsyncIterable<T> {
         break
       }
       const startChunk = currentOffset
-      const events = await promiseTimeout(
-        this.contract.queryFilter('*', startChunk, startChunk + SCAN_CHUNKS),
-        EVENTS_SCAN_TIMEOUT,
-        SCAN_TIMEOUT_ERROR_MESSAGE
-      )
-      // these get pushed into syncedEvents[]
-      yield events
-      currentOffset += SCAN_CHUNKS + 1n
-      this.lastScannedBlock = currentOffset - 1n// scan is inclusive
-      // if (currentOffset > endBlock) {
-      //   currentOffset = endBlock
-      // }
-      await delay(250) // Delay to avoid rate limiting, can avoid this with forking...
+      const start = startChunk
+      const end = startChunk + SCAN_CHUNKS
+      const abi = getAbiForNetworkBlockRange(this.network, start, end)
+      // console.log(abi.length)
+      for (const abib of abi) {
+        const contract = new Contract(this.address, abib, this.provider)
+        // console.log('Contract:')
+        // console.log('Scanning from', startChunk, 'to', startChunk + SCAN_CHUNKS)
+        const events = await promiseTimeout(
+          contract.queryFilter('*', start, end),
+          EVENTS_SCAN_TIMEOUT,
+          SCAN_TIMEOUT_ERROR_MESSAGE
+        ).catch((_err) => {
+          // console.log('Error in queryFilter:', err.message)
+          return []
+        })
+        yield events
+        // for (const event of events) {
+        //   yield event
+        // }
+        // these get pushed into syncedEvents[]
+        currentOffset += SCAN_CHUNKS + 1n
+        this.lastScannedBlock = currentOffset - 1n// scan is inclusive
+        // if (currentOffset > endBlock) {
+        //   currentOffset = endBlock
+        // }
+        await delay(250) // Delay to avoid rate limiting, can avoid this with forking...
+      }
     }
   }
 
