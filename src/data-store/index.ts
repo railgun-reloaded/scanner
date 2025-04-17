@@ -32,8 +32,10 @@ const saveFile = (filePath: string, data: any) => {
     // this is because treehandler is expecting stringified json object
     // giving it bigints will give invalid merkle root
     // OG: const encoded = msgpk.encode(data, {useBigInt64: true});
+    // this should chunk the data and write it sequentially,
+    // append only style...
     const encoded = msgpk.encode(stringifyBigInts(data))
-    fs.writeFileSync(filePath, Buffer.from(encoded))
+    fs.writeFileSync(filePath, encoded)
   } catch (error) {
     console.error(`Error writing to file: ${filePath}`, error)
   }

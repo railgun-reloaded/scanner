@@ -1,6 +1,6 @@
 import type { DataSource } from '../data-source'
 import type { Data } from '../data-source/types'
-import { readFile, saveFile } from '../data-store'
+import { readFile } from '../data-store'
 import { NetworkName, RailgunProxyDeploymentBlock } from '../globals'
 
 // aggregates multiple data sources into a single complete source of railgun history.
@@ -102,9 +102,8 @@ class SourceAggregator<T extends Data> {
     if (block) {
       // console.log('DataStorageFound')//
       // we have found storage. lets load it.
-
-      const { events: storedEvents } = block
-      console.log('StoredEvents', storedEvents.length)
+      const { blockHeight, events: storedEvents } = block
+      console.log('SyncingFrom', blockHeight, 'total events:', storedEvents.length)
       // const val = 0n
       const lastBlockEvent =
       storedEvents?.find((event) => {
@@ -118,8 +117,8 @@ class SourceAggregator<T extends Data> {
         return false
         // return val
       })
-
-      console.log('StartBlock', lastBlockEvent)
+      // events.push(...storedEvents)
+      // console.log('StartBlock', lastBlockEvent)
       startBlock = BigInt(lastBlockEvent.event.blockNumber) + 1n
     } else {
       // console.log('Creating DataBank')
@@ -129,28 +128,30 @@ class SourceAggregator<T extends Data> {
       // pull latest block from datastore.
 
     }
+    // get latest block number.
+
     for (const source of this.sources) {
       for await (const event of source.from({
         startBlock,
-        endBlock: 'latest',
+        endBlock: 22284613n // TODO: get latest block number from source.
       })) {
         if (event) {
-          // console.log('FoundEvent', event?.event?.eventName)
-          // @ts-ignore
-          // console.log('FoundEvent', event)
-          // for (const e of) {
           events.push(event)
-          // }
         }
       }
-      saveFile(this.storage, { events })
-      let total = 0
-      for (const event of events) {
-        total += event.event.log.args.length
-      }
-      console.log('FlatEvents', total)
-      console.log('FoundEvents', events.length)
+      // console.log('FlatEvents', total)
+      // console.log('FoundEvents', events.length)
     }
+    const flat = events.flatMap((event) => {
+      // console.log('FlatEvent', event)
+      // console.log('args', event.event.args)
+      // console.log('Event', event.event?.args?.length > 0)
+
+      return event.event
+    })
+    console.log('FlatEvents', flat.length)
+    console.log('SAVING EVENTS', events.length)
+    // saveFile(this.storage, { blockHeight: events[events.length - 1]?.blockHeight, events })
   }
 }
 export { SourceAggregator }

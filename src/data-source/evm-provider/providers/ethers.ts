@@ -6,7 +6,7 @@ import type { NetworkName } from '../../../globals'
 import { getAbiForNetworkBlockRange } from '../../../utils'
 import { delay, promiseTimeout } from '../../utils'
 
-const SCAN_CHUNKS = 500_000n
+const SCAN_CHUNKS = 50_000n
 const EVENTS_SCAN_TIMEOUT = 2000
 const SCAN_TIMEOUT_ERROR_MESSAGE = 'getLogs request timed out after 5 seconds.'
 const RAILGUN_SCAN_START_BLOCK = 14693000n
@@ -194,6 +194,10 @@ class EthersProvider<T = any> extends EventEmitter implements AsyncIterable<T> {
     // Logic to iterate from a given height
     // const TOTAL_BLOCKS = BigInt(endBlock) - BigInt(startBlock)
     let currentOffset = startBlock
+
+    // Set to track processed event IDs to prevent duplicates
+    const processedEventIds = new Set<string>()
+
     while (true) {
       if (currentOffset >= endBlock) {
         break
@@ -201,8 +205,15 @@ class EthersProvider<T = any> extends EventEmitter implements AsyncIterable<T> {
       const startChunk = currentOffset
       const start = startChunk
       const end = startChunk + SCAN_CHUNKS
+      console.log('inputs', start, end)
       const abi = getAbiForNetworkBlockRange(this.network, start, end)
       // console.log(abi.length)
+      if (abi.length > 1) {
+        console.log('MULTI ABI FOUND', start, end, abi.length)
+        // currentOffset += SCAN_CHUNKS + 1n
+        // continue
+      }
+      // console.log('ABI', abi.length)
       for (const abib of abi) {
         const contract = new Contract(this.address, abib, this.provider)
         // console.log('Contract:')
@@ -215,18 +226,37 @@ class EthersProvider<T = any> extends EventEmitter implements AsyncIterable<T> {
           // console.log('Error in queryFilter:', err.message)
           return []
         })
-        yield events
+
+        // Filter out duplicate events
+        const uniqueEvents = events.filter(event => {
+          // Create a unique identifier for each event using its transaction hash and log index
+          const eventId = `${event.transactionHash}-${event.transactionIndex}-${event.index}`
+
+          if (!('fragment' in event)) {
+            // console.log('Fragment not undefined', event)
+            return false
+          }
+          if (processedEventIds.has(eventId)) {
+            // console.log('Duplicate event found:', event)
+            return false
+          }
+
+          processedEventIds.add(eventId)
+          return true
+        })
+
+        yield uniqueEvents
         // for (const event of events) {
         //   yield event
         // }
         // these get pushed into syncedEvents[]
-        currentOffset += SCAN_CHUNKS + 1n
-        this.lastScannedBlock = currentOffset - 1n// scan is inclusive
         // if (currentOffset > endBlock) {
         //   currentOffset = endBlock
         // }
         await delay(250) // Delay to avoid rate limiting, can avoid this with forking...
       }
+      currentOffset += SCAN_CHUNKS + 1n
+      this.lastScannedBlock = currentOffset - 1n// scan is inclusive
     }
   }
 

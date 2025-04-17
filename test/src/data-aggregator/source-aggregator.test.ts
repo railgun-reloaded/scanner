@@ -47,11 +47,12 @@ solo('Source should sync from zero state given a single evm provider', async (t)
   await aggregator.sync()
   const START_TESTING_BLOCK = RailgunProxyDeploymentBlock[NetworkName.Ethereum]
   // Kills source to exit test.
-  // setTimeout(async () => {
-  //   await datasource.destroy()
-  // }, 50_000)
+
+  setTimeout(async () => {
+    await datasource.destroy()
+  }, 20_000)
   for await (const event of (await aggregator.read(BigInt(START_TESTING_BLOCK)))) {
-    // console.log('FoundEvent', event)
+    console.log('FoundEvent', event)
     // t.pass('EVM-Provider:http:iterator FoundEvent')
     if (event?.blockHeight) {
       t.is(event.blockHeight > BigInt(START_TESTING_BLOCK), true)

@@ -169,6 +169,7 @@ class EVMProvider implements DataSource<RPCData> {
       const blockHeight = endBlockNumber
       //
       for (const e of event) {
+        this.blockHeight = BigInt(e.blockNumber)
         // console.log('event')
         // @ts-ignore TODO: Fix this
         yield { blockHeight, event: e }

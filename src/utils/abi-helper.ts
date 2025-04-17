@@ -44,16 +44,37 @@ const getAbiForNetworkBlockRange = (networkName: NetworkName, start: bigint, end
   if (!networkUpgrades) {
     throw new Error(`No network upgrades found for ${networkName}`)
   }
+  // use for loop to gather the proper abis
+  const relevantAbis: any[] = []
 
-  const filteredUpgrades = networkUpgrades.filter((upgrade: NetworkUpgrade) => {
-    return start >= upgrade.blockHeight && end >= upgrade.blockHeight
-  })
+  for (let i = 0; i < networkUpgrades.length; i++) {
+    const upgrade = networkUpgrades[i]
+    const nextUpgrade = networkUpgrades[i + 1]
 
-  if (filteredUpgrades.length === 0) {
+    // If the upgrade block is within or before our range
+    if (upgrade.blockHeight <= end) {
+      // If this is the last upgrade or the next upgrade is after our start
+      if (!nextUpgrade || nextUpgrade.blockHeight >= start) {
+        relevantAbis.push(upgrade.abi)
+      }
+    }
+  }
+
+  if (relevantAbis.length === 0) {
     throw new Error(`No ABI data found for ${networkName} between blocks ${start} and ${end}`)
   }
 
-  return filteredUpgrades.map((upgrade: NetworkUpgrade) => upgrade.abi)
+  return relevantAbis
+  // const filteredUpgrades = networkUpgrades.filter((upgrade: NetworkUpgrade) => {
+  //   return upgrade.blockHeight <= start && upgrade.blockHeight <= end
+  // })
+
+  // if (filteredUpgrades.length === 0) {
+  //   throw new Error(`No ABI data found for ${networkName} between blocks ${start} and ${end}`)
+  // }
+
+  // return filteredUpgrades.map((upgrade: NetworkUpgrade) => upgrade.abi)
 }
 
+export type { NetworkUpgrade }
 export { getAbiForNetworkBlockRange }
