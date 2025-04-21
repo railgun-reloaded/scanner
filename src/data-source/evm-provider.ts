@@ -61,8 +61,8 @@ class EVMProvider implements DataSource<RPCData> {
    * Initializes the provider and prepares it for use.
    */
   async initialize (): Promise<void> {
-    await this.provider.awaitInitialized()
     this.setupListeners()
+    await this.provider.awaitInitialized()
   }
 
   /**

@@ -1,29 +1,74 @@
-import { RailgunLogicV1, RailgunSmartWalletV2, RailgunSmartWalletV21 } from '@railgun-reloaded/contract-abis'
+import { RailgunSmartWalletV2, RailgunSmartWalletV21 } from '@railgun-reloaded/contract-abis'
+// use the abis from ../../abi
+import { Interface } from 'ethers'
 
 import { NetworkName, RailgunProxyDeploymentBlock } from '../globals/constants'
 
 type NetworkUpgrade = {
   blockHeight: bigint
-  abi: any
+  abi: any,
+  eventTopics: string[]
 }
 
-const NETWORK_UPGRADE_BLOCKS = {
+/**
+ * Network upgrade blocks
+ * @param abi - The ABI to get event topic hashes for
+ * @returns - An array of event topic hashes
+ */
+const getEventTopicHashesForAbi = (abi: any): string[] => {
+  const iface = new Interface(abi)
+  const toInclude = [
+    'Nullified',
+    'Shield',
+    'Transact',
+    'Unshield',
+    'CommitmentBatch',
+    'GeneratedCommitmentBatch',
+    'Nullifiers'
+  ]
+  const eventNames: string[] = abi.filter((item: any) => item.type === 'event' && toInclude.includes(item.name)).map((item: any) => item.name)
+  const eventTopicHashes = eventNames.map((eventName) => iface.getEvent(eventName)?.topicHash.toLowerCase() ?? undefined)
+  console.log('EventNames', eventNames, eventTopicHashes.length)
+  // remove undefined
+  // TODO: typefix this
+  const output = eventTopicHashes.filter((topic: any) => topic !== undefined) as string[]
+  // filter out undefined
+  if (output.length === 0) {
+    return []
+  }
+  return output
+}
+
+const NETWORK_UPGRADE_BLOCKS: Record<NetworkName, NetworkUpgrade[]> = {
   // Add your network deployment blocks here
   // Example: 'networkName': BigInt(deploymentBlockNumber),
   [NetworkName.Ethereum]: [
     {
-      blockHeight: BigInt(RailgunProxyDeploymentBlock[NetworkName.Ethereum]),
-      abi: RailgunLogicV1
+      blockHeight: BigInt(RailgunProxyDeploymentBlock[NetworkName.Ethereum]) - 1n,
+      abi: RailgunSmartWalletV2,
+      eventTopics: getEventTopicHashesForAbi(RailgunSmartWalletV2)
     },
-    {
-      blockHeight: 15964145n,
-      abi: RailgunSmartWalletV2
-    },
+    // {
+    //   blockHeight: 15964145n,
+    //   abi: RailgunSmartWalletV2,
+    //   eventTopics: getEventTopicHashesForAbi(RailgunSmartWalletV2)
+    // },
     {
       blockHeight: 16714777n,
-      abi: RailgunSmartWalletV21
+      abi: RailgunSmartWalletV21,
+      eventTopics: getEventTopicHashesForAbi(RailgunSmartWalletV21)
     },
   ],
+  [NetworkName.BNBChain]: [],
+  [NetworkName.Polygon]: [],
+  [NetworkName.Arbitrum]: [],
+  [NetworkName.EthereumSepolia]: [],
+  [NetworkName.PolygonAmoy]: [],
+  [NetworkName.Hardhat]: [],
+  [NetworkName.EthereumRopsten_DEPRECATED]: [],
+  [NetworkName.EthereumGoerli_DEPRECATED]: [],
+  [NetworkName.ArbitrumGoerli_DEPRECATED]: [],
+  [NetworkName.PolygonMumbai_DEPRECATED]: []
 }
 
 /**
@@ -45,17 +90,19 @@ const getAbiForNetworkBlockRange = (networkName: NetworkName, start: bigint, end
     throw new Error(`No network upgrades found for ${networkName}`)
   }
   // use for loop to gather the proper abis
-  const relevantAbis: any[] = []
+  const relevantAbis = []
 
   for (let i = 0; i < networkUpgrades.length; i++) {
     const upgrade = networkUpgrades[i]
     const nextUpgrade = networkUpgrades[i + 1]
-
+    if (!upgrade) {
+      continue
+    }
     // If the upgrade block is within or before our range
     if (upgrade.blockHeight <= end) {
       // If this is the last upgrade or the next upgrade is after our start
-      if (!nextUpgrade || nextUpgrade.blockHeight >= start) {
-        relevantAbis.push(upgrade.abi)
+      if (!nextUpgrade || nextUpgrade.blockHeight >= end) {
+        relevantAbis.push(upgrade)
       }
     }
   }

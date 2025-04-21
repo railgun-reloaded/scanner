@@ -119,6 +119,9 @@ class EthersProvider<T = any> extends EventEmitter implements AsyncIterable<T> {
     //   console.log('Pending transaction:', tx)
     // })
 
+    const blockNum = await this.provider.getBlock('latest')
+    this.emit('newHead', BigInt(blockNum?.number ?? 0))
+
     this.provider.on('block', (blockNumber) => {
       // TODO: Handle block event
       // console.log('New block:', blockNumber)
@@ -218,6 +221,8 @@ class EthersProvider<T = any> extends EventEmitter implements AsyncIterable<T> {
         const contract = new Contract(this.address, abib, this.provider)
         // console.log('Contract:')
         // console.log('Scanning from', startChunk, 'to', startChunk + SCAN_CHUNKS)
+        const decodeInterface = contract.interface
+
         const events = await promiseTimeout(
           contract.queryFilter('*', start, end),
           EVENTS_SCAN_TIMEOUT,
@@ -232,10 +237,10 @@ class EthersProvider<T = any> extends EventEmitter implements AsyncIterable<T> {
           // Create a unique identifier for each event using its transaction hash and log index
           const eventId = `${event.transactionHash}-${event.transactionIndex}-${event.index}`
 
-          if (!('fragment' in event)) {
-            // console.log('Fragment not undefined', event)
-            return false
-          }
+          // if (!('fragment' in event)) {
+          //   // console.log('Fragment not undefined', event)
+          //   return false
+          // }
           if (processedEventIds.has(eventId)) {
             // console.log('Duplicate event found:', event)
             return false
@@ -244,8 +249,46 @@ class EthersProvider<T = any> extends EventEmitter implements AsyncIterable<T> {
           processedEventIds.add(eventId)
           return true
         })
+        // format events
+        const formatted = []
+        for (const event of uniqueEvents) {
+          // console.log('Event:', event)
 
-        yield uniqueEvents
+          // Decode the event using the interface to get named arguments
+          const decoded = decodeInterface.parseLog({
+            topics: event.topics,
+            data: event.data
+          })
+
+          // Create a human-readable object with named arguments from the event
+          const parsedArgs: Record<string, any> = {}
+          if (decoded && decoded.args) {
+            // Map each argument to its corresponding name from the fragment inputs
+            if (decoded.fragment && decoded.fragment.inputs) {
+              decoded.fragment.inputs.forEach((input, index) => {
+                if (input.name) {
+                  parsedArgs[input.name] = decoded.args[index]
+                }
+              })
+            }
+
+            // Add any named properties that might be directly accessible
+            for (const key in decoded.args) {
+              if (isNaN(Number(key))) { // Skip numeric indices
+                parsedArgs[key] = decoded.args[key]
+              }
+            }
+          }
+          const output = {
+            name: decoded?.name,
+            args: parsedArgs,
+            blockNumber: event.blockNumber,
+            transactionHash: event.transactionHash,
+            logIndex: event.index,
+          }
+          formatted.push(output)
+        }
+        yield formatted
         // for (const event of events) {
         //   yield event
         // }
