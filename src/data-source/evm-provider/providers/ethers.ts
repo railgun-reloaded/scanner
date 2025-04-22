@@ -220,7 +220,7 @@ class EthersProvider<T = any> extends EventEmitter implements AsyncIterable<T> {
       }
       const startChunk = currentOffset
       const start = startChunk
-      const end = startChunk + SCAN_CHUNKS - 1n
+      const end = startChunk + SCAN_CHUNKS + 1n
 
       console.log('inputs', start, end)
       const abi = getAbiForNetworkBlockRange(this.network, start, end)
