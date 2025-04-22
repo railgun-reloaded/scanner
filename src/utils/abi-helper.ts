@@ -1,5 +1,6 @@
 import { RailgunSmartWalletV2, RailgunSmartWalletV21 } from '@railgun-reloaded/contract-abis'
 // use the abis from ../../abi
+import type { EventFragment } from 'ethers'
 import { Interface } from 'ethers'
 
 import { NetworkName, RailgunProxyDeploymentBlock } from '../globals/constants'
@@ -8,6 +9,69 @@ type NetworkUpgrade = {
   blockHeight: bigint
   abi: any,
   eventTopics: string[]
+}
+
+// build fragment list for all abis
+// v2 and v21 hold all the abi needed. we just need 'transact' from v2... only if its activated.
+// some deployments happenend with v21 abi.
+
+/**
+ * Get event topic hashes for a given ABI and event names.
+ * @param abi - The ABI to get event topic hashes for
+ * @param eventNames  - The event names to get topic hashes for
+ * @returns - An array of event topic hashes
+ */
+const getEventsFromAbi = (abi: any, eventNames: string[]): EventFragment[] => {
+  const iface = new Interface(abi)
+  const events = eventNames.map((eventName) => {
+    const event = iface.getEvent(eventName)
+    if (event) {
+      return event
+    }
+    return undefined
+  }
+  )
+  // filter out undefineds
+  const filteredEvents = events.filter((event) => event !== undefined)
+  const iface2 = new Interface(filteredEvents)
+  console.log('FilteredEvents', filteredEvents.length, iface2)
+
+  return filteredEvents
+}
+
+/**
+ * Get event topic hashes for a given ABI.
+ * @param events - The events to get topic hashes for
+ * @returns - An array of event topic hashes
+ */
+const getTopicHashesFromEvents = (events: EventFragment[]): string[] => {
+  const topicHashes = events.map((event) => event.topicHash.toLowerCase())
+  return topicHashes
+}
+
+const combinedFragments = [
+  ...getEventsFromAbi(RailgunSmartWalletV2, ['Transact',]),
+  ...getEventsFromAbi(RailgunSmartWalletV21, [
+    'Nullified',
+    'Shield',
+    'Transact',
+    'Unshield',
+    'CommitmentBatch',
+    'GeneratedCommitmentBatch',
+    'Nullifiers'])
+]
+
+const ABI_FOR_NETWORK_UPGRADE_BLOCKS = {
+  [NetworkName.Ethereum]: [
+    {
+      blockHeight: 0n, // BigInt(RailgunProxyDeploymentBlock[NetworkName.Ethereum]) - 100_000n,
+      // abi: RailgunSmartWalletV21,
+      abi: combinedFragments,
+      eventTopics: getTopicHashesFromEvents(combinedFragments)
+      // eventTopics: getEventTopicHashesForAbi(RailgunSmartWalletV2)
+    },
+
+  ]
 }
 
 /**
@@ -38,7 +102,6 @@ const getEventTopicHashesForAbi = (abi: any): string[] => {
   }
   return output
 }
-
 const NETWORK_UPGRADE_BLOCKS: Record<NetworkName, NetworkUpgrade[]> = {
   // Add your network deployment blocks here
   // Example: 'networkName': BigInt(deploymentBlockNumber),
@@ -85,7 +148,8 @@ const getAbiForNetworkBlockRange = (networkName: NetworkName, start: bigint, end
   }
   // TODO: fix this typeshit
   // @ts-ignore
-  const networkUpgrades = NETWORK_UPGRADE_BLOCKS[networkName]
+  // const networkUpgrades = NETWORK_UPGRADE_BLOCKS[networkName]
+  const networkUpgrades = ABI_FOR_NETWORK_UPGRADE_BLOCKS[networkName]
   if (!networkUpgrades) {
     throw new Error(`No network upgrades found for ${networkName}`)
   }
@@ -124,4 +188,4 @@ const getAbiForNetworkBlockRange = (networkName: NetworkName, start: bigint, end
 }
 
 export type { NetworkUpgrade }
-export { getAbiForNetworkBlockRange }
+export { getAbiForNetworkBlockRange, getEventsFromAbi, NETWORK_UPGRADE_BLOCKS }
