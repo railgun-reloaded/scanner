@@ -98,7 +98,7 @@ class SourceAggregator<T extends Data> {
     // check localCache, if none make it.
     const block = readFile<{ blockHeight: bigint; events: any[] }>(this.storage)
     const events = []
-    let startBlock = BigInt(RailgunProxyDeploymentBlock[NetworkName.Ethereum])
+    let startBlock = BigInt(RailgunProxyDeploymentBlock[NetworkName.Ethereum] - 100_000)
     if (block) {
       // console.log('DataStorageFound')//
       // we have found storage. lets load it.
@@ -131,9 +131,10 @@ class SourceAggregator<T extends Data> {
     // get latest block number.
 
     for (const source of this.sources) {
+      console.log('latest block', source.head)
       for await (const event of source.from({
         startBlock,
-        endBlock: 22284613n // TODO: get latest block number from source.
+        endBlock: source.head // TODO: get latest block number from source.
       })) {
         if (event) {
           events.push(event)
@@ -142,14 +143,63 @@ class SourceAggregator<T extends Data> {
       // console.log('FlatEvents', total)
       // console.log('FoundEvents', events.length)
     }
-    const flat = events.flatMap((event) => {
-      // console.log('FlatEvent', event)
-      // console.log('args', event.event.args)
-      // console.log('Event', event.event?.args?.length > 0)
+    // const flat = events.flatMap((event) => {
+    //   // console.log('FlatEvent', event)
+    //   // console.log('args', event.event.args)
+    //   // console.log('Event', event.event?.args?.length > 0)
 
-      return event.event
-    })
-    console.log('FlatEvents', flat.length)
+    //   return event.event
+    // })
+    // console.log('FlatEvents', flat.length)
+    // sort events by fragment name
+    const sortedObj = {} as Record<string, any[]>
+    for (const event of events) {
+      // console.log('event', event)
+      // @ts-ignore
+      if (event?.event?.name) {
+      // @ts-ignore - reformatted slightly
+
+        const name = event.event.name
+        if (!sortedObj[name]) {
+          sortedObj[name] = []
+        }
+        sortedObj[name].push(event)
+      } else {
+        console.log('Event', event)
+      }
+    }
+    // console.log('SortedEvents', sortedObj)
+    console.log('SortedEvents', Object.keys(sortedObj))
+    for (const key in sortedObj) {
+      console.log('SortedEvents', key, sortedObj?.[key]?.length)
+    }
+    // find out how many commitment leaves there are in utxo tree
+
+    // shield generatedCommitmentBatch .commitments.length
+    console.log('ShieldEvents', sortedObj['GeneratedCommitmentBatch']?.at(0))
+    const shields = [...(sortedObj['GeneratedCommitmentBatch'] ?? []), ...(sortedObj['Shield'] ?? [])]
+
+    // console.log('lastShieldEvent', shields.at(-1))
+    console.log(events.at(-1))
+    const shieldCount = shields.reduce((acc, event) => {
+      const { args } = event.event
+      // serialize the obj based off the fragment so we have a labled object output
+      if (args) {
+        if (args && args.commitments) {
+          return acc + args.commitments.length
+        } else { console.log('NoCommitments', args) }
+      }
+      return acc
+    }, 0) ?? 0
+
+    const transacts = [...(sortedObj['CommitmentBatch'] ?? []), ...(sortedObj['Transact'] ?? []),]
+    const transactCount = transacts.reduce((acc, event) => {
+      const { args } = event.event
+      // console.log('args', args)
+      return acc + (args?.hash?.length ?? 0)
+    }, 0) ?? 0
+    console.log('leaves', shieldCount + transactCount)
+    // console.log('SortedEvents', sortedObj['Transfer'])
     console.log('SAVING EVENTS', events.length)
     // saveFile(this.storage, { blockHeight: events[events.length - 1]?.blockHeight, events })
   }
