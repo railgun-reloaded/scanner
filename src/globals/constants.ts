@@ -71,7 +71,7 @@ const RelayAdaptContract: Record<NetworkName, string> = {
 
 const RailgunProxyDeploymentBlock: Record<NetworkName, number> = {
   // Main nets
-  [NetworkName.Ethereum]: 14737691,
+  [NetworkName.Ethereum]: 14693000,
   [NetworkName.BNBChain]: 17633701,
   [NetworkName.Polygon]: 28083766,
   [NetworkName.Arbitrum]: 56109834,
