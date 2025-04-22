@@ -1,13 +1,13 @@
 import EventEmitter from 'node:events'
 
-import { Contract, JsonRpcProvider, Network, WebSocketProvider } from 'ethers'
+import { Contract, Interface, JsonRpcProvider, Network, WebSocketProvider } from 'ethers'
 
 import type { NetworkName } from '../../../globals'
 import { getAbiForNetworkBlockRange } from '../../../utils'
 import { delay, promiseTimeout } from '../../utils'
 
-const SCAN_CHUNKS = 50_000n
-const EVENTS_SCAN_TIMEOUT = 2000
+const SCAN_CHUNKS = 5_000n // need to categorize this by provider, they each have their own limits. 500 is base low. we can attempt to just 'find it' but this can also incur 'ratelimits' that will effect the calculation 'guestimate' of this value.
+const EVENTS_SCAN_TIMEOUT = 20_000
 const SCAN_TIMEOUT_ERROR_MESSAGE = 'getLogs request timed out after 5 seconds.'
 const RAILGUN_SCAN_START_BLOCK = 14693000n
 const RAILGUN_SCAN_START_BLOCK_V2 = 16076000n
@@ -199,7 +199,7 @@ class EthersProvider<T = any> extends EventEmitter implements AsyncIterable<T> {
     let currentOffset = startBlock
 
     // Set to track processed event IDs to prevent duplicates
-    const processedEventIds = new Set<string>()
+    const processedEventIds = new Set()
 
     while (true) {
       if (currentOffset >= endBlock) {
@@ -207,7 +207,8 @@ class EthersProvider<T = any> extends EventEmitter implements AsyncIterable<T> {
       }
       const startChunk = currentOffset
       const start = startChunk
-      const end = startChunk + SCAN_CHUNKS
+      const end = startChunk + SCAN_CHUNKS - 1n
+
       console.log('inputs', start, end)
       const abi = getAbiForNetworkBlockRange(this.network, start, end)
       // console.log(abi.length)
@@ -217,77 +218,184 @@ class EthersProvider<T = any> extends EventEmitter implements AsyncIterable<T> {
         // continue
       }
       // console.log('ABI', abi.length)
+      let retry = false
+
       for (const abib of abi) {
-        const contract = new Contract(this.address, abib, this.provider)
+        if (retry) {
+          continue
+        }
+        const iface = new Interface(abib.abi)
+        // iface.forEachEvent(async (event) => {
+        // console.log('Event:', event.topicHash)
+        // const contract = new Contract(this.address, abib, this.provider)
         // console.log('Contract:')
         // console.log('Scanning from', startChunk, 'to', startChunk + SCAN_CHUNKS)
-        const decodeInterface = contract.interface
-
+        // const decodeInterface = contract.interface
+        // console.log('topicshashes', abib.eventTopics.length)
         const events = await promiseTimeout(
-          contract.queryFilter('*', start, end),
+          this.provider.getLogs(
+            {
+              // address: this.address,
+              fromBlock: start,
+              toBlock: end,
+              topics: [abib.eventTopics],
+            }
+          ),
           EVENTS_SCAN_TIMEOUT,
           SCAN_TIMEOUT_ERROR_MESSAGE
         ).catch((_err) => {
-          // console.log('Error in queryFilter:', err.message)
-          return []
+          console.log('Error in queryFilter:', _err)
+          retry = true
+          return undefined
         })
-
+        // console.log('events.log', events?.length)
+        // .length)
+        if (!events) {
+          // try again
+          console.log('No events found')
+          // TODO: Properly handle this error, and redo the query
+          // need to break out of while loop an go to next iteration... but impossible this deep in stak
+          retry = true
+          continue
+        }
+        if (!retry) {
+          currentOffset += SCAN_CHUNKS
+          this.lastScannedBlock = currentOffset - 1n// scan is inclusive
+        }
         // Filter out duplicate events
-        const uniqueEvents = events.filter(event => {
-          // Create a unique identifier for each event using its transaction hash and log index
-          const eventId = `${event.transactionHash}-${event.transactionIndex}-${event.index}`
+        // const uniqueEvents = events.filter(event => {
+        //   if (event.data === '0x') {
+        //     // console.log('Event:', event)
+        //     return false
+        //   }
+        //   let included = false
+        //   for (const topic of event.topics) {
+        //     if (abib.eventTopics.includes(topic.toLowerCase())) {
+        //       // console.log('Topic:', topic)
+        //       included = true
+        //       break
+        //     }
+        //   }
+        //   if (!included) {
+        //     return false
+        //   }
+        //   // Create a unique identifier for each event using its transaction hash and log index
+        //   const eventId = `${event.transactionHash}-${event.transactionIndex}-${event.index}`
+        //   // console.log('EventId:', eventId)
+        //   // console.log('Event:', event)
+        //   // if (!('fragment' in event)) {
+        //   //   // console.log('Fragment not undefined', event)
+        //   //   return false
+        //   // }
+        //   if (processedEventIds.has(eventId)) {
+        //     console.log('Duplicate event found:', event)
+        //     return false
+        //   }
 
-          // if (!('fragment' in event)) {
-          //   // console.log('Fragment not undefined', event)
-          //   return false
-          // }
-          if (processedEventIds.has(eventId)) {
-            // console.log('Duplicate event found:', event)
-            return false
-          }
+        //   processedEventIds.add(eventId)
 
-          processedEventIds.add(eventId)
-          return true
-        })
+        //   return true
+        // })
+        // console.log('uniqueEvents', uniqueEvents.length)
         // format events
-        const formatted = []
-        for (const event of uniqueEvents) {
+        const formatted: {
+          name: string
+          args: Record<string, any>
+          blockNumber: number
+          transactionHash: string
+          logIndex: number
+        }[] = []
+        for (const event of events) {
           // console.log('Event:', event)
 
           // Decode the event using the interface to get named arguments
-          const decoded = decodeInterface.parseLog({
-            topics: event.topics,
-            data: event.data
-          })
+          // for (const etopic of abib.eventTopics) {
+          //   console.log('etopic', etopic)
+          //   try {
+          //     const decodedLog = iface.decodeEventLog(etopic, event.data)
+          //     if (decodedLog) {
+          //       console.log('DecodedLog:', decodedLog)
+          //     } else {
+          //       console.log('No decoded log found for event:', event)
+          //     }
+          //   } catch (err) {
+          //     console.log('Error decoding event log:', err, etopic)
+          //   }
+          // }
+          const decoded = iface.parseLog(event)
+
+          // console.log('Decoded:', decoded)
 
           // Create a human-readable object with named arguments from the event
           const parsedArgs: Record<string, any> = {}
           if (decoded && decoded.args) {
+            // console.log('Decoded:', decoded)
             // Map each argument to its corresponding name from the fragment inputs
             if (decoded.fragment && decoded.fragment.inputs) {
               decoded.fragment.inputs.forEach((input, index) => {
                 if (input.name) {
-                  parsedArgs[input.name] = decoded.args[index]
+                  // Recursively decode nested array arguments
+
+                  /**
+                   * d
+                   * @param input -   d
+                   * @param value -d
+                   * @returns -d
+                   */
+                  const parseNestedArgs = (input: any, value: any): any => {
+                    if (input.type.endsWith('[]') && Array.isArray(value) && (input.arrayChildren && input.components)) {
+                      return value.map((item: any) => parseNestedArgs(input.arrayChildren, item))
+                    }
+                    return value
+                  }
+
+                  // console.log('input', parseNestedArgs)
+                  // console.log(input)
+                  parsedArgs[input.name] = parseNestedArgs(input, decoded.args[index])
+                  // console.log('parsedArgs', parsedArgs)
+                } else {
+                  console.log('NO NAME FOUND')
                 }
               })
             }
 
             // Add any named properties that might be directly accessible
-            for (const key in decoded.args) {
-              if (isNaN(Number(key))) { // Skip numeric indices
-                parsedArgs[key] = decoded.args[key]
-              }
-            }
+            // for (const key in decoded.args) {
+            //   console.log('Key', key)
+            //   if (isNaN(Number(key))) { // Skip numeric indices
+            //     parsedArgs[key] = decoded.args[key]
+            //   }
+            // }
           }
-          const output = {
-            name: decoded?.name,
+          // console.log('ParsedArgs', parsedArgs)
+          const output: {
+            name: string
+            args: Record<string, any>
+            blockNumber: number
+            transactionHash: string
+            logIndex: number
+          } = {
+            name: decoded?.name ?? 'UNKNOWN',
             args: parsedArgs,
             blockNumber: event.blockNumber,
             transactionHash: event.transactionHash,
             logIndex: event.index,
           }
-          formatted.push(output)
+          // handle duplicates here, check eventid
+          const eventId = `${event.blockNumber}-${event.transactionIndex}-${event.index}`
+          if (!processedEventIds.has(eventId)) {
+            processedEventIds.add(eventId)
+            formatted.push(output)
+          }
+          // else {
+          //   const oldEvent = processedEventIds.get(eventId) ?? []
+          //   const appendList = [...oldEvent, output]
+          //   processedEventIds.set(eventId, appendList)
+          //   console.log('oldEvent', event)
+          //   console.log('Duplicate event found:', output)
+          // }
         }
+        // })
         yield formatted
         // for (const event of events) {
         //   yield event
@@ -298,8 +406,6 @@ class EthersProvider<T = any> extends EventEmitter implements AsyncIterable<T> {
         // }
         await delay(250) // Delay to avoid rate limiting, can avoid this with forking...
       }
-      currentOffset += SCAN_CHUNKS + 1n
-      this.lastScannedBlock = currentOffset - 1n// scan is inclusive
     }
   }
 
