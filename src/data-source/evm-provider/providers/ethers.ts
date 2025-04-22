@@ -261,8 +261,6 @@ class EthersProvider<T = any> extends EventEmitter implements AsyncIterable<T> {
           retry = true
           return undefined
         })
-        // console.log('events.log', events?.length)
-        // .length)
         if (!events) {
           // try again
           console.log('No events found')
@@ -275,41 +273,6 @@ class EthersProvider<T = any> extends EventEmitter implements AsyncIterable<T> {
           currentOffset += SCAN_CHUNKS
           this.lastScannedBlock = currentOffset - 1n// scan is inclusive
         }
-        // Filter out duplicate events
-        // const uniqueEvents = events.filter(event => {
-        //   if (event.data === '0x') {
-        //     // console.log('Event:', event)
-        //     return false
-        //   }
-        //   let included = false
-        //   for (const topic of event.topics) {
-        //     if (abib.eventTopics.includes(topic.toLowerCase())) {
-        //       // console.log('Topic:', topic)
-        //       included = true
-        //       break
-        //     }
-        //   }
-        //   if (!included) {
-        //     return false
-        //   }
-        //   // Create a unique identifier for each event using its transaction hash and log index
-        //   const eventId = `${event.transactionHash}-${event.transactionIndex}-${event.index}`
-        //   // console.log('EventId:', eventId)
-        //   // console.log('Event:', event)
-        //   // if (!('fragment' in event)) {
-        //   //   // console.log('Fragment not undefined', event)
-        //   //   return false
-        //   // }
-        //   if (processedEventIds.has(eventId)) {
-        //     console.log('Duplicate event found:', event)
-        //     return false
-        //   }
-
-        //   processedEventIds.add(eventId)
-
-        //   return true
-        // })
-        // console.log('uniqueEvents', uniqueEvents.length)
         // format events
         const formatted: {
           name: string
@@ -320,25 +283,8 @@ class EthersProvider<T = any> extends EventEmitter implements AsyncIterable<T> {
           logIndex: number
         }[] = []
         for (const event of events) {
-          // console.log('Event:', event)
-
           // Decode the event using the interface to get named arguments
-          // for (const etopic of abib.eventTopics) {
-          //   console.log('etopic', etopic)
-          //   try {
-          //     const decodedLog = iface.decodeEventLog(etopic, event.data)
-          //     if (decodedLog) {
-          //       console.log('DecodedLog:', decodedLog)
-          //     } else {
-          //       console.log('No decoded log found for event:', event)
-          //     }
-          //   } catch (err) {
-          //     console.log('Error decoding event log:', err, etopic)
-          //   }
-          // }
           const decoded = iface.parseLog(event)
-
-          // console.log('Decoded:', decoded)
 
           if (!decoded?.name) {
             console.log('No name found for event:', event)
@@ -348,7 +294,6 @@ class EthersProvider<T = any> extends EventEmitter implements AsyncIterable<T> {
           // Create a human-readable object with named arguments from the event
           const parsedArgs: Record<string, any> = {}
           if (decoded && decoded.args) {
-            // console.log('Decoded:', decoded)
             // Map each argument to its corresponding name from the fragment inputs
             if (decoded.fragment && decoded.fragment.inputs) {
               // its possible this is not properly running async. use for loop
@@ -358,14 +303,10 @@ class EthersProvider<T = any> extends EventEmitter implements AsyncIterable<T> {
                   console.log('NO INPUT FOUND')
                   continue
                 }
-                // decoded.fragment.inputs.forEach((input, index) => {
                 if (input.name) {
                   // Recursively decode nested array arguments
 
-                  // console.log('input', parseNestedArgs)
-                  // console.log(input)
                   parsedArgs[input.name] = parseNestedArgs(input, decoded.args[index])
-                  // console.log('parsedArgs', parsedArgs)
                 } else {
                   console.log('NO NAME FOUND')
                 }
@@ -387,7 +328,6 @@ class EthersProvider<T = any> extends EventEmitter implements AsyncIterable<T> {
             console.log('failed to decode', event)
             console.log('decoded', decoded)
           }
-          // console.log('ParsedArgs', parsedArgs)
           const output: {
             name: string
             args: Record<string, any>
@@ -412,23 +352,8 @@ class EthersProvider<T = any> extends EventEmitter implements AsyncIterable<T> {
             console.log('Duplicate event found:', output)
             console.log('Duplicate event found:', event)
           }
-          // else {
-          //   const oldEvent = processedEventIds.get(eventId) ?? []
-          //   const appendList = [...oldEvent, output]
-          //   processedEventIds.set(eventId, appendList)
-          //   console.log('oldEvent', event)
-          //   console.log('Duplicate event found:', output)
-          // }
         }
-        // })
         yield formatted
-        // for (const event of events) {
-        //   yield event
-        // }
-        // these get pushed into syncedEvents[]
-        // if (currentOffset > endBlock) {
-        //   currentOffset = endBlock
-        // }
         await delay(250) // Delay to avoid rate limiting, can avoid this with forking...
       }
     }
