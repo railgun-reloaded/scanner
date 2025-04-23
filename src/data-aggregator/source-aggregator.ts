@@ -85,6 +85,7 @@ class SourceAggregator<T extends Data> {
      */
     async function * generator () {
       for (const source of self.sources) {
+        // this is where we should re-sort the updated events, delete any duplicates.
         yield * source.read(height)
       }
     }
