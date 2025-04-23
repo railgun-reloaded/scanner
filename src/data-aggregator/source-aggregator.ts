@@ -1,6 +1,7 @@
 import type { DataSource } from '../data-source'
 import type { Data } from '../data-source/types'
-import { readFile } from '../data-store'
+// import { readFile } from '../data-store'
+import { SnapshotDB, serializeBigInt } from '../data-store/database'
 import { NetworkName, RailgunProxyDeploymentBlock } from '../globals'
 
 // aggregates multiple data sources into a single complete source of railgun history.
@@ -32,7 +33,7 @@ class SourceAggregator<T extends Data> {
   /**
    * - where to store the raw data chunk.
    */
-  readonly storage: string = 'store.rgblock'
+  readonly storage: string = './store.rgblock'
   /**
    * - The list of aggregated data sources.
    *  // TODO: add more explanation here.
@@ -41,11 +42,17 @@ class SourceAggregator<T extends Data> {
   private sources: DataSource<T>[] = []
 
   /**
+   * - The database used for storing snapshots.
+   */
+  private db: any
+
+  /**
    * TODO: constructor
    * @param sources - The sources to aggregate.
    */
   constructor (sources: DataSource<T>[]) {
     this.sources = sources
+    this.db = new SnapshotDB()
   }
 
   /**
@@ -59,6 +66,9 @@ class SourceAggregator<T extends Data> {
       }
       await source.initialize()
     }
+    console.time('restoreGzip')
+    await this.db.restoreGzip(this.storage)
+    console.timeEnd('restoreGzip')
   }
 
   /**
@@ -96,38 +106,43 @@ class SourceAggregator<T extends Data> {
    */
   async sync () {
     // check localCache, if none make it.
-    const block = readFile<{ blockHeight: bigint; events: any[] }>(this.storage)
+    const block = await this.db.get('events')
     const events = []
     let startBlock = BigInt(RailgunProxyDeploymentBlock[NetworkName.Ethereum] - 100_000)
     if (block) {
+      console.log('block', block.events.length)
       // console.log('DataStorageFound')//
       // we have found storage. lets load it.
       const { blockHeight, events: storedEvents } = block
       console.log('SyncingFrom', blockHeight, 'total events:', storedEvents.length)
       // const val = 0n
-      const lastBlockEvent =
-      storedEvents?.find((event) => {
-        // console.log('LastBlockEvent', event)
-        if (event != null) {
-          return true
-          // val = BigInt(event.event.blockNumber)
-          // lastBlockEvent = now.blockNumber
-          // console.log(now)
+      storedEvents.forEach((event: any) => {
+        // serialize the event back to expected format.
+        // if event.args has treeNumber and startPosition
+        const { args } = event.event
+        const { startPosition, treeNumber } = args
+        if (typeof treeNumber !== 'undefined' && typeof startPosition !== 'undefined') {
+          // console.log('TreeNumber', treeNumber, 'StartPosition', startPosition)
+          const serialized = {
+            ...event,
+            event: {
+              ...event.event,
+              args: {
+                ...args,
+                treeNumber: BigInt(treeNumber),
+                startPosition: BigInt(startPosition)
+              }
+            }
+          }
+          events.push(serialized)
+        } else {
+          events.push(event)
         }
-        return false
-        // return val
       })
-      // events.push(...storedEvents)
-      // console.log('StartBlock', lastBlockEvent)
-      startBlock = BigInt(lastBlockEvent.event.blockNumber) + 1n
-    } else {
-      // console.log('Creating DataBank')
-
-      // scan events from all sources.
-      // get startBlock from here
-      // pull latest block from datastore.
-
+      startBlock = BigInt(storedEvents.at(-1).event.blockNumber) + 1n
+      console.log('StartBlock', startBlock)
     }
+
     // get latest block number.
 
     for (const source of this.sources) {
@@ -140,17 +155,7 @@ class SourceAggregator<T extends Data> {
           events.push(event)
         }
       }
-      // console.log('FlatEvents', total)
-      // console.log('FoundEvents', events.length)
     }
-    // const flat = events.flatMap((event) => {
-    //   // console.log('FlatEvent', event)
-    //   // console.log('args', event.event.args)
-    //   // console.log('Event', event.event?.args?.length > 0)
-
-    //   return event.event
-    // })
-    // console.log('FlatEvents', flat.length)
     // sort events by fragment name
     const sortedObj = {} as Record<string, any[]>
 
@@ -168,48 +173,23 @@ class SourceAggregator<T extends Data> {
       return b.blockNumber - a.blockNumber
     })
     chronologicalEvents.reverse()
-    console.log('ChronologicalEvents', chronologicalEvents.at(0))
     // loop through and check startPositions.
-    // let currentStartPos = 0
     let expectedPosition = 0
-    // let prevEvent = null
     for (const e of chronologicalEvents) {
       const { event } = e
-      // console.log('Event', event)
       const { args } = event
       const { startPosition, treeNumber } = args
       if (typeof startPosition !== 'undefined') {
         const startPos = parseInt(startPosition.toString())
         const treeNum = parseInt(treeNumber.toString())
         const normalized = (treeNum * (2 ** 16)) + startPos
-        // const normalizedExpectedPosition = expectedPosition % 2 ** 16
-        // we have an update.
-        // console.log(startPosition)
-        // check if its our expected position
-        // console.log('Normalized', expectedPosition)
         if (normalized === expectedPosition) {
           if ('commitments' in args) {
             expectedPosition += args['commitments'].length
-            // prevEvent = event
           } else if ('hash' in args) {
             expectedPosition += args['hash'].length
-            // prevEvent = event
           }
-          // currentStartPos = expectedPosition
-          // if (normalized >= currentStartPos) {
-          //   // we have a new start position.
-          //   // console.log('NewStartPosition', normalized)
-          //   currentStartPos = normalized
-          // } else {
-          //   console.log('LastKnownPosition', currentStartPos)
-          //   console.log('event', event)
-          //   process.exit(0)
-          // }
         }
-        // else {
-        //   console.log('UnexpectedPosition', expectedPosition, treeNum, startPos, prevEvent, event)
-        //   // process.exit(0)
-        // }
       }
     }
     console.log('EXPECTED POSITION', expectedPosition)
@@ -235,38 +215,6 @@ class SourceAggregator<T extends Data> {
     }
     // find out how many commitment leaves there are in utxo tree
 
-    // shield generatedCommitmentBatch .commitments.length
-    // console.log('ShieldEvents', sortedObj['GeneratedCommitmentBatch']?.at(0))
-    // console.log('ShieldEvents', sortedObj['Shield']?.at(0))
-    // const shields = [...(sortedObj['GeneratedCommitmentBatch'] ?? []), ...(sortedObj['Shield'] ?? [])]
-
-    // console.log('lastShieldEvent', shields.at(-1))
-    // console.log(events.at(-1))
-    // const shieldCount = shields.reduce((acc, event) => {
-    //   const { args } = event.event
-    //   // serialize the obj based off the fragment so we have a labled object output
-    //   if (args && (typeof args.startPosition !== 'undefined')) {
-    //     // console.log('args', args)
-    //     if (args && args.commitments) {
-    //       return acc + args.commitments.length
-    //     } else { console.log('NoCommitments', args) }
-    //   }
-    //   return acc
-    // }, 0) ?? 0
-
-    // const transacts = [...(sortedObj['CommitmentBatch'] ?? []), ...(sortedObj['Transact'] ?? []),]
-    // const transactCount = transacts.reduce((acc, event) => {
-    //   const { args } = event.event
-    //   // console.log('args', args)
-    //   const hash = args?.hash
-    //   if (hash && (typeof args.startPosition !== 'undefined')) {
-    //     return acc + hash.length
-    //   } else {
-    //     console.log('NoHash', args)
-    //     return acc
-    //   }
-    // }, 0) ?? 0
-
     const totalCheck = chronologicalEvents.reduce((acc, event) => {
       const { args } = event.event
       // serialize the obj based off the fragment so we have a labled object output
@@ -280,13 +228,10 @@ class SourceAggregator<T extends Data> {
       return acc
     }, 0)
     console.log('TotalCheck', totalCheck)
-    // console.log('transactCount', transactCount)
-    // console.log('shieldCount', shieldCount)
-    // console.log('TOTAL', shieldCount + transactCount)
     console.log('leaves', expectedPosition)
-    // console.log('SortedEvents', sortedObj['Transfer'])
     console.log('SAVING EVENTS', chronologicalEvents.length)
-    // saveFile(this.storage, { blockHeight: events[events.length - 1]?.blockHeight, events })
+    await this.db.set('events', { blockHeight: '0x' + events[events.length - 1]?.blockHeight.toString(16), events: chronologicalEvents.map(serializeBigInt) })
+    await this.db.snapshotGzip(this.storage)
   }
 }
 export { SourceAggregator }
