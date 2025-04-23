@@ -149,7 +149,7 @@ class SourceAggregator<T extends Data> {
       console.log('latest block', source.head)
       for await (const event of source.from({
         startBlock,
-        endBlock: source.head // TODO: get latest block number from source.
+        endBlock: 'latest' // TODO: get latest block number from source.
       })) {
         if (event) {
           events.push(event)

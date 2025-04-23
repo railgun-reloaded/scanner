@@ -218,9 +218,10 @@ class EthersProvider<T = any> extends EventEmitter implements AsyncIterable<T> {
       if (currentOffset >= endBlock) {
         break
       }
+      const endOffset = currentOffset + SCAN_CHUNKS
       const startChunk = currentOffset
       const start = startChunk
-      const end = startChunk + SCAN_CHUNKS
+      const end = endOffset > endBlock ? endBlock : endOffset
 
       console.log('inputs', start, end)
       const abi = getAbiForNetworkBlockRange(this.network, start, end)

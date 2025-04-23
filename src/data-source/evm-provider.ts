@@ -126,6 +126,8 @@ class EVMProvider implements DataSource<RPCData> {
 
   async * read (height?:bigint): AsyncGenerator<Event | undefined> {
     // console.log('HEIGHT', height)
+    // these essentially should get added in order from the provider.
+    // TODO: check to see if another 'sorting' needs to take place
     while (true) {
       for await (const event of this.provider) {
         const { blockNumber } = event.log
