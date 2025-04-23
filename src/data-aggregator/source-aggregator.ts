@@ -33,7 +33,7 @@ class SourceAggregator<T extends Data> {
   /**
    * - where to store the raw data chunk.
    */
-  readonly storage: string = './store.rgblock'
+  private storage: string = './store.rgblock'
   /**
    * - The list of aggregated data sources.
    *  // TODO: add more explanation here.
@@ -49,9 +49,11 @@ class SourceAggregator<T extends Data> {
   /**
    * TODO: constructor
    * @param sources - The sources to aggregate.
+   * @param storage - The storage location for the snapshot database.
    */
-  constructor (sources: DataSource<T>[]) {
+  constructor (sources: DataSource<T>[], storage: string = './store.rgblock') {
     this.sources = sources
+    this.storage = storage
     this.db = new SnapshotDB()
   }
 
@@ -96,9 +98,10 @@ class SourceAggregator<T extends Data> {
    * Destroys all sources and cleans up resources.
    * @param error - An optional error to throw from all active iterators.
    */
-  destroy (error?: Error): void {
+  async destroy (error?: Error): Promise<void> {
+    console.log('SourceAggregator: Destroying sources')
     for (const source of this.sources) {
-      source.destroy(error)
+      await source.destroy(error)
     }
   }
 

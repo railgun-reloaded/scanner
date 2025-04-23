@@ -221,9 +221,9 @@ class EthersProvider<T = any> extends EventEmitter implements AsyncIterable<T> {
       const endOffset = currentOffset + SCAN_CHUNKS
       const startChunk = currentOffset
       const start = startChunk
-      const end = endOffset > endBlock ? endBlock : endOffset
+      const end = (endOffset > endBlock ? endBlock : endOffset)
 
-      console.log('inputs', start, end)
+      // console.log('inputs', start, end)
       const abi = getAbiForNetworkBlockRange(this.network, start, end)
       // console.log(abi.length)
       if (abi.length > 1) {
@@ -381,6 +381,7 @@ class EthersProvider<T = any> extends EventEmitter implements AsyncIterable<T> {
    */
   async destroy () {
     // Logic to destroy the provider and iterators
+    console.log('EthersProvider: Destroying provider')
     this.syncing = false
     if (this.provider instanceof WebSocketProvider) {
       await this.provider.destroy()
@@ -388,6 +389,7 @@ class EthersProvider<T = any> extends EventEmitter implements AsyncIterable<T> {
       await this.provider.removeAllListeners()
       this.provider.destroy()
     }
+    this.removeAllListeners()
   }
 }
 

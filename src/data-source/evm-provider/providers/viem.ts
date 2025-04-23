@@ -1,15 +1,19 @@
 import EventEmitter from 'node:events'
 
 import type { HttpTransport, PublicClient, WebSocketTransport } from 'viem'
-import { createPublicClient, decodeEventLog, getContract, http, webSocket } from 'viem'
+import {
+  createPublicClient, decodeEventLog,
+  getContract, http, webSocket
+} from 'viem'
 import { arbitrum, bsc, mainnet, polygon } from 'viem/chains'
 
+import { ABIRailgunSmartWallet, ABIRailgunSmartWalletLegacyPreMar23 } from '../../../abi'
 import type { NetworkName } from '../../../globals'
 import { getAbiForNetworkBlockRange } from '../../../utils'
 import { delay, promiseTimeout } from '../../utils'
 
-const SCAN_CHUNKS = 500n
-const EVENTS_SCAN_TIMEOUT = 5000
+const SCAN_CHUNKS = 50_000n
+const EVENTS_SCAN_TIMEOUT = 20_000
 const SCAN_TIMEOUT_ERROR_MESSAGE = 'getLogs request timed out after 5 seconds.'
 const RAILGUN_SCAN_START_BLOCK = 14693000n
 const RAILGUN_SCAN_START_BLOCK_V2 = 16076000n
@@ -107,7 +111,7 @@ class ViemProvider<T = any> extends EventEmitter implements AsyncIterable<T> {
     this.transport = options.ws ? webSocket(url, options.transportConfig) : http(url)
 
     this.provider = createPublicClient({
-      transport: this.transport,
+      transport: http(url),
       chain: network,
     })
     this.contract = getContract({
@@ -154,9 +158,11 @@ class ViemProvider<T = any> extends EventEmitter implements AsyncIterable<T> {
     if (!this.provider) {
       throw new Error('Provider is not initialized')
     }
-
+    const blockNum = await this.provider.getBlock()
+    // console.log('BlockNum', blockNum)
+    this.emit('newHead', BigInt(blockNum?.number ?? 0))
     // returns a destroy function
-    this.unwatchBlocks = this.provider.watchBlocks({
+    this.unwatchBlocks = await this.provider.watchBlocks({
 
       /**
        * Called when a new block is mined.
@@ -166,8 +172,7 @@ class ViemProvider<T = any> extends EventEmitter implements AsyncIterable<T> {
         this.emit('newHead', block.number)
       }
     })
-
-    this.unwatchContractEvents = this.provider.watchContractEvent({
+    this.unwatchContractEvents = await this.provider.watchContractEvent({
       address: this.contract!.address,
       abi: this.abi,
       /**
@@ -232,12 +237,15 @@ class ViemProvider<T = any> extends EventEmitter implements AsyncIterable<T> {
    * @yields T - The data read from the source
    */
   async * from (options:{ startBlock: bigint, endBlock: bigint }) {
+    console.log('options')
     const { startBlock, endBlock } = options
     this.startBlock = BigInt(startBlock)
     // this.lastScannedBlock = BigInt(endBlock)
     // Logic to iterate from a given height
     // const TOTAL_BLOCKS = BigInt(endBlock) - BigInt(startBlock)
     let currentOffset = startBlock
+    const processedEventIds = new Set()
+
     while (true) {
       if (currentOffset >= endBlock) {
         break
@@ -246,13 +254,16 @@ class ViemProvider<T = any> extends EventEmitter implements AsyncIterable<T> {
       const startChunk = currentOffset
       const start = startChunk
       const end = endOffset > endBlock ? endBlock : endOffset
-      console.log('inputs', start, end)
+      // console.log('inputs', start, end)
       const abi = getAbiForNetworkBlockRange(this.network, start, end)
       if (!this.provider) {
         throw new Error('Provider is not initialized')
       }
       for (const abiItem of abi) {
         // TODO: look into moving this above the abi selection loop
+        if (abiItem.abi.length === 0) {
+          console.log('No ABI found for this block range')
+        }
         const formatted: {
           name: string
           args: Record<string, any>
@@ -261,13 +272,35 @@ class ViemProvider<T = any> extends EventEmitter implements AsyncIterable<T> {
           transactionHash: string
           logIndex: number
         }[] = []
-        // console.log('ABIITEM', abiItem)
-        // make abi from fragments
-        // const abia = getAbiItem(abiItem.abi)
+        // const testAbi = getAbiItem({ abi: abiItem.abi, name: 'Transact' })
+        // console.log('TestAbi', [testAbi])
+        // const filter = await this.provider.createContractEventFilter({
+        //   abi: abiItem.abi,
+        //   address: this.contract!.address,
+        //   // eventName: 'GeneratedCommitmentBatch',
+        //   fromBlock: start,
+        //   toBlock: end,
+        // })
+        // console.log('Filter', filter)
+        // const eventLogs = this.provider.getFilterLogs({ filter })
+        // const c = abiItem.abi.find((e: any) => e.name === 'CommitmentBatch')
+        // const abiI = getAbiItem({ abi: abiItem.abi, name: 'GeneratedCommitmentBatch' })
+        // console.log('c', abiI)
+
+        // const filter = {
+        //   // address: this.contract!.address,
+        //   topics: [abiItem.eventTopics] as Hex[],
+        //   fromBlock: '0x' + start.toString(16),
+        //   toBlock: '0x' + end.toString(16),
+        // }
         const events = await promiseTimeout(
-          this.provider.getContractEvents({
+          // eventLogs,
+          // @ts-ignore
+          // this.provider.transport.request({ method: 'eth_getLogs', params: [filter] }),
+          this.provider.getLogs({
             address: this.contract!.address,
-            abi: abiItem.abi,
+            // events: abiItem.abi,
+            // event: abiItem.abi,
             fromBlock: startChunk,
             toBlock: startChunk + SCAN_CHUNKS,
           }),
@@ -277,27 +310,90 @@ class ViemProvider<T = any> extends EventEmitter implements AsyncIterable<T> {
           this.emit('error', err)
           return []
         })
-        for (const event of events) {
+        // await this.provider.uninstallFilter({ filter })
+        // console.log('Uninstalled', uninstalled)
+        // console.log('Events', events.length)
+        for (const event of (events as any) ?? []) {
           // console.log('EVENT', event)
           // decode events and push to formateted.
-          const decoded = decodeEventLog({
-            abi: abiItem.abi,
-            data: event.data,
-            topics: event.topics,
-          })
-          // console.log('DECODED', decoded)
-          const formattedEvent = {
-            name: decoded.name,
-            args: decoded.args,
-            blockNumber: parseInt(event.blockNumber.toString()),
-            transactionIndex: event.transactionIndex,
-            transactionHash: event.transactionHash,
-            logIndex: event.logIndex,
+          // check if the topic is in the abi
+          // Check if this event's topic is included in the abiItem's eventTopics
+          // if (abiItem.eventTopics && event.topics[0]) {
+          //   const eventTopicMatches = abiItem.eventTopics.some(
+          //     (topic: string) => topic.toLowerCase() === event?.topics[0]!.toLowerCase()
+          //   )
+          //   if (!eventTopicMatches) {
+          //     console.log('NO MATCHES')
+          //     continue // Skip this event if its topic doesn't match any in eventTopics
+          //   }
+          // }
+          // get the right abi item
+          // Find the matching ABI item based on the event topic hash
+          const eventId = `${event.blockNumber.toString(10)}-${event.transactionIndex}-${event.transactionHash}-${event.logIndex}`
 
+          try {
+            const decoded = decodeEventLog({
+              abi: ABIRailgunSmartWallet,
+              data: event.data,
+              topics: event.topics,
+            })
+            // console.log('Decoded', decoded.eventName)
+            // if (['Transact', 'CommitmentBatch', 'GeneratedCommitmentBatch'].includes(decoded.eventName)) {
+            //   console.log('Decoded', decoded.eventName, decoded.args)
+            // }
+            const formattedEvent = {
+              name: decoded.eventName,
+              args: decoded.args,
+              blockNumber: parseInt(event.blockNumber.toString()),
+              transactionIndex: event.transactionIndex,
+              transactionHash: event.transactionHash,
+              logIndex: event.logIndex,
+
+            }
+            // console.log('FormattedEvent', formattedEvent)
+            if (formattedEvent.name) {
+              if (!processedEventIds.has(eventId)) {
+                processedEventIds.add(eventId)
+                // @ts-ignore TODO: fix this typeshit
+                formatted.push(formattedEvent)
+              }
+            }
+          } catch {
+            // console.log('Error decoding event', event)
+            // try again with the old abi
+            try {
+              const decoded = decodeEventLog({
+                abi: ABIRailgunSmartWalletLegacyPreMar23,
+                data: event.data,
+                topics: event.topics,
+              })
+              // console.log('Decoded', decoded.eventName)
+              // if (['Transact', 'CommitmentBatch', 'GeneratedCommitmentBatch'].includes(decoded.eventName)) {
+              //   console.log('Decoded', decoded.eventName, decoded.args)
+              // }
+              const formattedEvent = {
+                name: decoded.eventName,
+                args: decoded.args,
+                blockNumber: parseInt(event.blockNumber.toString()),
+                transactionIndex: event.transactionIndex,
+                transactionHash: event.transactionHash,
+                logIndex: event.logIndex,
+
+              }
+              if (formattedEvent.name) {
+                if (!processedEventIds.has(eventId)) {
+                  processedEventIds.add(eventId)
+                  // @ts-ignore TODO: fix this typeshit
+                  formatted.push(formattedEvent)
+                }
+              }
+            } catch {
+              // console.log('Error decoding event with old abi', event)
+            }
+            // Handle the error as needed
           }
-          // console.log('FormattedEvent', formattedEvent)
-          formatted.push(formattedEvent)
         }
+        // console.log('Formatted', formatted.length)
         yield formatted
       }
       // format the events
@@ -318,8 +414,8 @@ class ViemProvider<T = any> extends EventEmitter implements AsyncIterable<T> {
   async destroy () {
     // console.log('Destroying provider')
     // Logic to destroy the provider and iterators
-    this.unwatchBlocks?.()
-    this.unwatchContractEvents?.()
+    if (this.unwatchBlocks) { this.unwatchBlocks() }
+    if (this.unwatchContractEvents) { this.unwatchContractEvents() }
     this.syncing = false
     // provider doesnt supply any destroy methods?
     // console.log('Transport', this.transport())
@@ -332,9 +428,14 @@ class ViemProvider<T = any> extends EventEmitter implements AsyncIterable<T> {
     //     await socket.close()
     //   }
     // }
+    console.log('Destroying provider')
+    this.removeAllListeners()
+    // this.provider!.
+    // this.provider!.pollingInterval = 0
+    // this.provider!.transport['close']()
     delete this.transport
     delete this.provider
-    delete this.contract
+    // delete this.contract
   }
 }
 

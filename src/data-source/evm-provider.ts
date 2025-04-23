@@ -1,8 +1,12 @@
-import type { ContractEventPayload } from 'ethers'
+// import type { ContractEventPayload } from 'ethers'
 
 import type { DataSource } from './datasource'
 import type { EthersProvider } from './evm-provider/providers/ethers'
+import type { ViemProvider } from './evm-provider/providers/viem'
 import type { Event, RPCData } from './types'
+// TODO: properly type this out for the 'formatted event' type that both providers exude.
+// TODO: make sure both providers 'watching' events format the same way.
+type EVMProviders = EthersProvider<any> | ViemProvider<any>
 
 /**
  * Provides an interface for interacting with Ethereum Virtual Machine (EVM) compatible blockchain networks.
@@ -39,14 +43,14 @@ class EVMProvider implements DataSource<RPCData> {
   /**
    * Provides the most recent updates from its source.
    */
-  provider: EthersProvider<ContractEventPayload>
+  provider: EVMProviders
 
   // TODO: alter provider to be more ROBUST
   /**
    * Creates an instance of the EVMProvider class.
    * @param provider - The provider to use for connecting to the EVM-compatible blockchain.
    */
-  constructor (provider: EthersProvider<ContractEventPayload>) {
+  constructor (provider: EVMProviders) {
     // TODO: load up events from storage?
 
     this.syncing = false
@@ -108,9 +112,11 @@ class EVMProvider implements DataSource<RPCData> {
   async destroy (error?: Error): Promise<void> {
     this.events = []
     this.syncing = false
+    console.log('EVMProvider: Destroying provider')
     await this.provider.destroy()
     // @ts-ignore -- no need to require optional.
     delete this.provider
+    // TODO: remove this or put it to use.
     if (error) {
       throw error
     }

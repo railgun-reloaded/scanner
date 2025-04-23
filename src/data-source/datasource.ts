@@ -47,7 +47,7 @@ interface DataSource<T extends Data> {
    * This will immediately terminate any active iterators.
    * If an error is provided, this should be thrown from all active iterators.
    */
-  destroy(error?: Error): void;
+  destroy(error?: Error): Promise<void>;
 
   // initialize hook
   initialize(): Promise<void>;
