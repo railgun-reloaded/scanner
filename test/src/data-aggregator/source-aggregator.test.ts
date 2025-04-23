@@ -6,7 +6,7 @@ import { SourceAggregator } from '../../../src/data-aggregator/source-aggregator
 import { EthersProvider } from '../../../src/data-source/evm-provider/providers/ethers.js'
 import { ViemProvider } from '../../../src/data-source/evm-provider/providers/viem.js'
 import { EVMProvider } from '../../../src/data-source/evm-provider.js'
-import { NetworkName, RailgunProxyContract } from '../../../src/globals/constants.js'
+import { NetworkName, RailgunProxyContract, RailgunProxyDeploymentBlock } from '../../../src/globals/constants.js'
 
 dotenv.config()
 const TEST_RPC_URL = 'http://127.0.0.1:8545'// process.env['TEST_RPC_URL_HTTPS']
@@ -72,20 +72,20 @@ solo('EthersProvider: Source should sync from zero state given a single evm prov
   // START BLOCK
   await aggregator.initialize()
   await aggregator.sync()
-  // const START_TESTING_BLOCK = RailgunProxyDeploymentBlock[NetworkName.Ethereum]
+  const START_TESTING_BLOCK = RailgunProxyDeploymentBlock[NetworkName.Ethereum]
   // Kills source to exit test.
 
   setTimeout(async () => {
     await datasource.destroy()
   }, 5_000)
-  // for await (const event of (await aggregator.read(BigInt(START_TESTING_BLOCK)))) {
-  //   console.log('FoundEvent', event)
-  //   // t.pass('EVM-Provider:http:iterator FoundEvent')
-  //   if (event?.blockHeight) {
-  //     t.is(event.blockHeight > BigInt(START_TESTING_BLOCK), true)
-  //   }
-  //   // console.log('handledEvent', event?.blockHeight)
-  // }
+  for await (const event of (await aggregator.read(BigInt(START_TESTING_BLOCK)))) {
+    console.log('FoundEvent', event)
+    // t.pass('EVM-Provider:http:iterator FoundEvent')
+    if (event?.blockHeight) {
+      t.is(event.blockHeight > BigInt(START_TESTING_BLOCK), true)
+    }
+    // console.log('handledEvent', event?.blockHeight)
+  }
   t.pass('Data Synced.')
 
   // check the height
@@ -106,21 +106,21 @@ solo('ViemProvider: Source should sync from zero state given a single evm provid
   // START BLOCK
   await aggregator.initialize()
   await aggregator.sync()
-  // const START_TESTING_BLOCK = RailgunProxyDeploymentBlock[NetworkName.Ethereum]
+  const START_TESTING_BLOCK = RailgunProxyDeploymentBlock[NetworkName.Ethereum]
   // Kills source to exit test.
   console.log('Finished Syncing')
   setTimeout(async () => {
     console.log('Destroying datasource')
     await datasource.destroy()
   }, 5_000)
-  // for await (const event of (await aggregator.read(BigInt(START_TESTING_BLOCK)))) {
-  //   console.log('FoundEvent', event)
-  //   // t.pass('EVM-Provider:http:iterator FoundEvent')
-  //   if (event?.blockHeight) {
-  //     t.is(event.blockHeight > BigInt(START_TESTING_BLOCK), true)
-  //   }
-  //   // console.log('handledEvent', event?.blockHeight)
-  // }
+  for await (const event of (await aggregator.read(BigInt(START_TESTING_BLOCK)))) {
+    console.log('FoundEvent', event)
+    // t.pass('EVM-Provider:http:iterator FoundEvent')
+    if (event?.blockHeight) {
+      t.is(event.blockHeight > BigInt(START_TESTING_BLOCK), true)
+    }
+    // console.log('handledEvent', event?.blockHeight)
+  }
   t.pass('Data Synced.')
 
   // check the height
