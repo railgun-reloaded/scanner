@@ -7,9 +7,30 @@ import { MemoryLevel } from 'memory-level'
 type Serializable = string | number | boolean | object | null
 
 /**
+ * Serialize a value to a string
+ * @param value - The value to serialize
+ * @returns - The serialized value
+ */
+const serializeBigInt = (value: Serializable): Serializable => {
+  // recursively serialize bigints
+  if (typeof value === 'bigint') {
+    return '0x' + (value as bigint).toString(16)
+  } else if (Array.isArray(value)) {
+    return value.map(serializeBigInt)
+  } else if (value !== null && typeof value === 'object') {
+    const newObj: Record<string, Serializable> = {}
+    for (const key in value) {
+      newObj[key] = serializeBigInt((value as any)[key])
+    }
+    return newObj
+  }
+  return value
+}
+
+/**
  * SnapshotDB class
  */
-export class SnapshotDB {
+class SnapshotDB {
   /**
    * Database
    */
@@ -21,6 +42,8 @@ export class SnapshotDB {
    * @param value - The value to set
    */
   async set (key: string, value: Serializable) {
+    // need to format out bigint to string
+
     const buf = Buffer.from(JSON.stringify(value))
     await this.db.put(key, buf)
   }
@@ -73,15 +96,23 @@ export class SnapshotDB {
   /**
    * - Restore from snapshot
    * @param filePath - The file path to restore from
+   * @returns - The restored data
    */
   async restoreGzip (filePath = 'snapshot.gz') {
-    const stream = fs.createReadStream(filePath).pipe(zlib.createGunzip())
+    // check if file exists
+    if (!fs.existsSync(filePath)) {
+      // create it
+      return undefined
+      // throw new Error(`File ${filePath} does not exist`)
+    }
+    const stream = fs.createReadStream(filePath).pipe(zlib.createGunzip({
+      chunkSize: (1024 * 1024) * 10, // - doesnt seem to be respected?
+    }))
     let buffer = Buffer.alloc(0)
 
     return new Promise<void>((resolve, reject) => {
       stream.on('data', async chunk => {
         buffer = Buffer.concat([buffer, chunk])
-
         while (buffer.length >= 4) {
           const len = buffer.readUInt32BE(0)
           if (buffer.length < 4 + len) break
@@ -99,3 +130,5 @@ export class SnapshotDB {
     })
   }
 }
+
+export { serializeBigInt, SnapshotDB }
