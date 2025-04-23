@@ -1,9 +1,11 @@
 import EventEmitter from 'node:events'
 
 import type { HttpTransport, PublicClient, WebSocketTransport } from 'viem'
-import { createPublicClient, getContract, http, webSocket } from 'viem'
+import { createPublicClient, decodeEventLog, getContract, http, webSocket } from 'viem'
 import { arbitrum, bsc, mainnet, polygon } from 'viem/chains'
 
+import type { NetworkName } from '../../../globals'
+import { getAbiForNetworkBlockRange } from '../../../utils'
 import { delay, promiseTimeout } from '../../utils'
 
 const SCAN_CHUNKS = 500n
@@ -77,7 +79,12 @@ class ViemProvider<T = any> extends EventEmitter implements AsyncIterable<T> {
    */
   transport?: WebSocketTransport | HttpTransport<undefined, false>
   /**
+   *  network name
+   */
+  network: NetworkName
+  /**
    * constructor for EthersProvider
+   * @param networkName - The network name
    * @param url - The provider URL
    * @param address - The contract address
    * @param abi - The contract ABI
@@ -86,7 +93,7 @@ class ViemProvider<T = any> extends EventEmitter implements AsyncIterable<T> {
    * @param options.chainId - The chain ID
    * @param options.transportConfig - The transport config for the provider
    */
-  constructor (url: string, address: `0x${string}`, abi: any, options: { chainId: number, ws?: boolean, transportConfig?: any /* add in more options later */ }) {
+  constructor (networkName: NetworkName, url: string, address: `0x${string}`, abi: any, options: { chainId: number, ws?: boolean, transportConfig?: any /* add in more options later */ }) {
     super()
     // Initialization code if needed
     this.url = url
@@ -94,6 +101,7 @@ class ViemProvider<T = any> extends EventEmitter implements AsyncIterable<T> {
     this.lastScannedBlock = BigInt(0)
     this.syncing = false
     this.startBlock = BigInt(0)
+    this.network = networkName
     const network = this.chainIdToNetwork(options.chainId)
     // TODO: wss seems to not close out properly, leaving node process hanging.
     this.transport = options.ws ? webSocket(url, options.transportConfig) : http(url)
@@ -155,7 +163,7 @@ class ViemProvider<T = any> extends EventEmitter implements AsyncIterable<T> {
        * @param block - The block object
        */
       onBlock: (block) => {
-        this.emit('newHead', block)
+        this.emit('newHead', block.number)
       }
     })
 
@@ -234,25 +242,68 @@ class ViemProvider<T = any> extends EventEmitter implements AsyncIterable<T> {
       if (currentOffset >= endBlock) {
         break
       }
+      const endOffset = currentOffset + SCAN_CHUNKS
       const startChunk = currentOffset
+      const start = startChunk
+      const end = endOffset > endBlock ? endBlock : endOffset
+      console.log('inputs', start, end)
+      const abi = getAbiForNetworkBlockRange(this.network, start, end)
       if (!this.provider) {
         throw new Error('Provider is not initialized')
       }
-      const events = await promiseTimeout(
-        this.provider.getContractEvents({
-          address: this.contract!.address,
-          abi: this.abi,
-          fromBlock: startChunk,
-          toBlock: startChunk + SCAN_CHUNKS,
-        }),
-        EVENTS_SCAN_TIMEOUT,
-        SCAN_TIMEOUT_ERROR_MESSAGE
-      ).catch((err) => {
-        this.emit('error', err)
-        return []
-      })
-      yield events
-      currentOffset += SCAN_CHUNKS + 1n
+      for (const abiItem of abi) {
+        // TODO: look into moving this above the abi selection loop
+        const formatted: {
+          name: string
+          args: Record<string, any>
+          blockNumber: number
+          transactionIndex: number
+          transactionHash: string
+          logIndex: number
+        }[] = []
+        // console.log('ABIITEM', abiItem)
+        // make abi from fragments
+        // const abia = getAbiItem(abiItem.abi)
+        const events = await promiseTimeout(
+          this.provider.getContractEvents({
+            address: this.contract!.address,
+            abi: abiItem.abi,
+            fromBlock: startChunk,
+            toBlock: startChunk + SCAN_CHUNKS,
+          }),
+          EVENTS_SCAN_TIMEOUT,
+          SCAN_TIMEOUT_ERROR_MESSAGE
+        ).catch((err) => {
+          this.emit('error', err)
+          return []
+        })
+        for (const event of events) {
+          // console.log('EVENT', event)
+          // decode events and push to formateted.
+          const decoded = decodeEventLog({
+            abi: abiItem.abi,
+            data: event.data,
+            topics: event.topics,
+          })
+          // console.log('DECODED', decoded)
+          const formattedEvent = {
+            name: decoded.name,
+            args: decoded.args,
+            blockNumber: parseInt(event.blockNumber.toString()),
+            transactionIndex: event.transactionIndex,
+            transactionHash: event.transactionHash,
+            logIndex: event.logIndex,
+
+          }
+          // console.log('FormattedEvent', formattedEvent)
+          formatted.push(formattedEvent)
+        }
+        yield formatted
+      }
+      // format the events
+
+      // yield events
+      currentOffset += SCAN_CHUNKS
       this.lastScannedBlock = currentOffset - 1n// scan is inclusive
       // if (currentOffset > endBlock) {
       //   currentOffset = endBlock

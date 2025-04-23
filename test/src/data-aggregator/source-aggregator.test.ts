@@ -1,5 +1,5 @@
 import { RailgunSmartWalletV21 } from '@railgun-reloaded/contract-abis'
-import { solo } from 'brittle'
+import { test as solo } from 'brittle'
 import dotenv from 'dotenv'
 
 import { SourceAggregator } from '../../../src/data-aggregator/source-aggregator.js'

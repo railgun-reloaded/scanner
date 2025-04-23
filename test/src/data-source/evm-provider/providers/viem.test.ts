@@ -1,7 +1,8 @@
 import { RailgunSmartWalletV21 } from '@railgun-reloaded/contract-abis'
-import { test } from 'brittle'
+import { solo as test } from 'brittle'
 import dotenv from 'dotenv'
 
+import { NetworkName } from '../../../../../src'
 import { RAILGUN_SCAN_START_BLOCK_V2, ViemProvider } from '../../../../../src/data-source/evm-provider/providers/viem'
 
 dotenv.config()
@@ -17,6 +18,7 @@ test('Viem-Provider:iterator https', async (t) => {
     t.fail('TEST_RPC_URL is not set')
   }
   const provider = new ViemProvider(
+    NetworkName.Ethereum,
     TEST_RPC_URL!,
     TEST_CONTRACT_ADDRESS,
     RailgunSmartWalletV21,
@@ -30,6 +32,7 @@ test('Viem-Provider:iterator https', async (t) => {
     await provider.destroy()
   }, 20_000)
   for await (const event of provider) {
+    console.log('FoundEvent', event)
     t.pass(`http:iterator FoundEvent: ${event.fragment.name}`)
   }
 })
@@ -71,6 +74,7 @@ test('Viem-Provider:from https with scanOptions', async (t) => {
     t.fail('TEST_RPC_URL is not set')
   }
   const provider = new ViemProvider(
+    NetworkName.Ethereum,
     TEST_RPC_URL!,
     TEST_CONTRACT_ADDRESS,
     RailgunSmartWalletV21,
@@ -83,7 +87,7 @@ test('Viem-Provider:from https with scanOptions', async (t) => {
   // })
   const scanOptions = {
     startBlock: RAILGUN_SCAN_START_BLOCK_V2,
-    endBlock: RAILGUN_SCAN_START_BLOCK_V2 + 5_000n,
+    endBlock: RAILGUN_SCAN_START_BLOCK_V2 + 50_000n,
   }
   for await (const event of provider.from(scanOptions)) {
     t.pass(`wss:from FoundEvents: ${event.length}`)
@@ -127,6 +131,7 @@ test('Viem-Provider:chainIdToNetwork', async (t) => {
   }
 
   const provider = new ViemProvider(
+    NetworkName.Ethereum,
     TEST_RPC_URL!,
     TEST_CONTRACT_ADDRESS,
     RailgunSmartWalletV21,
