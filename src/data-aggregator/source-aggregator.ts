@@ -213,7 +213,7 @@ class SourceAggregator<T extends Data> {
       }
     }
     // console.log('SortedEvents', sortedObj)
-    console.log('SortedEvents', Object.keys(sortedObj))
+    // console.log('SortedEvents', Object.keys(sortedObj))
     for (const key in sortedObj) {
       console.log('SortedEvents', key, sortedObj?.[key]?.length)
     }

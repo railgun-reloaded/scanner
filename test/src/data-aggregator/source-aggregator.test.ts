@@ -59,7 +59,7 @@ const getTestViemProvider = () => {
 
 solo('EthersProvider: Source should sync from zero state given a single evm provider', async (t) => {
   // scenario 0. NO STORED DATA. BUILD ALL
-  t.timeout(2_000_000)
+  t.timeout(390_000)
   const { datasource, provider } = getTestEthersProvider()
   // await datasource.initialize()
   // comes from provider, data source is not an emitter.
@@ -93,7 +93,7 @@ solo('EthersProvider: Source should sync from zero state given a single evm prov
 
 solo('ViemProvider: Source should sync from zero state given a single evm provider', async (t) => {
   // scenario 0. NO STORED DATA. BUILD ALL
-  t.timeout(2_000_000)
+  t.timeout(390_000)
   const { datasource, provider } = getTestViemProvider()
   // await datasource.initialize()
   // comes from provider, data source is not an emitter.
@@ -112,12 +112,12 @@ solo('ViemProvider: Source should sync from zero state given a single evm provid
   setTimeout(async () => {
     console.log('Destroying datasource')
     await datasource.destroy()
-  }, 5_000)
+  }, 300_000)
   for await (const event of (await aggregator.read(BigInt(START_TESTING_BLOCK)))) {
     console.log('FoundEvent', event)
     // t.pass('EVM-Provider:http:iterator FoundEvent')
     if (event?.blockHeight) {
-      t.is(event.blockHeight > BigInt(START_TESTING_BLOCK), true)
+      t.is(event.blockHeight > BigInt(START_TESTING_BLOCK), true, 'BlockHeight is greater than start block')
     }
     // console.log('handledEvent', event?.blockHeight)
   }

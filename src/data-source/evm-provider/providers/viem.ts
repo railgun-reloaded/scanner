@@ -180,8 +180,41 @@ class ViemProvider<T = any> extends EventEmitter implements AsyncIterable<T> {
        * @param logs - The logs from the new block
        */
       onLogs: (logs) => {
-        this.eventQueue.push(logs as unknown as T)
-        this.emit('event', logs)
+        // need to decode the logs
+        const outputs = []
+        for (const event of logs) {
+          const decoded = decodeEventLog({
+            abi: ABIRailgunSmartWallet,
+            data: event.data,
+            topics: event.topics, // this will be standard, as we are only getting 'latest' events here.
+          })
+          const formattedBlockNumber = event.blockNumber ?? 0n
+          const formatted = {
+            name: decoded.eventName,
+            args: decoded.args,
+            blockNumber: parseInt(formattedBlockNumber.toString()),
+            transactionIndex: event.transactionIndex,
+            transactionHash: event.transactionHash,
+            logIndex: event.logIndex,
+          }
+          this.eventQueue.push(formatted as unknown as T)
+          outputs.push(formatted)
+          // this.emit('event', formatted)
+        }
+
+        // sort the events by chronological order
+        const sorted = outputs.sort((a: any, b: any) => {
+          if (a.blockNumber === b.blockNumber) {
+            if (a.transactionIndex === b.transactionIndex) {
+              return a.logIndex - b.logIndex
+            }
+            return a.transactionIndex - b.transactionIndex
+          }
+          return a.blockNumber - b.blockNumber
+        })
+        for (const event of sorted) {
+          this.emit('event', event)
+        }
       }
     })
 
@@ -237,7 +270,6 @@ class ViemProvider<T = any> extends EventEmitter implements AsyncIterable<T> {
    * @yields T - The data read from the source
    */
   async * from (options:{ startBlock: bigint, endBlock: bigint }) {
-    console.log('options')
     const { startBlock, endBlock } = options
     this.startBlock = BigInt(startBlock)
     // this.lastScannedBlock = BigInt(endBlock)

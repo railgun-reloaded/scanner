@@ -8,6 +8,8 @@ import type { Event, RPCData } from './types'
 // TODO: make sure both providers 'watching' events format the same way.
 type EVMProviders = EthersProvider<any> | ViemProvider<any>
 
+// TODO: make source provide 'chunk size' default it low like 500 events...
+// most providers allow alot but, some dont....
 /**
  * Provides an interface for interacting with Ethereum Virtual Machine (EVM) compatible blockchain networks.
  * This class handles the connection, communication, and data retrieval from EVM-based blockchains.
@@ -87,6 +89,10 @@ class EVMProvider implements DataSource<RPCData> {
     this.provider.on('close', () => {
       this.destroy()
     })
+
+    this.provider.on('event', (event) => {
+      console.log('weve got an event', event)
+    })
   }
 
   /**
@@ -134,9 +140,13 @@ class EVMProvider implements DataSource<RPCData> {
     // console.log('HEIGHT', height)
     // these essentially should get added in order from the provider.
     // TODO: check to see if another 'sorting' needs to take place
+
+    // TODO: decide if we manage the new events here, or in the provider...
+    //  first we sort through any events we have gathered here?
     while (true) {
       for await (const event of this.provider) {
-        const { blockNumber } = event.log
+        // console.log('event', event)
+        const { blockNumber } = event
         if (height && blockNumber < height) {
           continue
         }
