@@ -1,9 +1,13 @@
-import { RailgunSmartWalletV2, RailgunSmartWalletV21 } from '@railgun-reloaded/contract-abis'
-// use the abis from ../../abi
+// import { RailgunSmartWalletV2, RailgunSmartWalletV21 } from '@railgun-reloaded/contract-abis'
 import type { EventFragment } from 'ethers'
 import { Interface } from 'ethers'
 
-import { NetworkName, RailgunProxyDeploymentBlock } from '../globals/constants'
+// use the abis from ../../abi
+import { ABIRailgunSmartWalletLegacyPreMar23 as RailgunSmartWalletV2, ABIRailgunSmartWallet as RailgunSmartWalletV21 } from '../abi/abi'
+import {
+  NetworkName,
+  //  RailgunProxyDeploymentBlock
+} from '../globals/constants'
 
 type NetworkUpgrade = {
   blockHeight: bigint
@@ -33,8 +37,8 @@ const getEventsFromAbi = (abi: any, eventNames: string[]): EventFragment[] => {
   )
   // filter out undefineds
   const filteredEvents = events.filter((event) => event !== undefined)
-  const iface2 = new Interface(filteredEvents)
-  console.log('FilteredEvents', filteredEvents.length, iface2)
+  // const iface2 = new Interface(filteredEvents)
+  // console.log('FilteredEvents', filteredEvents.length, iface2)
 
   return filteredEvents
 }
@@ -45,12 +49,14 @@ const getEventsFromAbi = (abi: any, eventNames: string[]): EventFragment[] => {
  * @returns - An array of event topic hashes
  */
 const getTopicHashesFromEvents = (events: EventFragment[]): string[] => {
-  const topicHashes = events.map((event) => event.topicHash.toLowerCase())
-  return topicHashes
+  const topicHashes = events.map((event) => event.topicHash)
+  // remove duplicates
+  const uniqueTopicHashes = [...new Set(topicHashes)]
+  return uniqueTopicHashes
 }
 
 const combinedFragments = [
-  ...getEventsFromAbi(RailgunSmartWalletV2, ['Transact',]),
+  ...getEventsFromAbi(RailgunSmartWalletV2, ['Transact', 'Shield']),
   ...getEventsFromAbi(RailgunSmartWalletV21, [
     'Nullified',
     'Shield',
@@ -60,79 +66,81 @@ const combinedFragments = [
     'GeneratedCommitmentBatch',
     'Nullifiers'])
 ]
-
+// console.log('CombinedFragments', combinedFragments.length, combinedFragments)
+const combinedEventTopics = getTopicHashesFromEvents(combinedFragments)
+// console.log('CombinedEventTopics', combinedEventTopics.length, combinedEventTopics)
 const ABI_FOR_NETWORK_UPGRADE_BLOCKS = {
   [NetworkName.Ethereum]: [
     {
       blockHeight: 0n, // BigInt(RailgunProxyDeploymentBlock[NetworkName.Ethereum]) - 100_000n,
       // abi: RailgunSmartWalletV21,
       abi: combinedFragments,
-      eventTopics: getTopicHashesFromEvents(combinedFragments)
+      eventTopics: combinedEventTopics// getTopicHashesFromEvents(combinedFragments)
       // eventTopics: getEventTopicHashesForAbi(RailgunSmartWalletV2)
     },
 
   ]
 }
 
-/**
- * Network upgrade blocks
- * @param abi - The ABI to get event topic hashes for
- * @returns - An array of event topic hashes
- */
-const getEventTopicHashesForAbi = (abi: any): string[] => {
-  const iface = new Interface(abi)
-  const toInclude = [
-    'Nullified',
-    'Shield',
-    'Transact',
-    'Unshield',
-    'CommitmentBatch',
-    'GeneratedCommitmentBatch',
-    'Nullifiers'
-  ]
-  const eventNames: string[] = abi.filter((item: any) => item.type === 'event' && toInclude.includes(item.name)).map((item: any) => item.name)
-  const eventTopicHashes = eventNames.map((eventName) => iface.getEvent(eventName)?.topicHash.toLowerCase() ?? undefined)
-  console.log('EventNames', eventNames, eventTopicHashes.length)
-  // remove undefined
-  // TODO: typefix this
-  const output = eventTopicHashes.filter((topic: any) => topic !== undefined) as string[]
-  // filter out undefined
-  if (output.length === 0) {
-    return []
-  }
-  return output
-}
-const NETWORK_UPGRADE_BLOCKS: Record<NetworkName, NetworkUpgrade[]> = {
-  // Add your network deployment blocks here
-  // Example: 'networkName': BigInt(deploymentBlockNumber),
-  [NetworkName.Ethereum]: [
-    {
-      blockHeight: BigInt(RailgunProxyDeploymentBlock[NetworkName.Ethereum]) - 1n,
-      abi: RailgunSmartWalletV2,
-      eventTopics: getEventTopicHashesForAbi(RailgunSmartWalletV2)
-    },
-    // {
-    //   blockHeight: 15964145n,
-    //   abi: RailgunSmartWalletV2,
-    //   eventTopics: getEventTopicHashesForAbi(RailgunSmartWalletV2)
-    // },
-    {
-      blockHeight: 16714777n,
-      abi: RailgunSmartWalletV21,
-      eventTopics: getEventTopicHashesForAbi(RailgunSmartWalletV21)
-    },
-  ],
-  [NetworkName.BNBChain]: [],
-  [NetworkName.Polygon]: [],
-  [NetworkName.Arbitrum]: [],
-  [NetworkName.EthereumSepolia]: [],
-  [NetworkName.PolygonAmoy]: [],
-  [NetworkName.Hardhat]: [],
-  [NetworkName.EthereumRopsten_DEPRECATED]: [],
-  [NetworkName.EthereumGoerli_DEPRECATED]: [],
-  [NetworkName.ArbitrumGoerli_DEPRECATED]: [],
-  [NetworkName.PolygonMumbai_DEPRECATED]: []
-}
+// /**
+//  * Network upgrade blocks
+//  * @param abi - The ABI to get event topic hashes for
+//  * @returns - An array of event topic hashes
+//  */
+// const getEventTopicHashesForAbi = (abi: any): string[] => {
+//   const iface = new Interface(abi)
+//   const toInclude = [
+//     'Nullified',
+//     'Shield',
+//     'Transact',
+//     'Unshield',
+//     'CommitmentBatch',
+//     'GeneratedCommitmentBatch',
+//     'Nullifiers'
+//   ]
+//   const eventNames: string[] = abi.filter((item: any) => item.type === 'event' && toInclude.includes(item.name)).map((item: any) => item.name)
+//   const eventTopicHashes = eventNames.map((eventName) => iface.getEvent(eventName)?.topicHash.toLowerCase() ?? undefined)
+//   console.log('EventNames', eventNames, eventTopicHashes.length)
+//   // remove undefined
+//   // TODO: typefix this
+//   const output = eventTopicHashes.filter((topic: any) => topic !== undefined) as string[]
+//   // filter out undefined
+//   if (output.length === 0) {
+//     return []
+//   }
+//   return output
+// }
+// const NETWORK_UPGRADE_BLOCKS: Record<NetworkName, NetworkUpgrade[]> = {
+//   // Add your network deployment blocks here
+//   // Example: 'networkName': BigInt(deploymentBlockNumber),
+//   [NetworkName.Ethereum]: [
+//     {
+//       blockHeight: BigInt(RailgunProxyDeploymentBlock[NetworkName.Ethereum]) - 1n,
+//       abi: RailgunSmartWalletV2,
+//       eventTopics: getEventTopicHashesForAbi(RailgunSmartWalletV2)
+//     },
+//     // {
+//     //   blockHeight: 15964145n,
+//     //   abi: RailgunSmartWalletV2,
+//     //   eventTopics: getEventTopicHashesForAbi(RailgunSmartWalletV2)
+//     // },
+//     {
+//       blockHeight: 16714777n,
+//       abi: RailgunSmartWalletV21,
+//       eventTopics: getEventTopicHashesForAbi(RailgunSmartWalletV21)
+//     },
+//   ],
+//   [NetworkName.BNBChain]: [],
+//   [NetworkName.Polygon]: [],
+//   [NetworkName.Arbitrum]: [],
+//   [NetworkName.EthereumSepolia]: [],
+//   [NetworkName.PolygonAmoy]: [],
+//   [NetworkName.Hardhat]: [],
+//   [NetworkName.EthereumRopsten_DEPRECATED]: [],
+//   [NetworkName.EthereumGoerli_DEPRECATED]: [],
+//   [NetworkName.ArbitrumGoerli_DEPRECATED]: [],
+//   [NetworkName.PolygonMumbai_DEPRECATED]: []
+// }
 
 /**
  * Get the ABI for a given network and block range.
@@ -188,4 +196,4 @@ const getAbiForNetworkBlockRange = (networkName: NetworkName, start: bigint, end
 }
 
 export type { NetworkUpgrade }
-export { getAbiForNetworkBlockRange, getEventsFromAbi, NETWORK_UPGRADE_BLOCKS }
+export { getAbiForNetworkBlockRange, getEventsFromAbi }

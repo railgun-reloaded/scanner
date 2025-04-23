@@ -220,7 +220,7 @@ class EthersProvider<T = any> extends EventEmitter implements AsyncIterable<T> {
       }
       const startChunk = currentOffset
       const start = startChunk
-      const end = startChunk + SCAN_CHUNKS + 1n
+      const end = startChunk + SCAN_CHUNKS
 
       console.log('inputs', start, end)
       const abi = getAbiForNetworkBlockRange(this.network, start, end)
@@ -248,9 +248,9 @@ class EthersProvider<T = any> extends EventEmitter implements AsyncIterable<T> {
         const events = await promiseTimeout(
           this.provider.getLogs(
             {
-              // address: this.address,
-              fromBlock: start,
-              toBlock: end,
+              address: this.address,
+              fromBlock: '0x' + start.toString(16),
+              toBlock: '0x' + end.toString(16),
               topics: [abib.eventTopics],
             }
           ),

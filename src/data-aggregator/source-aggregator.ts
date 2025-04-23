@@ -153,7 +153,67 @@ class SourceAggregator<T extends Data> {
     // console.log('FlatEvents', flat.length)
     // sort events by fragment name
     const sortedObj = {} as Record<string, any[]>
-    for (const event of events) {
+
+    const chronologicalEvents = events.sort((ae: any, be: any) => {
+      const a = ae.event
+      const b = be.event
+      if (a.blockNumber === b.blockNumber) {
+        if (a.transactionIndex === b.transactionIndex) {
+          return b.logIndex - a.logIndex
+        }
+
+        return b.transactionIndex - a.transactionIndex
+      }
+
+      return b.blockNumber - a.blockNumber
+    })
+    chronologicalEvents.reverse()
+    console.log('ChronologicalEvents', chronologicalEvents.at(0))
+    // loop through and check startPositions.
+    // let currentStartPos = 0
+    let expectedPosition = 0
+    // let prevEvent = null
+    for (const e of chronologicalEvents) {
+      const { event } = e
+      // console.log('Event', event)
+      const { args } = event
+      const { startPosition, treeNumber } = args
+      if (typeof startPosition !== 'undefined') {
+        const startPos = parseInt(startPosition.toString())
+        const treeNum = parseInt(treeNumber.toString())
+        const normalized = (treeNum * (2 ** 16)) + startPos
+        // const normalizedExpectedPosition = expectedPosition % 2 ** 16
+        // we have an update.
+        // console.log(startPosition)
+        // check if its our expected position
+        // console.log('Normalized', expectedPosition)
+        if (normalized === expectedPosition) {
+          if ('commitments' in args) {
+            expectedPosition += args['commitments'].length
+            // prevEvent = event
+          } else if ('hash' in args) {
+            expectedPosition += args['hash'].length
+            // prevEvent = event
+          }
+          // currentStartPos = expectedPosition
+          // if (normalized >= currentStartPos) {
+          //   // we have a new start position.
+          //   // console.log('NewStartPosition', normalized)
+          //   currentStartPos = normalized
+          // } else {
+          //   console.log('LastKnownPosition', currentStartPos)
+          //   console.log('event', event)
+          //   process.exit(0)
+          // }
+        }
+        // else {
+        //   console.log('UnexpectedPosition', expectedPosition, treeNum, startPos, prevEvent, event)
+        //   // process.exit(0)
+        // }
+      }
+    }
+    console.log('EXPECTED POSITION', expectedPosition)
+    for (const event of chronologicalEvents) {
       // console.log('event', event)
       // @ts-ignore
       if (event?.event?.name) {
@@ -176,31 +236,56 @@ class SourceAggregator<T extends Data> {
     // find out how many commitment leaves there are in utxo tree
 
     // shield generatedCommitmentBatch .commitments.length
-    console.log('ShieldEvents', sortedObj['GeneratedCommitmentBatch']?.at(0))
-    const shields = [...(sortedObj['GeneratedCommitmentBatch'] ?? []), ...(sortedObj['Shield'] ?? [])]
+    // console.log('ShieldEvents', sortedObj['GeneratedCommitmentBatch']?.at(0))
+    // console.log('ShieldEvents', sortedObj['Shield']?.at(0))
+    // const shields = [...(sortedObj['GeneratedCommitmentBatch'] ?? []), ...(sortedObj['Shield'] ?? [])]
 
     // console.log('lastShieldEvent', shields.at(-1))
-    console.log(events.at(-1))
-    const shieldCount = shields.reduce((acc, event) => {
+    // console.log(events.at(-1))
+    // const shieldCount = shields.reduce((acc, event) => {
+    //   const { args } = event.event
+    //   // serialize the obj based off the fragment so we have a labled object output
+    //   if (args && (typeof args.startPosition !== 'undefined')) {
+    //     // console.log('args', args)
+    //     if (args && args.commitments) {
+    //       return acc + args.commitments.length
+    //     } else { console.log('NoCommitments', args) }
+    //   }
+    //   return acc
+    // }, 0) ?? 0
+
+    // const transacts = [...(sortedObj['CommitmentBatch'] ?? []), ...(sortedObj['Transact'] ?? []),]
+    // const transactCount = transacts.reduce((acc, event) => {
+    //   const { args } = event.event
+    //   // console.log('args', args)
+    //   const hash = args?.hash
+    //   if (hash && (typeof args.startPosition !== 'undefined')) {
+    //     return acc + hash.length
+    //   } else {
+    //     console.log('NoHash', args)
+    //     return acc
+    //   }
+    // }, 0) ?? 0
+
+    const totalCheck = chronologicalEvents.reduce((acc, event) => {
       const { args } = event.event
       // serialize the obj based off the fragment so we have a labled object output
-      if (args) {
-        if (args && args.commitments) {
-          return acc + args.commitments.length
-        } else { console.log('NoCommitments', args) }
+      if (typeof args['startPosition'] !== 'undefined') {
+        if ('commitments' in args) {
+          return acc + args['commitments'].length
+        } else if ('hash' in args) {
+          return acc + args['hash'].length
+        }
       }
       return acc
-    }, 0) ?? 0
-
-    const transacts = [...(sortedObj['CommitmentBatch'] ?? []), ...(sortedObj['Transact'] ?? []),]
-    const transactCount = transacts.reduce((acc, event) => {
-      const { args } = event.event
-      // console.log('args', args)
-      return acc + (args?.hash?.length ?? 0)
-    }, 0) ?? 0
-    console.log('leaves', shieldCount + transactCount)
+    }, 0)
+    console.log('TotalCheck', totalCheck)
+    // console.log('transactCount', transactCount)
+    // console.log('shieldCount', shieldCount)
+    // console.log('TOTAL', shieldCount + transactCount)
+    console.log('leaves', expectedPosition)
     // console.log('SortedEvents', sortedObj['Transfer'])
-    console.log('SAVING EVENTS', events.length)
+    console.log('SAVING EVENTS', chronologicalEvents.length)
     // saveFile(this.storage, { blockHeight: events[events.length - 1]?.blockHeight, events })
   }
 }

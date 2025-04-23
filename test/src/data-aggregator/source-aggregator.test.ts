@@ -5,11 +5,11 @@ import dotenv from 'dotenv'
 import { SourceAggregator } from '../../../src/data-aggregator/source-aggregator.js'
 import { EthersProvider } from '../../../src/data-source/evm-provider/providers/ethers.js'
 import { EVMProvider } from '../../../src/data-source/evm-provider.js'
-import { NetworkName, RailgunProxyDeploymentBlock } from '../../../src/globals/constants.js'
+import { NetworkName, RailgunProxyContract, RailgunProxyDeploymentBlock } from '../../../src/globals/constants.js'
 
 dotenv.config()
 const TEST_RPC_URL = 'http://127.0.0.1:8545'// process.env['TEST_RPC_URL_HTTPS']
-const TEST_CONTRACT_ADDRESS = '0xFA7093CDD9EE6932B4eb2c9e1cde7CE00B1FA4b9'
+const TEST_CONTRACT_ADDRESS = RailgunProxyContract[NetworkName.Ethereum]
 
 /**
  * Test EVM Provider
@@ -32,7 +32,7 @@ const getTestEVMProvider = () => {
 
 solo('Source should sync from zero state given a single evm provider', async (t) => {
   // scenario 0. NO STORED DATA. BUILD ALL
-  t.timeout(1000_000)
+  t.timeout(2_000_000)
   const { datasource, provider } = getTestEVMProvider()
   // await datasource.initialize()
   // comes from provider, data source is not an emitter.
