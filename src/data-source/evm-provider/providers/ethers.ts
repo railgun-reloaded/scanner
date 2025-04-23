@@ -274,6 +274,7 @@ class EthersProvider<T = any> extends EventEmitter implements AsyncIterable<T> {
           currentOffset += SCAN_CHUNKS
           this.lastScannedBlock = currentOffset - 1n// scan is inclusive
         }
+        // TODO: look into moving this above the abi selection loop
         // format events
         const formatted: {
           name: string
