@@ -284,6 +284,19 @@ class EthersProvider<T = any> extends EventEmitter implements AsyncIterable<T> {
         }[] = []
         for (const event of events) {
           // Decode the event using the interface to get named arguments
+          // let decoded: any
+          // iface.forEachEvent((eventFragment) => {
+          //   try {
+          //     const output = iface.decodeEventLog(eventFragment, event.data)
+          //     decoded = {
+          //       name: eventFragment.name,
+          //       ...output
+          //     }
+          //     // console.log('Event:', eventFragment.name, d)
+          //   } catch (e: any) {
+          //     // console.log('Error decoding event:', eventFragment.name, e.message)
+          //   }
+          // })
           const decoded = iface.parseLog(event)
 
           if (!decoded?.name) {
@@ -348,10 +361,11 @@ class EthersProvider<T = any> extends EventEmitter implements AsyncIterable<T> {
           if (!processedEventIds.has(eventId)) {
             processedEventIds.add(eventId)
             formatted.push(output)
-          } else {
-            console.log('Duplicate event found:', output)
-            console.log('Duplicate event found:', event)
           }
+          // else {
+          //   console.log('Duplicate event found:', output)
+          //   console.log('Duplicate event found:', event)
+          // }
         }
         yield formatted
         await delay(250) // Delay to avoid rate limiting, can avoid this with forking...
