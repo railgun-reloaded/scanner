@@ -1,5 +1,5 @@
 import { RailgunSmartWalletV21 } from '@railgun-reloaded/contract-abis'
-import { solo as test } from 'brittle'
+import { test } from 'brittle'
 import dotenv from 'dotenv'
 
 import { NetworkName } from '../../../../../src'
