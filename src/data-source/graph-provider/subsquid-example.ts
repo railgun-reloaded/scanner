@@ -31,17 +31,7 @@ const getAllShields = async () => {
           'hash',
           {
             '... on LegacyGeneratedCommitment': [
-              // no need for thse, they're already being indexed by the 'filter' above?
-
-              // 'id',
-              // 'treeNumber',
-              // 'batchStartTreePosition',
-              // 'treePosition',
-              // 'blockNumber',
-              // 'transactionHash',
-              // 'blockTimestamp',
-              // 'commitmentType',
-              // 'hash',
+              // no need for duplicate fields, they're already being indexed by the 'filter' above?
               'encryptedRandom',
               {
                 preimage: [
@@ -60,15 +50,31 @@ const getAllShields = async () => {
               },
 
             ]
+          },
+          {
+            '... on LegacyEncryptedCommitment': [
+              {
+                ciphertext: [
+                  // 'id', // also duplicate of 'initial query'
+                  // could be used for continuity of data?
+                  {
+                    ciphertext: [
+                      // 'id', // duplicate same aas above, no need? /
+                      'iv',
+                      'tag',
+                      'data'
+                    ]
+                  },
+                  'ephemeralKeys',
+                  'memo'
+                ]
+              }
+            ]
           }
         ],
 
       },
     }
-    // {
-    //   operationName: 'Commitments',
-    //   variables: [{ name: 'blockNumber', type: 'BigInt', default: 0 }],
-    // }
   )
   return commitments
 }
