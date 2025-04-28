@@ -1,5 +1,5 @@
 import { SubsquidClient } from '@railgun-reloaded/subsquid-client'
-import { CommitmentOrderByInput } from '@railgun-reloaded/subsquid-client/src/generated/types'
+import { CommitmentOrderByInput, UnshieldOrderByInput } from '@railgun-reloaded/subsquid-client/src/generated/types'
 import { SUPPORTED_NETWORKS } from '@railgun-reloaded/subsquid-client/src/networks'
 // example output: ['ethereum', 'ethereumSepolia', 'bsc', '
 
@@ -35,12 +35,12 @@ const getAllShields = async () => {
               'encryptedRandom',
               {
                 preimage: [
-                  'id',
+                  // 'id',
                   'npk',
                   'value',
                   {
                     token: [
-                      'id',
+                      'id', // THIS IS NOT THE SAME AS ID ABOVE
                       'tokenType',
                       'tokenSubID',
                       'tokenAddress'
@@ -76,6 +76,34 @@ const getAllShields = async () => {
       },
     }
   )
+
+  const { unshields } = await client.query({
+    unshields: {
+      orderBy: [UnshieldOrderByInput.BlockNumberAsc, UnshieldOrderByInput.EventLogIndexAsc],
+      where: { blockNumber_gte: '0' },
+      limit: 5,
+      fields: [
+        'id',
+        'blockNumber',
+        'to',
+        'transactionHash',
+        'fee',
+        'blockTimestamp',
+        'amount',
+        'eventLogIndex',
+        {
+          token: [
+            'foobar',
+            'id',
+            'tokenType',
+            'tokenSubID',
+            'tokenAddress'
+          ]
+        }
+      ]
+    }
+  })
+  console.log('unshields', unshields)
   return commitments
 }
 /**
