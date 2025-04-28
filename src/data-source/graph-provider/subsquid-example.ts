@@ -17,8 +17,8 @@ const getAllShields = async () => {
     {
       commitments: {
         orderBy: [CommitmentOrderByInput.BlockNumberAsc, CommitmentOrderByInput.TreePositionAsc],
-        where: { blockNumber_gte: '$blockNumber' },
-        limit: 10000,
+        where: { blockNumber_gte: '0' },
+        limit: 5,
         fields: [
           'id',
           'treeNumber',
@@ -29,61 +29,46 @@ const getAllShields = async () => {
           'blockTimestamp',
           'commitmentType',
           'hash',
+          {
+            '... on LegacyGeneratedCommitment': [
+              // no need for thse, they're already being indexed by the 'filter' above?
+
+              // 'id',
+              // 'treeNumber',
+              // 'batchStartTreePosition',
+              // 'treePosition',
+              // 'blockNumber',
+              // 'transactionHash',
+              // 'blockTimestamp',
+              // 'commitmentType',
+              // 'hash',
+              'encryptedRandom',
+              {
+                preimage: [
+                  'id',
+                  'npk',
+                  'value',
+                  {
+                    token: [
+                      'id',
+                      'tokenType',
+                      'tokenSubID',
+                      'tokenAddress'
+                    ]
+                  }
+                ]
+              },
+
+            ]
+          }
         ],
-        on: {
-          // LegacyGeneratedCommitment: [
-          //   'id',
-          //   'treeNumber',
-          //   'batchStartTreePosition',
-          //   'treePosition',
-          //   'blockNumber',
-          //   'transactionHash',
-          //   'blockTimestamp',
-          //   'commitmentType',
-          //   'hash',
-          //   'encryptedRandom',
-          //   `preimage {
-          //     id
-          //     npk
-          //     value
-          //     token {
-          //       id
-          //       tokenType
-          //       tokenSubID
-          //       tokenAddress
-          //     }
-          //   }`,
-          // ],
-          LegacyEncryptedCommitment: [
-            'id',
-            'blockNumber',
-            'blockTimestamp',
-            'transactionHash',
-            'treeNumber',
-            'batchStartTreePosition',
-            'treePosition',
-            'commitmentType',
-            'hash',
-            // here’s the alias + nested object exactly as you wrote it:
-            'legacyCiphertext: ciphertext {',
-            '  id',
-            '  ciphertext {',
-            '    id',
-            '    iv',
-            '    tag',
-            '    data',
-            '  }',
-            '  ephemeralKeys',
-            '  memo',
-            '}',
-          ],
-        },
+
       },
-    },
-    {
-      operationName: 'Commitments',
-      variables: [{ name: 'blockNumber', type: 'BigInt', default: 0 }],
     }
+    // {
+    //   operationName: 'Commitments',
+    //   variables: [{ name: 'blockNumber', type: 'BigInt', default: 0 }],
+    // }
   )
   return commitments
 }
@@ -107,7 +92,12 @@ const test = async () => {
   return { shields }
 }
 test().then(e => {
-  console.log(e)
+  e.shields.forEach((shield: any) => {
+    console.log('shield', shield)
+    console.log('preimage', shield.preimage)
+    console.log('encryptedRandom', shield.encryptedRandom)
+  })
+  // console.log(e)
 }).catch(e => {
   console.error(e)
   process.exit(1)
