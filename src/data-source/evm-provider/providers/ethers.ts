@@ -223,7 +223,7 @@ class EthersProvider<T = any> extends EventEmitter implements AsyncIterable<T> {
       const start = startChunk
       const end = (endOffset > endBlock ? endBlock : endOffset)
 
-      // console.log('inputs', start, end)
+      console.log('inputs', start, end)
       const abi = getAbiForNetworkBlockRange(this.network, start, end)
       // console.log(abi.length)
       if (abi.length > 1) {

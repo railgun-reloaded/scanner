@@ -69,7 +69,9 @@ class SourceAggregator<T extends Data> {
       await source.initialize()
     }
     console.time('restoreGzip')
-    await this.db.restoreGzip(this.storage)
+    await this.db.restoreGzip(this.storage).catch((err: any) => {
+      console.error('Error restoring gzip', err)
+    })
     console.timeEnd('restoreGzip')
   }
 
@@ -114,8 +116,7 @@ class SourceAggregator<T extends Data> {
     const events = []
     let startBlock = BigInt(RailgunProxyDeploymentBlock[NetworkName.Ethereum] - 100_000)
     if (block) {
-      console.log('block', block.events.length)
-      // console.log('DataStorageFound')//
+      console.log('Snapshot Found:', block.events.length)
       // we have found storage. lets load it.
       const { blockHeight, events: storedEvents } = block
       console.log('SyncingFrom', blockHeight, 'total events:', storedEvents.length)
@@ -146,17 +147,20 @@ class SourceAggregator<T extends Data> {
       startBlock = BigInt(storedEvents.at(-1).event.blockNumber) + 1n
       console.log('StartBlock', startBlock)
     }
-
+    console.log('Updating SnapshotDB')
     // get latest block number.
 
+    let latestSourceBlock = startBlock
     for (const source of this.sources) {
       console.log('latest block', source.head)
       for await (const event of source.from({
-        startBlock,
+        startBlock: latestSourceBlock,
         endBlock: 'latest' // TODO: get latest block number from source.
       })) {
         if (event) {
           events.push(event)
+          // @ts-ignore TODO: fix this typeshit
+          latestSourceBlock = event.event.blockNumber
         }
       }
     }

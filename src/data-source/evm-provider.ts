@@ -91,7 +91,8 @@ class EVMProvider implements DataSource<RPCData> {
     })
 
     this.provider.on('event', (event) => {
-      console.log('weve got an event', event)
+      this.unsortedEvents.push(event)
+      // console.log('weve got an event', event)
     })
   }
 
