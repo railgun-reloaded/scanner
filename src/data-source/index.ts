@@ -1,3 +1,3 @@
 export * from './evm-provider'
-export * from './subsquid-provider'
+export * from './graph-provider'
 export type * from './datasource'
