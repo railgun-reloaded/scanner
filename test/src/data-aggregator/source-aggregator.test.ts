@@ -112,7 +112,7 @@ solo('ViemProvider: Source should sync from zero state given a single evm provid
   setTimeout(async () => {
     console.log('Destroying datasource')
     await datasource.destroy()
-  }, 300_000)
+  }, 5_000)
   for await (const event of (await aggregator.read(BigInt(START_TESTING_BLOCK)))) {
     console.log('FoundEvent', event)
     // t.pass('EVM-Provider:http:iterator FoundEvent')
