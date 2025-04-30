@@ -18,7 +18,7 @@ console.log(SUPPORTED_NETWORKS)
 const getAllShields = async () => {
   const client = new SubsquidClient({ network: 'ethereum' })
 
-  const { commitments } = await client.query(
+  const { commitments, unshields, transactions, nullifiers } = await client.query(
     {
       commitments: {
         orderBy: [CommitmentOrderByInput.BlockNumberAsc, CommitmentOrderByInput.TreePositionAsc],
@@ -38,6 +38,7 @@ const getAllShields = async () => {
             '... on LegacyGeneratedCommitment': [
               // no need for duplicate fields, they're already being indexed by the 'filter' above?
               'encryptedRandom',
+
               {
                 preimage: [
                   // 'id',
@@ -56,130 +57,144 @@ const getAllShields = async () => {
 
             ]
           },
-          {
-            '... on LegacyEncryptedCommitment': [
-              {
-                aliasField: ['legacyCiphertext',
-                  [
-                  // 'id', // also duplicate of 'initial query'
-                  // could be used for continuity of data?
+          // {
+          //   '... on LegacyEncryptedCommitment': [
+          //     {
+          //       // aliasField: ['legacyCiphertext',
+          //       //   [
+          //       //   // 'id', // also duplicate of 'initial query'
+          //       //     {
+          //       //       // @ts-expect-error
+          //       //       ciphertext: [{
+          //       //         ciphertext:
+          //       //         [
+          //       //         // 'id', // duplicate same aas above, no need? /
+          //       //           'iv',
+          //       //           'tag',
+          //       //           'data'
+          //       //         ]
+          //       //       },
+          //       //       'ephemeralKeys',
+          //       //       'memo'
+          //       //       ],
 
-                    {
-                      // @ts-expect-error
-                      aliasField: [
-                        'ciphertext', [
-                          // 'id', // duplicate same aas above, no need? /
-                          'iv',
-                          'tag',
-                          'data'
-                        ]
-                      ]
-                    },
-                    // @ts-expect-error
-                    'ephemeralKeys',
-                    // @ts-expect-error
-                    'memo'
-                  // {
-                  //   aliasField: ['legacyMemo', 'memo']
-                  // }
-                  ]
-                ]
-              }
-            ]
-          },
-          {
-            '... on ShieldCommitment': [
-              'shieldKey',
-              'fee',
-              'encryptedBundle',
-              {
-                preimage: [
-                  // 'id',
-                  'npk',
-                  'value',
-                  {
-                    token: [
-                      'id',
-                      'tokenType',
-                      'tokenSubID',
-                      'tokenAddress',
-                    ]
-                  }
-                ]
-              }
-            ]
-          },
-          {
-            '... on TransactCommitment': [
-              {
-                ciphertext: [
-                  // 'id',
-                  {
-                    ciphertext: [
-                      // 'id',
-                      'iv',
-                      'tag',
-                      'data',
-                    ]
-                  },
-                  'blindedSenderViewingKey',
-                  'blindedReceiverViewingKey',
-                  'annotationData',
-                  'memo'
-                  // {
-                  //   aliasField: ['legacyMemo', 'memo']
-                  // }
+          //       //     },
+          //       //   // {
+          //       //   //   aliasField: ['legacyMemo', 'memo']
+          //       //   // }
+          //       //   ]
+          //       // ]
+          //       ciphertext: [
+          //         // 'id',
+          //         {
+          //           ciphertext: [
+          //             // 'id',
+          //             'iv',
+          //             'tag',
+          //             'data'
+          //           ]
+          //         },
+          //         'ephemeralKeys',
+          //         'legacyMemo: memo'
+          //       ]
+          //     }
+          //   ]
+          // },
+          // {
+          //   '... on ShieldCommitment': [
+          //     'shieldKey',
+          //     'fee',
+          //     'encryptedBundle',
+          //     {
+          //       preimage: [
+          //         // 'id',
+          //         'npk',
+          //         'value',
+          //         {
+          //           token: [
+          //             'id',
+          //             'tokenType',
+          //             'tokenSubID',
+          //             'tokenAddress',
+          //           ]
+          //         }
+          //       ]
+          //     }
+          //   ]
+          // },
+          // {
+          //   '... on TransactCommitment': [
+          //     {
+          //       ciphertext: [
+          //         // 'id',
+          //         {
+          //           ciphertext: [
+          //             // 'id',
+          //             'iv',
+          //             'tag',
+          //             'data',
+          //           ]
+          //         },
+          //         'blindedSenderViewingKey',
+          //         'blindedReceiverViewingKey',
+          //         'annotationData',
+          //         'memo'
+          //         // {
+          //         //   aliasField: ['legacyMemo', 'memo']
+          //         // }
 
-                ]
-              }
-            ]
-          },
-          {
-            '... on ShieldCommitment': [
-              'shieldKey',
-              'fee',
-              'encryptedBundle',
-              {
-                preimage: [
-                  // 'id',
-                  'npk',
-                  'value',
-                  {
-                    token: [
-                      'id',
-                      'tokenType',
-                      'tokenSubID',
-                      'tokenAddress',
-                    ]
-                  }
-                ]
-              }
-            ]
-          },
-          {
-            '... on TransactCommitment': [
-              {
-                ciphertext: [
-                  // 'id',
-                  {
-                    ciphertext: [
-                      // 'id',
-                      'iv',
-                      'tag',
-                      'data',
-                    ]
-                  },
-                  'blindedSenderViewingKey',
-                  'blindedReceiverViewingKey',
-                  'annotationData',
-                  'memo'
+          //       ]
+          //     }
+          //   ]
+          // },
+          // {
+          //   '... on ShieldCommitment': [
+          //     'shieldKey',
+          //     'fee',
+          //     'encryptedBundle',
+          //     {
+          //       preimage: [
+          //         // 'id',
+          //         'npk',
+          //         'value',
+          //         {
+          //           token: [
+          //             'id',
+          //             'tokenType',
+          //             'tokenSubID',
+          //             'tokenAddress',
+          //           ]
+          //         }
+          //       ]
+          //     }
+          //   ]
+          // },
+          // {
+          //   '... on TransactCommitment': [
+          //     {
+          //       ciphertext: [
 
-                ]
-              }
-            ]
-          }
+          //         // 'id',
+          //         {
+          //           ciphertext: [
+          //             // 'id',
+          //             'iv',
+          //             'tag',
+          //             'data',
+          //           ]
+          //         },
+          //         'blindedSenderViewingKey',
+          //         'blindedReceiverViewingKey',
+          //         'annotationData',
+          //         'memo'
+
+          //       ]
+          //     }
+          //   ]
+          // }
         ],
       },
+
       unshields: {
         orderBy: [UnshieldOrderByInput.BlockNumberAsc, UnshieldOrderByInput.EventLogIndexAsc],
         where: { blockNumber_gte: '0' },
@@ -195,13 +210,22 @@ const getAllShields = async () => {
           'eventLogIndex',
           {
             token: [
+              'foo',
               'id',
               'tokenType',
               'tokenSubID',
               'tokenAddress'
             ]
-          }
-        ]
+          },
+
+        ],
+        // on:
+        //   {
+
+        //     TransactCommitment: [
+        //       'dong'
+        //     ]
+        //   }
       },
       nullifiers: {
         orderBy: [NullifierOrderByInput.BlockNumberAsc, NullifierOrderByInput.NullifierDesc],
@@ -247,33 +271,7 @@ const getAllShields = async () => {
     }
   )
 
-  // const { unshields } = await client.query({
-  // unshields: {
-  //   orderBy: [UnshieldOrderByInput.BlockNumberAsc, UnshieldOrderByInput.EventLogIndexAsc],
-  //   where: { blockNumber_gte: '0' },
-  //   limit: 5,
-  //   fields: [
-  //     'id',
-  //     'blockNumber',
-  //     'to',
-  //     'transactionHash',
-  //     'fee',
-  //     'blockTimestamp',
-  //     'amount',
-  //     'eventLogIndex',
-  //     {
-  //       token: [
-  //         'id',
-  //         'tokenType',
-  //         'tokenSubID',
-  //         'tokenAddress'
-  //       ]
-  //     }
-  //   ]
-  // }
-  // })
-  // console.log('unshields', unshields)
-  return commitments
+  return { commitments, unshields, transactions, nullifiers }
 }
 /**
  *  Example usage of the SubsquidClient
@@ -295,11 +293,20 @@ const test = async () => {
   return { shields }
 }
 test().then(e => {
-  e.shields.forEach((shield: any) => {
-    console.log('shield', shield)
-    // console.log('preimage', shield.preimage)
-    // console.log('encryptedRandom', shield.encryptedRandom)
-  })
+  for (const key in e.shields) {
+    console.log(key)
+    // @ts-expect-error
+    for (const shield of e.shields[key]) {
+      console.log(key, shield)
+      // console.log('preimage', shield.preimage)
+      // console.log('encryptedRandom', shield.encryptedRandom)
+    }
+  }
+  // e.shields.forEach((shield: any) => {
+  //   console.log('shield', shield)
+  //   // console.log('preimage', shield.preimage)
+  //   // console.log('encryptedRandom', shield.encryptedRandom)
+  // })
   // console.log(e)
 }).catch(e => {
   console.error(e)
