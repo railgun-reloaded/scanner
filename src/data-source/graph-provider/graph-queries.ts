@@ -263,16 +263,18 @@ const getClientForNetwork = (network: NetworkName) => {
  * @param limit - The number of results to return
  * @returns - The results of the query
  */
-const autoPaginateQuery = async (queryName: string, netowrk: NetworkName, query: any, fromBlock: number, limit: number) => {
+const autoPaginateQuery = async (queryName: string, netowrk: NetworkName, query: any, fromBlock: number, limit = 10_000) => {
   let allResults: any[] = []
   let currentPage = 0
+  let currentPageBlock = fromBlock
   let hasNextPage = true
-
+  console.log('queryName', queryName, 'fromBlock', fromBlock, 'limit', limit)
+  let lastResult = null
   while (hasNextPage) {
     const paginatedQuery = {
       [`${queryName}`]: {
         ...query,
-        where: { ...query.where, blockNumber_gte: (fromBlock + currentPage * limit).toString() },
+        where: { ...query.where, blockNumber_gte: (currentPageBlock).toString() },
         limit,
       }
     }
@@ -280,17 +282,20 @@ const autoPaginateQuery = async (queryName: string, netowrk: NetworkName, query:
     // Fetch the results for the current page
     const { events: results } = await fetchGraphQL(netowrk, paginatedQuery)
     // Add the results to the allResults array
-    console.log('results', results)
     // @ts-ignore
     allResults = [...allResults, ...results[`${queryName}`]]
-
+    // @ts-ignore
+    // console.log('lastResult', lastResult)
+    lastResult = results[`${queryName}`][results[`${queryName}`].length - 1]
     // Check if there are more pages
     // @ts-ignore
     hasNextPage = results.length === limit
+    currentPageBlock = allResults[allResults.length - 1].blockNumber
+    console.log('currentPage', currentPage, 'hasNextPage', hasNextPage, 'currentPageBlock', currentPageBlock)
     currentPage++
   }
 
-  return allResults
+  return { allResults, lastEventBlock: BigInt(lastResult.blockNumber) }
 }
 
 /**
@@ -305,4 +310,4 @@ const fetchGraphQL = async (network: NetworkName, paginatedQuery: any) => {
   return { events: result }
 }
 
-export { getUnshieldsQuery, getNullifiersQuery, getTransactionsQuery, getCommitmentsQuery, autoPaginateQuery }
+export { getClientForNetwork, getUnshieldsQuery, getNullifiersQuery, getTransactionsQuery, getCommitmentsQuery, autoPaginateQuery }
