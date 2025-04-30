@@ -198,8 +198,9 @@ test('Graph Queries', () => {
     //     ]
     //   })
 
-    const { allResults: paginatedResults } = await autoPaginateQuery('commitments', NetworkName.Ethereum, query, fromBlock, limit)
-    t.is(paginatedResults.length, 500) // Assuming no results for the test case
+    const { allResults: paginatedResults } = await autoPaginateQuery(NetworkName.Ethereum, { commitments: query })
+    // @ts-expect-error
+    t.is(paginatedResults['commitments'].length, 500) // Assuming no results for the test case
 
     //
   })

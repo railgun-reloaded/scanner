@@ -244,6 +244,60 @@ const getCommitmentsQuery = (fromBlock: number, limit = 10000) => {
 }
 
 /**
+ * Get all queries for full sync
+ * @param fromBlock - The block number to start from
+ * @param limit - The number of transactions to return
+ * @returns - transaction graphQL query
+ */
+const getFullSyncQuery = (fromBlock: number, limit = 10000) => {
+  const commitmentsQuery = getCommitmentsQuery(fromBlock, limit)
+  const nullifiersQuery = getNullifiersQuery(fromBlock, limit)
+  const transactionsQuery = getTransactionsQuery(fromBlock, limit)
+  const unshieldsQuery = getUnshieldsQuery(fromBlock, limit)
+  return {
+    commitments: commitmentsQuery,
+    nullifiers: nullifiersQuery,
+    transactions: transactionsQuery,
+    unshields: unshieldsQuery,
+  }
+}
+
+/**
+ * - Auto paginate a GraphQL query
+ * @param query - The query to execute
+ * @param lastResults - The last results of the query
+ * @returns - The paginated query
+ */
+const paginateQuery = async (
+  query: any,
+  lastResults: any
+) => {
+  // takes the last result for that 'key' & determines the next query.
+  if (!lastResults) {
+    return query
+  }
+  const queries = Object.keys(query)
+  for (const key of queries) {
+    const latest = lastResults[key]
+    // @ts-ignore
+    const lastResult = latest[latest.length - 1]
+    const blockNumber = lastResult.blockNumber
+    // print out the goods
+    console.log('blockNumber', blockNumber, 'key', key, 'latest', latest.length)
+    // check if the limit has been reached.
+    if (latest.length === query[key].limit) {
+      // @ts-ignore
+      delete query[key]
+    } else {
+      // @ts-ignore
+      query[key].where.blockNumber_gte = (blockNumber).toString()
+    }
+  }
+
+  return query
+}
+
+/**
  * Get the client for the network
  * @param network - The network name
  * @returns - The client for the network
@@ -256,46 +310,68 @@ const getClientForNetwork = (network: NetworkName) => {
 
 /**
  * Auto paginate a GraphQL query
- * @param queryName - The name of the query
- * @param netowrk - The network name
+ * @param netowrk
  * @param query - The query to execute
  * @param fromBlock - The block number to start from
  * @param limit - The number of results to return
  * @returns - The results of the query
  */
-const autoPaginateQuery = async (queryName: string, netowrk: NetworkName, query: any, fromBlock: number, limit = 10_000) => {
-  let allResults: any[] = []
+const autoPaginateQuery = async (netowrk: NetworkName, query: any) => {
+  const allResults: Record<string, any[]> = {}
   let currentPage = 0
-  let currentPageBlock = fromBlock
+  // let currentPageBlock = fromBlock
   let hasNextPage = true
-  console.log('queryName', queryName, 'fromBlock', fromBlock, 'limit', limit)
-  let lastResult = null
+  let lastResults = null
+  // console.log('queryName', queryName, 'fromBlock', fromBlock, 'limit', limit)
+  // const lastResult = null
   while (hasNextPage) {
-    const paginatedQuery = {
-      [`${queryName}`]: {
-        ...query,
-        where: { ...query.where, blockNumber_gte: (currentPageBlock).toString() },
-        limit,
-      }
-    }
+    // const paginatedQuery = {
+    //   [`${queryName}`]: {
+    //     ...query,
+    //     where: { ...query.where, blockNumber_gte: (currentPageBlock).toString() },
+    //     limit,
+    //   }
+    // }
 
+    const paginatedQueryWithLastResults = await paginateQuery(query, lastResults)
+    console.log('paginatedQueryWithLastResults', paginatedQueryWithLastResults)
+    const remainingKeys = Object.keys(paginatedQueryWithLastResults)
+    // @ts-ignore
+    hasNextPage = remainingKeys.length > 0
+    if (!hasNextPage) {
+      break
+    }
     // Fetch the results for the current page
-    const { events: results } = await fetchGraphQL(netowrk, paginatedQuery)
+    const { events: results } = await fetchGraphQL(netowrk, paginatedQueryWithLastResults)
     // Add the results to the allResults array
     // @ts-ignore
-    allResults = [...allResults, ...results[`${queryName}`]]
+    // allResults = [...allResults, ...results[`${queryName}`]]
+    // consolidate the results for all the keys in the query.
+    for (const key in results) {
+      // if (key !== queryName) {
+      if (!allResults[key]) {
+        allResults[key] = []
+      }
+      // @ts-ignore
+      if (!results[key]) {
+        continue
+      }
+      // @ts-ignore
+      allResults[key] = [...allResults[key], ...results[key]]
+      // }
+    }
     // @ts-ignore
     // console.log('lastResult', lastResult)
-    lastResult = results[`${queryName}`][results[`${queryName}`].length - 1]
+    // lastResult = results[`${queryName}`][results[`${queryName}`].length - 1]
+    lastResults = results
     // Check if there are more pages
-    // @ts-ignore
-    hasNextPage = results.length === limit
-    currentPageBlock = allResults[allResults.length - 1].blockNumber
-    console.log('currentPage', currentPage, 'hasNextPage', hasNextPage, 'currentPageBlock', currentPageBlock)
+
+    // currentPageBlock = allResults[allResults.length - 1].blockNumber
+    console.log('currentPage', currentPage, 'hasNextPage', hasNextPage)
     currentPage++
   }
 
-  return { allResults, lastEventBlock: BigInt(lastResult.blockNumber) }
+  return { allResults }
 }
 
 /**
@@ -310,4 +386,13 @@ const fetchGraphQL = async (network: NetworkName, paginatedQuery: any) => {
   return { events: result }
 }
 
-export { getClientForNetwork, getUnshieldsQuery, getNullifiersQuery, getTransactionsQuery, getCommitmentsQuery, autoPaginateQuery }
+export {
+  getFullSyncQuery,
+  getClientForNetwork,
+  getUnshieldsQuery,
+  getNullifiersQuery,
+  getTransactionsQuery,
+  getCommitmentsQuery,
+  autoPaginateQuery,
+  paginateQuery
+}
