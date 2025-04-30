@@ -4,7 +4,7 @@ import type { SubsquidClient } from '@railgun-reloaded/subsquid-client'
 
 import type { NetworkName } from '../../globals'
 
-import { autoPaginateQuery, getClientForNetwork, getCommitmentsQuery } from './graph-queries'
+import { autoPaginateQuery, getClientForNetwork, getFullSyncQuery, paginateQuery } from './graph-queries'
 
 // import type { NetworkName } from '../../../src/globals'
 // import { delay, getAbiForNetworkBlockRange, promiseTimeout } from '../../utils'
@@ -89,22 +89,37 @@ class SubsquidProvider<T = any> extends EventEmitter implements AsyncIterable<T>
     // this.lastScannedBlock = BigInt(endBlock)
     // Logic to iterate from a given height
     // const TOTAL_BLOCKS = BigInt(endBlock) - BigInt(startBlock)
-    const BATCH_SIZE = 10_000
+    // const BATCH_SIZE = 10_000
     // const BLOCKS_PER_ITERATION = BigInt(100_000)
 
     let hasNextPage = true
-    let currentPageBlock = startBlock
+    const currentPageBlock = startBlock
     // let currentPage = 0
+    let lastResults = null
+    const lastQuery = null
     while (hasNextPage) {
     // for (let i = BigInt(startBlock); i < BigInt(endBlock); i += BLOCKS_PER_ITERATION) {
       const fromBlock = currentPageBlock
       // const toBlock = fromBlock + BLOCKS_PER_ITERATION > BigInt(endBlock) ? BigInt(endBlock) : fromBlock + BLOCKS_PER_ITERATION
       // console.log('from', fromBlock, 'to', toBlock)
-      const { allResults: events, lastEventBlock } = await autoPaginateQuery('commitments', this.network, getCommitmentsQuery(Number(fromBlock.toString())), Number(fromBlock.toString()))
+      const fullSyncQuery = getFullSyncQuery(Number(fromBlock.toString()), 10_000)
+      let nextQuery = null
+      if (lastQuery === null) {
+        nextQuery = fullSyncQuery
+      } else {
+        nextQuery = paginateQuery(lastQuery, fullSyncQuery)
+      }
+      if (lastResults === null) {
+        nextQuery = fullSyncQuery
+      } else {
+        nextQuery = paginateQuery(fu)
+      }
+      const { allResults: events } = await autoPaginateQuery(this.network, fullSyncQuery)
       // Logic to fetch events from the provider
-      currentPageBlock = lastEventBlock
-      hasNextPage = events.length === BATCH_SIZE
-
+      // currentPageBlock = lastEventBlock
+      lastResults = events
+      // @ts-ignore
+      hasNextPage = events.length > 0
       yield events
       // yield events
     }
