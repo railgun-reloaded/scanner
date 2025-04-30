@@ -35,163 +35,126 @@ const getAllShields = async () => {
           'blockTimestamp',
           'commitmentType',
           'hash',
-          {
-            '... on LegacyGeneratedCommitment': [
-              // no need for duplicate fields, they're already being indexed by the 'filter' above?
-              'encryptedRandom',
-              {
-                preimage: [
-                  // 'id',
-                  'npk',
-                  'value',
-                  {
-                    token: [
-                      'id', // THIS IS NOT THE SAME AS ID ABOVE
-                      'tokenType',
-                      'tokenSubID',
-                      'tokenAddress'
-                    ]
-                  }
-                ]
-              },
-            ]
-          },
-          {
-            '... on LegacyEncryptedCommitment': [
-              {
-                // aliasField: ['legacyCiphertext',
-                // [
-                //   // 'id', // also duplicate of 'initial query'
-                // {
-                //       // @ts-expect-error
-                //       ciphertext: [{
-                //         ciphertext:
-                //         [
-                //         // 'id', // duplicate same aas above, no need? /
-                //           'iv',
-                //           'tag',
-                //           'data'
-                //         ]
-                //       },
-                //       'ephemeralKeys',
-                //       'memo'
-                //       ],
+          // {
+          //   '... on LegacyGeneratedCommitment': [
+          //     // no need for duplicate fields, they're already being indexed by the 'filter' above?
+          //     'encryptedRandom',
+          //     {
+          //       preimage: [
+          //         'npk',
+          //         'value',
+          //         {
+          //           token: [
+          //             'id', // THIS IS NOT THE SAME AS ID ABOVE
+          //             'tokenType',
+          //             'tokenSubID',
+          //             'tokenAddress'
+          //           ]
+          //         }
+          //       ]
+          //     },
+          //   ]
+          // },
+          // {
+          //   '... on LegacyEncryptedCommitment': [
+          //     {
+          //       ciphertext: [
+          //         {
+          //           ciphertext: [
+          //             'iv',
+          //             'tag',
+          //             'data'
+          //           ]
+          //         },
+          //         'ephemeralKeys',
+          //         'legacyMemo: memo'
+          //       ]
+          //     }
+          //   ]
+          // },
+          // {
+          //   '... on ShieldCommitment': [
+          //     'shieldKey',
+          //     'fee',
+          //     'encryptedBundle',
+          //     {
+          //       preimage: [
+          //         'npk',
+          //         'value',
+          //         {
+          //           token: [
+          //             'id',
+          //             'tokenType',
+          //             'tokenSubID',
+          //             'tokenAddress',
+          //           ]
+          //         }
+          //       ]
+          //     }
+          //   ]
+          // },
+          // {
+          //   '... on TransactCommitment': [
+          //     {
+          //       ciphertext: [
+          //         // 'id',
+          //         {
+          //           ciphertext: [
+          //             // 'id',
+          //             'iv',
+          //             'tag',
+          //             'data',
+          //           ]
+          //         },
+          //         'blindedSenderViewingKey',
+          //         'blindedReceiverViewingKey',
+          //         'annotationData',
+          //         'memo'
+          //       ]
+          //     }
+          //   ]
+          // },
+          // {
+          //   '... on ShieldCommitment': [
+          //     'shieldKey',
+          //     'fee',
+          //     'encryptedBundle',
+          //     {
+          //       preimage: [
+          //         'npk',
+          //         'value',
+          //         {
+          //           token: [
+          //             'id',
+          //             'tokenType',
+          //             'tokenSubID',
+          //             'tokenAddress',
+          //           ]
+          //         }
+          //       ]
+          //     }
+          //   ]
+          // },
+          // {
+          //   '... on TransactCommitment': [
+          //     {
+          //       ciphertext: [
+          //         {
+          //           ciphertext: [
+          //             'iv',
+          //             'tag',
+          //             'data',
+          //           ]
+          //         },
+          //         'blindedSenderViewingKey',
+          //         'blindedReceiverViewingKey',
+          //         'annotationData',
+          //         'memo'
 
-                //     },
-                //   {
-                //     aliasField: ['legacyMemo', 'memo']
-                //   }
-                //   ]
-                // ]
-                ciphertext: [
-                  // 'id',
-
-                  {
-                    ciphertext: [
-                      // 'id',
-                      'iv',
-                      'tag',
-                      'data'
-                    ]
-                  },
-                  'ephemeralKeys',
-                  'legacyMemo: memo'
-                ]
-              }
-            ]
-          },
-          {
-            '... on ShieldCommitment': [
-              'shieldKey',
-              'fee',
-              'encryptedBundle',
-              {
-                preimage: [
-                  // 'id',
-                  'npk',
-                  'value',
-                  {
-                    token: [
-                      'id',
-                      'tokenType',
-                      'tokenSubID',
-                      'tokenAddress',
-                    ]
-                  }
-                ]
-              }
-            ]
-          },
-          {
-            '... on TransactCommitment': [
-              {
-                ciphertext: [
-                  // 'id',
-                  {
-                    ciphertext: [
-                      // 'id',
-                      'iv',
-                      'tag',
-                      'data',
-                    ]
-                  },
-                  'blindedSenderViewingKey',
-                  'blindedReceiverViewingKey',
-                  'annotationData',
-                  'memo'
-                  // {
-                  //   aliasField: ['legacyMemo', 'memo']
-                  // }
-
-                ]
-              }
-            ]
-          },
-          {
-            '... on ShieldCommitment': [
-              'shieldKey',
-              'fee',
-              'encryptedBundle',
-              {
-                preimage: [
-                  // 'id',
-                  'npk',
-                  'value',
-                  {
-                    token: [
-                      'id',
-                      'tokenType',
-                      'tokenSubID',
-                      'tokenAddress',
-                    ]
-                  }
-                ]
-              }
-            ]
-          },
-          {
-            '... on TransactCommitment': [
-              {
-                ciphertext: [
-
-                  // 'id',
-                  {
-                    ciphertext: [
-                      // 'id',
-                      'iv',
-                      'tag',
-                      'data',
-                    ]
-                  },
-                  'blindedSenderViewingKey',
-                  'blindedReceiverViewingKey',
-                  'annotationData',
-                  'memo'
-
-                ]
-              }
-            ]
-          }
+          //       ]
+          //     }
+          //   ]
+          // }
         ],
       },
 
