@@ -27,6 +27,20 @@ enum NetworkName {
   PolygonMumbai_DEPRECATED = 'Polygon_Mumbai',
 }
 
+const SubsquidNetworkName: Record<NetworkName, string> = {
+  [NetworkName.Ethereum]: 'ethereum',
+  [NetworkName.BNBChain]: 'bsc',
+  [NetworkName.Polygon]: 'polygon',
+  [NetworkName.Arbitrum]: 'arbitrum',
+  [NetworkName.EthereumSepolia]: 'ethereumSepolia',
+  [NetworkName.PolygonAmoy]: 'polygonAmoy',
+  [NetworkName.Hardhat]: 'hardhat',
+  [NetworkName.EthereumRopsten_DEPRECATED]: 'ethereumRopsten',
+  [NetworkName.EthereumGoerli_DEPRECATED]: 'ethereumGoerli',
+  [NetworkName.ArbitrumGoerli_DEPRECATED]: 'arbitrumGoerli',
+  [NetworkName.PolygonMumbai_DEPRECATED]: 'polygonMumbai',
+}
+
 const RailgunProxyContract: Record<NetworkName, string> = {
   // Main nets
   [NetworkName.Ethereum]: '0xfa7093cdd9ee6932b4eb2c9e1cde7ce00b1fa4b9',
@@ -91,7 +105,9 @@ const RailgunProxyDeploymentBlock: Record<NetworkName, number> = {
 }
 
 export {
+
   NetworkName,
+  SubsquidNetworkName,
   RelayAdaptContract,
   RailgunProxyDeploymentBlock,
   RailgunProxyContract,

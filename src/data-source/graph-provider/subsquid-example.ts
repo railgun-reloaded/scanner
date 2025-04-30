@@ -1,9 +1,9 @@
 import { SubsquidClient } from '@railgun-reloaded/subsquid-client'
 import {
   CommitmentOrderByInput,
-  NullifierOrderByInput,
-  TransactionOrderByInput,
-  UnshieldOrderByInput
+  // NullifierOrderByInput,
+  // TransactionOrderByInput,
+  // UnshieldOrderByInput
 } from '@railgun-reloaded/subsquid-client/src/generated/types'
 import { SUPPORTED_NETWORKS } from '@railgun-reloaded/subsquid-client/src/networks'
 // example output: ['ethereum', 'ethereumSepolia', 'bsc', '
@@ -18,7 +18,10 @@ console.log(SUPPORTED_NETWORKS)
 const getAllShields = async () => {
   const client = new SubsquidClient({ network: 'ethereum' })
 
-  const { commitments, unshields, transactions, nullifiers } = await client.query(
+  const {
+    commitments,
+    //  unshields, transactions, nullifiers
+  } = await client.query(
     {
       commitments: {
         orderBy: [CommitmentOrderByInput.BlockNumberAsc, CommitmentOrderByInput.TreePositionAsc],
@@ -226,7 +229,11 @@ const getAllShields = async () => {
     }
   )
 
-  return { commitments, unshields, transactions, nullifiers }
+  return {
+    commitments,
+    //  unshields, transactions, nullifiers
+
+  }
 }
 /**
  *  Example usage of the SubsquidClient
