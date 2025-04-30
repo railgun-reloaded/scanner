@@ -59,18 +59,72 @@ const getAllShields = async () => {
           {
             '... on LegacyEncryptedCommitment': [
               {
-                ciphertext: [
+                aliasField: ['legacyCiphertext',
+                  [
                   // 'id', // also duplicate of 'initial query'
                   // could be used for continuity of data?
+
+                    {
+                      // @ts-expect-error
+                      aliasField: [
+                        'ciphertext', [
+                          // 'id', // duplicate same aas above, no need? /
+                          'iv',
+                          'tag',
+                          'data'
+                        ]
+                      ]
+                    },
+                    // @ts-expect-error
+                    'ephemeralKeys',
+                    // @ts-expect-error
+                    'memo'
+                  // {
+                  //   aliasField: ['legacyMemo', 'memo']
+                  // }
+                  ]
+                ]
+              }
+            ]
+          },
+          {
+            '... on ShieldCommitment': [
+              'shieldKey',
+              'fee',
+              'encryptedBundle',
+              {
+                preimage: [
+                  // 'id',
+                  'npk',
+                  'value',
+                  {
+                    token: [
+                      'id',
+                      'tokenType',
+                      'tokenSubID',
+                      'tokenAddress',
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            '... on TransactCommitment': [
+              {
+                ciphertext: [
+                  // 'id',
                   {
                     ciphertext: [
-                      // 'id', // duplicate same aas above, no need? /
+                      // 'id',
                       'iv',
                       'tag',
-                      'data'
+                      'data',
                     ]
                   },
-                  'ephemeralKeys',
+                  'blindedSenderViewingKey',
+                  'blindedReceiverViewingKey',
+                  'annotationData',
                   'memo'
                   // {
                   //   aliasField: ['legacyMemo', 'memo']
