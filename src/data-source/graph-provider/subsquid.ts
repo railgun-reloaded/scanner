@@ -1,5 +1,11 @@
 import EventEmitter from 'node:events'
 
+import type { SubsquidClient } from '@railgun-reloaded/subsquid-client'
+
+import type { NetworkName } from '../../globals'
+
+import { autoPaginateQuery, getClientForNetwork, getCommitmentsQuery } from './graph-queries'
+
 // import type { NetworkName } from '../../../src/globals'
 // import { delay, getAbiForNetworkBlockRange, promiseTimeout } from '../../utils'
 
@@ -14,10 +20,21 @@ const RAILGUN_SCAN_START_BLOCK_V2 = 16076000n
  */
 class SubsquidProvider<T = any> extends EventEmitter implements AsyncIterable<T> {
   /**
-   * constructor for SubsquidProvider
+   *  The start block for the provider
    */
-  constructor () {
+  network: NetworkName
+  /**
+   * The start block for the provider
+   */
+  provider: SubsquidClient
+  /**
+   * constructor for SubsquidProvider
+   * @param network - The network name
+   */
+  constructor (network: NetworkName) {
     super()
+    this.network = network
+    this.provider = getClientForNetwork(network)
     this.setupListeners()
   }
 
@@ -60,21 +77,37 @@ class SubsquidProvider<T = any> extends EventEmitter implements AsyncIterable<T>
 
   /**
    *  Start iterating from a given height.
-   * @param _options - Options for the iterator
-   * @param _options.startBlock - The block number to start from
-   * @param _options.endBlock - The block number to end at
-  //  * @param _options
-  //  * @param _options.startBlock
-  //  * @param _options.endBlock
+   * @param options - Options for the iterator
+   * @param options.startBlock - The block number to start from
+   * @param options.endBlock - The block number to end at
    * @returns - An async generator that yields events
-  //  * @yields T - The data read from the source
+   * @yields T - The data read from the source
    */
-  async * from (_options:{ startBlock: bigint, endBlock: bigint }) {
-    // const { startBlock, endBlock } = options
+  async * from (options:{ startBlock: bigint, endBlock: bigint }) {
+    const { startBlock } = options
     // this.startBlock = BigInt(startBlock)
     // this.lastScannedBlock = BigInt(endBlock)
     // Logic to iterate from a given height
     // const TOTAL_BLOCKS = BigInt(endBlock) - BigInt(startBlock)
+    const BATCH_SIZE = 10_000
+    // const BLOCKS_PER_ITERATION = BigInt(100_000)
+
+    let hasNextPage = true
+    let currentPageBlock = startBlock
+    // let currentPage = 0
+    while (hasNextPage) {
+    // for (let i = BigInt(startBlock); i < BigInt(endBlock); i += BLOCKS_PER_ITERATION) {
+      const fromBlock = currentPageBlock
+      // const toBlock = fromBlock + BLOCKS_PER_ITERATION > BigInt(endBlock) ? BigInt(endBlock) : fromBlock + BLOCKS_PER_ITERATION
+      // console.log('from', fromBlock, 'to', toBlock)
+      const { allResults: events, lastEventBlock } = await autoPaginateQuery('commitments', this.network, getCommitmentsQuery(Number(fromBlock.toString())), Number(fromBlock.toString()))
+      // Logic to fetch events from the provider
+      currentPageBlock = lastEventBlock
+      hasNextPage = events.length === BATCH_SIZE
+
+      yield events
+      // yield events
+    }
   }
 
   /**
