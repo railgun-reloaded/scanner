@@ -24,6 +24,7 @@ const getAllShields = async () => {
         orderBy: [CommitmentOrderByInput.BlockNumberAsc, CommitmentOrderByInput.TreePositionAsc],
         where: { blockNumber_gte: '0' },
         limit: 5,
+
         fields: [
           'id',
           'treeNumber',
@@ -38,7 +39,6 @@ const getAllShields = async () => {
             '... on LegacyGeneratedCommitment': [
               // no need for duplicate fields, they're already being indexed by the 'filter' above?
               'encryptedRandom',
-
               {
                 preimage: [
                   // 'id',
@@ -54,220 +54,212 @@ const getAllShields = async () => {
                   }
                 ]
               },
-
             ]
           },
-          // {
-          //   '... on LegacyEncryptedCommitment': [
-          //     {
-          //       // aliasField: ['legacyCiphertext',
-          //       //   [
-          //       //   // 'id', // also duplicate of 'initial query'
-          //       //     {
-          //       //       // @ts-expect-error
-          //       //       ciphertext: [{
-          //       //         ciphertext:
-          //       //         [
-          //       //         // 'id', // duplicate same aas above, no need? /
-          //       //           'iv',
-          //       //           'tag',
-          //       //           'data'
-          //       //         ]
-          //       //       },
-          //       //       'ephemeralKeys',
-          //       //       'memo'
-          //       //       ],
+          {
+            '... on LegacyEncryptedCommitment': [
+              {
+                // aliasField: ['legacyCiphertext',
+                // [
+                //   // 'id', // also duplicate of 'initial query'
+                // {
+                //       // @ts-expect-error
+                //       ciphertext: [{
+                //         ciphertext:
+                //         [
+                //         // 'id', // duplicate same aas above, no need? /
+                //           'iv',
+                //           'tag',
+                //           'data'
+                //         ]
+                //       },
+                //       'ephemeralKeys',
+                //       'memo'
+                //       ],
 
-          //       //     },
-          //       //   // {
-          //       //   //   aliasField: ['legacyMemo', 'memo']
-          //       //   // }
-          //       //   ]
-          //       // ]
-          //       ciphertext: [
-          //         // 'id',
-          //         {
-          //           ciphertext: [
-          //             // 'id',
-          //             'iv',
-          //             'tag',
-          //             'data'
-          //           ]
-          //         },
-          //         'ephemeralKeys',
-          //         'legacyMemo: memo'
-          //       ]
-          //     }
-          //   ]
-          // },
-          // {
-          //   '... on ShieldCommitment': [
-          //     'shieldKey',
-          //     'fee',
-          //     'encryptedBundle',
-          //     {
-          //       preimage: [
-          //         // 'id',
-          //         'npk',
-          //         'value',
-          //         {
-          //           token: [
-          //             'id',
-          //             'tokenType',
-          //             'tokenSubID',
-          //             'tokenAddress',
-          //           ]
-          //         }
-          //       ]
-          //     }
-          //   ]
-          // },
-          // {
-          //   '... on TransactCommitment': [
-          //     {
-          //       ciphertext: [
-          //         // 'id',
-          //         {
-          //           ciphertext: [
-          //             // 'id',
-          //             'iv',
-          //             'tag',
-          //             'data',
-          //           ]
-          //         },
-          //         'blindedSenderViewingKey',
-          //         'blindedReceiverViewingKey',
-          //         'annotationData',
-          //         'memo'
-          //         // {
-          //         //   aliasField: ['legacyMemo', 'memo']
-          //         // }
+                //     },
+                //   {
+                //     aliasField: ['legacyMemo', 'memo']
+                //   }
+                //   ]
+                // ]
+                ciphertext: [
+                  // 'id',
 
-          //       ]
-          //     }
-          //   ]
-          // },
-          // {
-          //   '... on ShieldCommitment': [
-          //     'shieldKey',
-          //     'fee',
-          //     'encryptedBundle',
-          //     {
-          //       preimage: [
-          //         // 'id',
-          //         'npk',
-          //         'value',
-          //         {
-          //           token: [
-          //             'id',
-          //             'tokenType',
-          //             'tokenSubID',
-          //             'tokenAddress',
-          //           ]
-          //         }
-          //       ]
-          //     }
-          //   ]
-          // },
-          // {
-          //   '... on TransactCommitment': [
-          //     {
-          //       ciphertext: [
+                  {
+                    ciphertext: [
+                      // 'id',
+                      'iv',
+                      'tag',
+                      'data'
+                    ]
+                  },
+                  'ephemeralKeys',
+                  'legacyMemo: memo'
+                ]
+              }
+            ]
+          },
+          {
+            '... on ShieldCommitment': [
+              'shieldKey',
+              'fee',
+              'encryptedBundle',
+              {
+                preimage: [
+                  // 'id',
+                  'npk',
+                  'value',
+                  {
+                    token: [
+                      'id',
+                      'tokenType',
+                      'tokenSubID',
+                      'tokenAddress',
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            '... on TransactCommitment': [
+              {
+                ciphertext: [
+                  // 'id',
+                  {
+                    ciphertext: [
+                      // 'id',
+                      'iv',
+                      'tag',
+                      'data',
+                    ]
+                  },
+                  'blindedSenderViewingKey',
+                  'blindedReceiverViewingKey',
+                  'annotationData',
+                  'memo'
+                  // {
+                  //   aliasField: ['legacyMemo', 'memo']
+                  // }
 
-          //         // 'id',
-          //         {
-          //           ciphertext: [
-          //             // 'id',
-          //             'iv',
-          //             'tag',
-          //             'data',
-          //           ]
-          //         },
-          //         'blindedSenderViewingKey',
-          //         'blindedReceiverViewingKey',
-          //         'annotationData',
-          //         'memo'
+                ]
+              }
+            ]
+          },
+          {
+            '... on ShieldCommitment': [
+              'shieldKey',
+              'fee',
+              'encryptedBundle',
+              {
+                preimage: [
+                  // 'id',
+                  'npk',
+                  'value',
+                  {
+                    token: [
+                      'id',
+                      'tokenType',
+                      'tokenSubID',
+                      'tokenAddress',
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            '... on TransactCommitment': [
+              {
+                ciphertext: [
 
-          //       ]
-          //     }
-          //   ]
-          // }
+                  // 'id',
+                  {
+                    ciphertext: [
+                      // 'id',
+                      'iv',
+                      'tag',
+                      'data',
+                    ]
+                  },
+                  'blindedSenderViewingKey',
+                  'blindedReceiverViewingKey',
+                  'annotationData',
+                  'memo'
+
+                ]
+              }
+            ]
+          }
         ],
       },
 
-      unshields: {
-        orderBy: [UnshieldOrderByInput.BlockNumberAsc, UnshieldOrderByInput.EventLogIndexAsc],
-        where: { blockNumber_gte: '0' },
-        limit: 5,
-        fields: [
-          'id',
-          'blockNumber',
-          'to',
-          'transactionHash',
-          'fee',
-          'blockTimestamp',
-          'amount',
-          'eventLogIndex',
-          {
-            token: [
-              'foo',
-              'id',
-              'tokenType',
-              'tokenSubID',
-              'tokenAddress'
-            ]
-          },
+      // unshields: {
+      //   orderBy: [UnshieldOrderByInput.BlockNumberAsc, UnshieldOrderByInput.EventLogIndexAsc],
+      //   where: { blockNumber_gte: '0' },
+      //   limit: 5,
+      //   fields: [
+      //     'id',
+      //     'blockNumber',
+      //     'to',
+      //     'transactionHash',
+      //     'fee',
+      //     'blockTimestamp',
+      //     'amount',
+      //     'eventLogIndex',
+      //     {
+      //       token: [
+      //         'id',
+      //         'tokenType',
+      //         'tokenSubID',
+      //         'tokenAddress'
+      //       ]
+      //     },
 
-        ],
-        // on:
-        //   {
-
-        //     TransactCommitment: [
-        //       'dong'
-        //     ]
-        //   }
-      },
-      nullifiers: {
-        orderBy: [NullifierOrderByInput.BlockNumberAsc, NullifierOrderByInput.NullifierDesc],
-        where: { blockNumber_gte: '0' },
-        limit: 5,
-        fields: [
-          'id',
-          'blockNumber',
-          'nullifier',
-          'transactionHash',
-          'blockTimestamp',
-          'treeNumber',
-        ]
-      },
-      transactions: {
-        orderBy: [TransactionOrderByInput.IdAsc],
-        where: { blockNumber_gte: '0' },
-        limit: 5,
-        fields: [
-          'id',
-          'nullifiers',
-          'commitments',
-          'transactionHash',
-          'boundParamsHash',
-          'blockNumber',
-          'utxoTreeIn',
-          'utxoTreeOut',
-          'utxoBatchStartPositionOut',
-          'hasUnshield',
-          {
-            unshieldToken: [
-              'tokenType',
-              'tokenSubID',
-              'tokenAddress',
-            ]
-          },
-          'unshieldToAddress',
-          'unshieldValue',
-          'blockTimestamp',
-          'verificationHash',
-        ]
-      }
+      //   ],
+      // },
+      // nullifiers: {
+      //   orderBy: [NullifierOrderByInput.BlockNumberAsc, NullifierOrderByInput.NullifierDesc],
+      //   where: { blockNumber_gte: '0' },
+      //   limit: 5,
+      //   fields: [
+      //     'id',
+      //     'blockNumber',
+      //     'nullifier',
+      //     'transactionHash',
+      //     'blockTimestamp',
+      //     'treeNumber',
+      //   ]
+      // },
+      // transactions: {
+      //   orderBy: [TransactionOrderByInput.IdAsc],
+      //   where: { blockNumber_gte: '0' },
+      //   limit: 5,
+      //   fields: [
+      //     'id',
+      //     'nullifiers',
+      //     'commitments',
+      //     'transactionHash',
+      //     'boundParamsHash',
+      //     'blockNumber',
+      //     'utxoTreeIn',
+      //     'utxoTreeOut',
+      //     'utxoBatchStartPositionOut',
+      //     'hasUnshield',
+      //     {
+      //       unshieldToken: [
+      //         'tokenType',
+      //         'tokenSubID',
+      //         'tokenAddress',
+      //       ]
+      //     },
+      //     'unshieldToAddress',
+      //     'unshieldValue',
+      //     'blockTimestamp',
+      //     'verificationHash',
+      //   ]
+      // }
     }
   )
 
