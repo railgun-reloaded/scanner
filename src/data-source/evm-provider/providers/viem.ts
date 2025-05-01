@@ -155,6 +155,7 @@ class ViemProvider<T = any> extends EventEmitter implements AsyncIterable<T> {
     //   // TODO: Handle pending transaction event
     //   console.log('Pending transaction:', tx)
     // })
+    console.log('CALLING SETUP LISTENERS')
     if (!this.provider) {
       throw new Error('Provider is not initialized')
     }

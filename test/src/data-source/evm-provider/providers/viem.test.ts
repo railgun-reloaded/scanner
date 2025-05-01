@@ -33,7 +33,7 @@ test('Viem-Provider:iterator https', async (t) => {
   }, 20_000)
   for await (const event of provider) {
     console.log('FoundEvent', event)
-    t.pass(`http:iterator FoundEvent: ${event.fragment.name}`)
+    t.pass(`http:iterator FoundEvent: ${event.name}`)
   }
 })
 
@@ -137,6 +137,7 @@ test('Viem-Provider:chainIdToNetwork', async (t) => {
     RailgunSmartWalletV21,
     { chainId: 1, ws: false }
   )
+  await provider.initializedPromise
 
   // Test supported chain IDs
   t.is(provider.chainIdToNetwork(1).name, 'Ethereum')

@@ -1,5 +1,5 @@
 import { RailgunSmartWalletV21 } from '@railgun-reloaded/contract-abis'
-import { skip, test } from 'brittle'
+import { test } from 'brittle'
 import dotenv from 'dotenv'
 
 import { EthersProvider, RAILGUN_SCAN_START_BLOCK_V2 } from '../../../../../src/data-source/evm-provider/providers/ethers'
@@ -45,6 +45,7 @@ test('Ethers-Provider:iterator wss', async (t) => {
   if (typeof TEST_RPC_URL_WSS === 'undefined') {
     t.fail('TEST_RPC_URL_WSS is not set')
   }
+
   const provider = new EthersProvider(
     NetworkName.Ethereum,
     TEST_RPC_URL_WSS!,
@@ -56,6 +57,7 @@ test('Ethers-Provider:iterator wss', async (t) => {
   provider.on('newHead', (block) => {
     t.pass(`New block: ${block}`)
   })
+
   setTimeout(async () => {
     await provider.destroy()
   }, 20_000)
@@ -65,7 +67,7 @@ test('Ethers-Provider:iterator wss', async (t) => {
   }
 })
 
-skip('Ethers-Provider:from https with scanOptions', async (t) => {
+test('Ethers-Provider:from https with scanOptions', async (t) => {
   t.timeout(120_000)
   // setup
   const TEST_CONTRACT_ADDRESS = '0xFA7093CDD9EE6932B4eb2c9e1cde7CE00B1FA4b9'
@@ -86,7 +88,7 @@ skip('Ethers-Provider:from https with scanOptions', async (t) => {
     t.pass(`New block: ${block}`)
   })
   const scanOptions = {
-    startBlock: 0n,
+    startBlock: RAILGUN_SCAN_START_BLOCK_V2,
     endBlock: RAILGUN_SCAN_START_BLOCK_V2 + 5_000n,
   }
   for await (const event of provider.from(scanOptions)) {
@@ -95,7 +97,7 @@ skip('Ethers-Provider:from https with scanOptions', async (t) => {
   await provider.destroy()
 })
 
-skip('Ethers-Provider:from wss with scanOptions', async (t) => {
+test('Ethers-Provider:from wss with scanOptions', async (t) => {
   t.timeout(120_000)
   // setup
   const TEST_CONTRACT_ADDRESS = '0xFA7093CDD9EE6932B4eb2c9e1cde7CE00B1FA4b9'
@@ -167,7 +169,7 @@ test('Ethers-Provider:setupListeners registers block event handler', async (t) =
   }
 })
 
-skip('Ethers-Provider:setupListeners properly queues contract events', async (t) => {
+test('Ethers-Provider:setupListeners properly queues contract events', async (t) => {
   // setup
   const TEST_CONTRACT_ADDRESS = '0xFA7093CDD9EE6932B4eb2c9e1cde7CE00B1FA4b9'
 
@@ -195,6 +197,7 @@ skip('Ethers-Provider:setupListeners properly queues contract events', async (t)
   // Check if events from contract get queued properly
   let eventsFound = 0
   for await (const events of provider.from(scanOptions)) {
+    console.log(events[0])
     if (events.length > 0) {
       eventsFound += events.length
       t.pass(`Found ${events.length} events from contract scan`)
@@ -235,7 +238,12 @@ test('Ethers-Provider:destroy removes all listeners', async (t) => {
     listenerCalled = true
   })
 
-  await delay(20_000)
+  // TODO: come up with a cleaner way to test this
+  // @ts-ignore - listenerCalled is modified by the provider eventListener above.
+  while (!listenerCalled) {
+    console.log('Waiting for listener to be called...')
+    await delay(1_000)
+  }
   // Destroy the provider
   await provider.destroy()
 
