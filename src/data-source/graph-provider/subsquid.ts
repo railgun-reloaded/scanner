@@ -4,7 +4,10 @@ import type { SubsquidClient } from '@railgun-reloaded/subsquid-client'
 
 import type { NetworkName } from '../../globals'
 
-import { autoPaginateQuery, getClientForNetwork, getFullSyncQuery, paginateQuery } from './graph-queries'
+import {
+  autoPaginateQuery, getClientForNetwork, getFullSyncQuery,
+  //  paginateQuery
+} from './graph-queries'
 
 // import type { NetworkName } from '../../../src/globals'
 // import { delay, getAbiForNetworkBlockRange, promiseTimeout } from '../../utils'
@@ -93,28 +96,16 @@ class SubsquidProvider<T = any> extends EventEmitter implements AsyncIterable<T>
     // const BLOCKS_PER_ITERATION = BigInt(100_000)
 
     let hasNextPage = true
-    const currentPageBlock = startBlock
+    // const currentPageBlock = startBlock
     // let currentPage = 0
-    let lastResults = null
-    let lastQuery = null
+    // let lastResults = null
+    // const lastQuery = null
+    const fullSyncQuery = getFullSyncQuery(Number(startBlock.toString()), 10_000)
     while (hasNextPage) {
-    // for (let i = BigInt(startBlock); i < BigInt(endBlock); i += BLOCKS_PER_ITERATION) {
-      const fromBlock = currentPageBlock
-      // const toBlock = fromBlock + BLOCKS_PER_ITERATION > BigInt(endBlock) ? BigInt(endBlock) : fromBlock + BLOCKS_PER_ITERATION
-      // console.log('from', fromBlock, 'to', toBlock)
-      const fullSyncQuery = getFullSyncQuery(Number(fromBlock.toString()), 10_000)
-      let nextQuery = null
-      if (lastQuery === null) {
-        nextQuery = fullSyncQuery
-      } else {
-        nextQuery = paginateQuery(lastQuery, lastResults)
-      }
-      lastQuery = nextQuery
-
-      const { allResults: events } = await autoPaginateQuery(this.network, nextQuery)
+      const { allResults: events } = await autoPaginateQuery(this.network, fullSyncQuery)
       // Logic to fetch events from the provider
       // currentPageBlock = lastEventBlock
-      lastResults = events
+      // lastResults = events
       // @ts-ignore
       hasNextPage = events.length > 0
       yield events

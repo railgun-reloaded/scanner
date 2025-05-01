@@ -311,10 +311,8 @@ const getClientForNetwork = (network: NetworkName) => {
 
 /**
  * Auto paginate a GraphQL query
- * @param netowrk
+ * @param netowrk - The network name
  * @param query - The query to execute
- * @param fromBlock - The block number to start from
- * @param limit - The number of results to return
  * @returns - The results of the query
  */
 const autoPaginateQuery = async (netowrk: NetworkName, query: any) => {

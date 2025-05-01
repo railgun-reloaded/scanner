@@ -2,7 +2,7 @@
 //   CommitmentOrderByInput,
 //   // NullifierOrderByInput, TransactionOrderByInput, UnshieldOrderByInput
 // } from '@railgun-reloaded/subsquid-client/src/generated/types'
-import { solo as test } from 'brittle'
+import { test } from 'brittle'
 
 import {
   autoPaginateQuery, getCommitmentsQuery,
@@ -178,7 +178,7 @@ test('Graph Queries', () => {
 
   test('AutoPaginate', async (t) => {
     const fromBlock = 1000
-    const limit = 500
+    const limit = 10_000
     const query = getCommitmentsQuery(fromBlock, limit)
     // t.alike(query,
     //   {
@@ -200,7 +200,7 @@ test('Graph Queries', () => {
 
     const { allResults: paginatedResults } = await autoPaginateQuery(NetworkName.Ethereum, { commitments: query })
     // @ts-expect-error
-    t.is(paginatedResults['commitments'].length, 500) // Assuming no results for the test case
+    t.is(paginatedResults['commitments'].length, 10_000) // Assuming no results for the test case
 
     //
   })
