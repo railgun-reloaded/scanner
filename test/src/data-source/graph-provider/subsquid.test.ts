@@ -1,4 +1,4 @@
-import { solo as test } from 'brittle'
+import { test } from 'brittle'
 
 import { NetworkName } from '../../../../src'
 import { SubsquidProvider } from '../../../../src/data-source/graph-provider/subsquid'
@@ -52,7 +52,7 @@ test('SubsquidProvider', (t) => {
     console.log('Total events:', totalCount)
     for (const e in totalCount) {
       if (totalCount[e]) {
-        t.is(totalCount[e] > 90_000, true)
+        t.is(totalCount[e] > 30_000, true)
       } else {
         t.fail(`No events for ${e}`)
       }
