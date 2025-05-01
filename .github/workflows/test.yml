@@ -6,7 +6,11 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
-
+    env:
+      TEST_RPC_URL_HTTPS: ${{ secrets.TEST_RPC_URL_HTTPS }}
+      TEST_RPC_URL_WSS: ${{ secrets.TEST_RPC_URL_WSS }}
+      TEST_RPC_CHUNK_SIZE: ${{ secrets.TEST_RPC_CHUNK_SIZE }}
+      # Add any other environment variables from your .env file here
     steps:
       - uses: actions/checkout@v4
 
@@ -18,9 +22,6 @@ jobs:
 
       - name: Install dependencies
         run: npm install
-
-      - name: Build
-        run: npm run build
 
       - name: Test
         run: npm run test
