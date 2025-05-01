@@ -14,8 +14,7 @@ const TEST_RPC_URL = process.env['TEST_RPC_URL_HTTPS']
 const TEST_CONTRACT_ADDRESS = RailgunProxyContract[NetworkName.Ethereum]
 const TEST_RPC_CHUNK_SIZE = process.env['TEST_RPC_CHUNK_SIZE'] ?? '500'
 const TEST_IS_CI = Boolean(process.env['TEST_IS_CI']) ?? false
-console.log('TEST IS CI', TEST_IS_CI)
-const START_TESTING_BLOCK = TEST_IS_CI ? '22191561' : RailgunProxyDeploymentBlock[NetworkName.Ethereum]
+const START_TESTING_BLOCK = TEST_IS_CI ? 22191561 : RailgunProxyDeploymentBlock[NetworkName.Ethereum]
 
 /**
  * Test Ethers Provider
