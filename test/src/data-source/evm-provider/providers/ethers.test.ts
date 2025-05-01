@@ -10,6 +10,7 @@ dotenv.config()
 
 const TEST_RPC_URL = process.env['TEST_RPC_URL_HTTPS']
 const TEST_RPC_URL_WSS = process.env['TEST_RPC_URL_WSS']
+const TEST_RPC_CHUNK_SIZE = process.env['TEST_RPC_CHUNK_SIZE'] ?? '500'
 
 test('Ethers-Provider:iterator https', async (t) => {
   // setup
@@ -23,7 +24,7 @@ test('Ethers-Provider:iterator https', async (t) => {
     TEST_RPC_URL!,
     TEST_CONTRACT_ADDRESS,
     RailgunSmartWalletV21,
-    { chainId: 1, ws: false }
+    { chainId: 1, ws: false, chunkSize: BigInt(TEST_RPC_CHUNK_SIZE) }
   )
   await provider.initializedPromise
 
@@ -51,7 +52,7 @@ test('Ethers-Provider:iterator wss', async (t) => {
     TEST_RPC_URL_WSS!,
     TEST_CONTRACT_ADDRESS,
     RailgunSmartWalletV21,
-    { chainId: 1, ws: true }
+    { chainId: 1, ws: true, chunkSize: BigInt(TEST_RPC_CHUNK_SIZE) }
   )
   await provider.initializedPromise
   provider.on('newHead', (block) => {
@@ -80,7 +81,7 @@ test('Ethers-Provider:from https with scanOptions', async (t) => {
     TEST_RPC_URL!,
     TEST_CONTRACT_ADDRESS,
     RailgunSmartWalletV21,
-    { chainId: 1, ws: false }
+    { chainId: 1, ws: false, chunkSize: BigInt(TEST_RPC_CHUNK_SIZE) }
   )
   await provider.initializedPromise
 
@@ -110,7 +111,7 @@ test('Ethers-Provider:from wss with scanOptions', async (t) => {
     TEST_RPC_URL_WSS!,
     TEST_CONTRACT_ADDRESS,
     RailgunSmartWalletV21,
-    { chainId: 1, ws: true }
+    { chainId: 1, ws: true, chunkSize: BigInt(TEST_RPC_CHUNK_SIZE) }
   )
   await provider.initializedPromise
   provider.on('newHead', (block) => {
@@ -139,7 +140,7 @@ test('Ethers-Provider:setupListeners registers block event handler', async (t) =
     TEST_RPC_URL!,
     TEST_CONTRACT_ADDRESS,
     RailgunSmartWalletV21,
-    { chainId: 1, ws: false }
+    { chainId: 1, ws: false, chunkSize: BigInt(TEST_RPC_CHUNK_SIZE) }
   )
 
   // Wait for provider to initialize
@@ -182,7 +183,7 @@ test('Ethers-Provider:setupListeners properly queues contract events', async (t)
     TEST_RPC_URL!,
     TEST_CONTRACT_ADDRESS,
     RailgunSmartWalletV21,
-    { chainId: 1, ws: false }
+    { chainId: 1, ws: false, chunkSize: BigInt(TEST_RPC_CHUNK_SIZE) }
   )
 
   // Wait for provider to initialize
@@ -226,7 +227,7 @@ test('Ethers-Provider:destroy removes all listeners', async (t) => {
     TEST_RPC_URL!,
     TEST_CONTRACT_ADDRESS,
     RailgunSmartWalletV21,
-    { chainId: 1, ws: false }
+    { chainId: 1, ws: false, chunkSize: BigInt(TEST_RPC_CHUNK_SIZE) }
   )
 
   // Wait for provider to initialize
@@ -266,7 +267,7 @@ test('Ethers-Provider:setupListeners initializes contract and provider correctly
     TEST_RPC_URL!,
     TEST_CONTRACT_ADDRESS,
     RailgunSmartWalletV21,
-    { chainId: 1, ws: false }
+    { chainId: 1, ws: false, chunkSize: BigInt(TEST_RPC_CHUNK_SIZE) }
   )
   await validProvider.initializedPromise
   // Add our own test listener

@@ -12,7 +12,8 @@ import type { NetworkName } from '../../../globals'
 import { getAbiForNetworkBlockRange } from '../../../utils'
 import { delay, promiseTimeout } from '../../utils'
 
-const SCAN_CHUNKS = 50_000n
+// DEFAULT TO 500 blocks for scanning, providers are different, but this is a safe base.
+const SCAN_CHUNKS = 500n
 const EVENTS_SCAN_TIMEOUT = 20_000
 const SCAN_TIMEOUT_ERROR_MESSAGE = 'getLogs request timed out after 5 seconds.'
 const RAILGUN_SCAN_START_BLOCK = 14693000n
@@ -87,6 +88,10 @@ class ViemProvider<T = any> extends EventEmitter implements AsyncIterable<T> {
    */
   network: NetworkName
   /**
+   * block scanning chunk size for scanning with the RPC provider
+   */
+  chunkSize: bigint
+  /**
    * constructor for EthersProvider
    * @param networkName - The network name
    * @param url - The provider URL
@@ -96,8 +101,20 @@ class ViemProvider<T = any> extends EventEmitter implements AsyncIterable<T> {
    * @param options.ws - Whether to use WebSocket or not
    * @param options.chainId - The chain ID
    * @param options.transportConfig - The transport config for the provider
+   * @param options.chunkSize - The chunk size for block scanning with the RPC provider
    */
-  constructor (networkName: NetworkName, url: string, address: `0x${string}`, abi: any, options: { chainId: number, ws?: boolean, transportConfig?: any /* add in more options later */ }) {
+  constructor (
+    networkName: NetworkName,
+    url: string,
+    address: `0x${string}`,
+    abi: any,
+    options: {
+      chainId: number,
+      ws?: boolean,
+      transportConfig?: any
+      chunkSize?: bigint
+      /* add in more options later */ }
+  ) {
     super()
     // Initialization code if needed
     this.url = url
@@ -107,6 +124,7 @@ class ViemProvider<T = any> extends EventEmitter implements AsyncIterable<T> {
     this.startBlock = BigInt(0)
     this.network = networkName
     const network = this.chainIdToNetwork(options.chainId)
+    this.chunkSize = options.chunkSize ?? SCAN_CHUNKS
     // TODO: wss seems to not close out properly, leaving node process hanging.
     this.transport = options.ws ? webSocket(url, options.transportConfig) : http(url)
 
@@ -283,7 +301,7 @@ class ViemProvider<T = any> extends EventEmitter implements AsyncIterable<T> {
       if (currentOffset >= endBlock) {
         break
       }
-      const endOffset = currentOffset + SCAN_CHUNKS
+      const endOffset = currentOffset + this.chunkSize
       const startChunk = currentOffset
       const start = startChunk
       const end = endOffset > endBlock ? endBlock : endOffset
@@ -335,7 +353,7 @@ class ViemProvider<T = any> extends EventEmitter implements AsyncIterable<T> {
             // events: abiItem.abi,
             // event: abiItem.abi,
             fromBlock: startChunk,
-            toBlock: startChunk + SCAN_CHUNKS,
+            toBlock: startChunk + this.chunkSize,
           }),
           EVENTS_SCAN_TIMEOUT,
           SCAN_TIMEOUT_ERROR_MESSAGE
@@ -432,7 +450,7 @@ class ViemProvider<T = any> extends EventEmitter implements AsyncIterable<T> {
       // format the events
 
       // yield events
-      currentOffset += SCAN_CHUNKS
+      currentOffset += this.chunkSize
       this.lastScannedBlock = currentOffset - 1n// scan is inclusive
       // if (currentOffset > endBlock) {
       //   currentOffset = endBlock

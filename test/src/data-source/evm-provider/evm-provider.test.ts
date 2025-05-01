@@ -14,6 +14,7 @@ import { NetworkName } from '../../../../src/globals/constants'
 const TEST_CONTRACT_ADDRESS = '0xFA7093CDD9EE6932B4eb2c9e1cde7CE00B1FA4b9'
 dotenv.config()
 const TEST_RPC_URL = process.env['TEST_RPC_URL_HTTPS']
+const TEST_RPC_CHUNK_SIZE = process.env['TEST_RPC_CHUNK_SIZE'] ?? '500'
 
 /**
  * Test EVM Provider
@@ -28,7 +29,7 @@ const getTestEVMProvider = (): { provider: EthersProvider; datasource: EVMProvid
     TEST_RPC_URL!,
     TEST_CONTRACT_ADDRESS,
     ABIRailgunSmartWallet,
-    { chainId: 1, ws: false }
+    { chainId: 1, ws: false, chunkSize: BigInt(TEST_RPC_CHUNK_SIZE) }
   )
   const datasource = new EVMProvider(provider)
   return { provider, datasource }

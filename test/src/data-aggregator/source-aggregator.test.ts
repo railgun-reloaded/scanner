@@ -29,7 +29,7 @@ const getTestEthersProvider = () => {
     TEST_RPC_URL!,
     TEST_CONTRACT_ADDRESS,
     RailgunSmartWalletV21,
-    { chainId: 1, ws: false }
+    { chainId: 1, ws: false, chunkSize: BigInt(TEST_RPC_CHUNK_SIZE) }
   )
 
   const datasource = new EVMProvider(provider)
@@ -50,7 +50,7 @@ const getTestViemProvider = () => {
     TEST_RPC_URL!,
     TEST_CONTRACT_ADDRESS as `0x${string}`,
     RailgunSmartWalletV21,
-    { chainId: 1, ws: false }
+    { chainId: 1, ws: false, chunkSize: BigInt(TEST_RPC_CHUNK_SIZE) }
   )
   const datasource = new EVMProvider(provider)
 

@@ -6,7 +6,9 @@ import type { NetworkName } from '../../../globals'
 import { getAbiForNetworkBlockRange } from '../../../utils'
 import { delay, promiseTimeout } from '../../utils'
 
-const SCAN_CHUNKS = 50_000n // need to categorize this by provider, they each have their own limits. 500 is base low. we can attempt to just 'find it' but this can also incur 'ratelimits' that will effect the calculation 'guestimate' of this value.
+// DEFAULT THIS TO 500 blocks, must provide a value on instantiation
+const SCAN_CHUNKS = 500n
+// need to categorize this by provider, they each have their own limits. 500 is base low. we can attempt to just 'find it' but this can also incur 'ratelimits' that will effect the calculation 'guestimate' of this value.
 const EVENTS_SCAN_TIMEOUT = 20_000
 const SCAN_TIMEOUT_ERROR_MESSAGE = 'getLogs request timed out after 5 seconds.'
 const RAILGUN_SCAN_START_BLOCK = 14693000n
@@ -82,6 +84,10 @@ class EthersProvider<T = any> extends EventEmitter implements AsyncIterable<T> {
    * network name
    */
   network: NetworkName
+  /**
+   * chunk size
+   */
+  chunkSize: bigint
 
   /**
    * constructor for EthersProvider
@@ -92,8 +98,20 @@ class EthersProvider<T = any> extends EventEmitter implements AsyncIterable<T> {
    * @param options - Options for the provider
    * @param options.ws - Whether to use WebSocket or not
    * @param options.chainId - The chain ID
+   * @param options.chunkSize - The chunk size for scanning with the RPC provider.
    */
-  constructor (networkName: NetworkName, url: string, address: string, abi: any, options: { chainId: number, ws?: boolean /* add in more options later */ }) {
+  constructor (
+    networkName: NetworkName,
+    url: string,
+    address: string,
+    abi: any,
+    options: {
+      chainId: number,
+      ws?: boolean,
+      chunkSize?: bigint,
+      /* add in more options later */
+    }
+  ) {
     super()
     // Initialization code if needed
     this.url = url
@@ -102,6 +120,7 @@ class EthersProvider<T = any> extends EventEmitter implements AsyncIterable<T> {
     this.startBlock = BigInt(0)
     this.network = networkName
     const network = Network.from(options.chainId)
+    this.chunkSize = options.chunkSize ?? SCAN_CHUNKS
     this.provider = options.ws
       ? new WebSocketProvider(url)
       : new JsonRpcProvider(url, network, {
@@ -220,7 +239,7 @@ class EthersProvider<T = any> extends EventEmitter implements AsyncIterable<T> {
       if (currentOffset >= endBlock) {
         break
       }
-      const endOffset = currentOffset + SCAN_CHUNKS
+      const endOffset = currentOffset + this.chunkSize
       const startChunk = currentOffset
       const start = startChunk
       const end = (endOffset > endBlock ? endBlock : endOffset)
@@ -230,7 +249,7 @@ class EthersProvider<T = any> extends EventEmitter implements AsyncIterable<T> {
       // console.log(abi.length)
       if (abi.length > 1) {
         console.log('MULTI ABI FOUND', start, end, abi.length)
-        // currentOffset += SCAN_CHUNKS + 1n
+        // currentOffset += this.chunkSize + 1n
         // continue
       }
       // console.log('ABI', abi.length)
@@ -245,7 +264,7 @@ class EthersProvider<T = any> extends EventEmitter implements AsyncIterable<T> {
         // console.log('Event:', event.topicHash)
         // const contract = new Contract(this.address, abib, this.provider)
         // console.log('Contract:')
-        // console.log('Scanning from', startChunk, 'to', startChunk + SCAN_CHUNKS)
+        // console.log('Scanning from', startChunk, 'to', startChunk + this.chunkSize)
         // const decodeInterface = contract.interface
         // console.log('topicshashes', abib.eventTopics.length)
         const events = await promiseTimeout(
@@ -274,7 +293,7 @@ class EthersProvider<T = any> extends EventEmitter implements AsyncIterable<T> {
           continue
         }
         if (!retry) {
-          currentOffset += SCAN_CHUNKS
+          currentOffset += this.chunkSize
           this.lastScannedBlock = currentOffset - 1n// scan is inclusive
         }
         // TODO: look into moving this above the abi selection loop
