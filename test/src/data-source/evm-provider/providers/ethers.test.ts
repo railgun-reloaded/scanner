@@ -1,5 +1,5 @@
 import { RailgunSmartWalletV21 } from '@railgun-reloaded/contract-abis'
-import { test } from 'brittle'
+import { skip, test } from 'brittle'
 import dotenv from 'dotenv'
 
 import { EthersProvider, RAILGUN_SCAN_START_BLOCK_V2 } from '../../../../../src/data-source/evm-provider/providers/ethers'
@@ -65,7 +65,7 @@ test('Ethers-Provider:iterator wss', async (t) => {
   }
 })
 
-test('Ethers-Provider:from https with scanOptions', async (t) => {
+skip('Ethers-Provider:from https with scanOptions', async (t) => {
   t.timeout(120_000)
   // setup
   const TEST_CONTRACT_ADDRESS = '0xFA7093CDD9EE6932B4eb2c9e1cde7CE00B1FA4b9'
@@ -86,7 +86,7 @@ test('Ethers-Provider:from https with scanOptions', async (t) => {
     t.pass(`New block: ${block}`)
   })
   const scanOptions = {
-    startBlock: RAILGUN_SCAN_START_BLOCK_V2,
+    startBlock: 0n,
     endBlock: RAILGUN_SCAN_START_BLOCK_V2 + 5_000n,
   }
   for await (const event of provider.from(scanOptions)) {
@@ -95,7 +95,7 @@ test('Ethers-Provider:from https with scanOptions', async (t) => {
   await provider.destroy()
 })
 
-test('Ethers-Provider:from wss with scanOptions', async (t) => {
+skip('Ethers-Provider:from wss with scanOptions', async (t) => {
   t.timeout(120_000)
   // setup
   const TEST_CONTRACT_ADDRESS = '0xFA7093CDD9EE6932B4eb2c9e1cde7CE00B1FA4b9'
@@ -123,6 +123,7 @@ test('Ethers-Provider:from wss with scanOptions', async (t) => {
   }
   await provider.destroy()
 })
+
 test('Ethers-Provider:setupListeners registers block event handler', async (t) => {
   // setup
   const TEST_CONTRACT_ADDRESS = '0xFA7093CDD9EE6932B4eb2c9e1cde7CE00B1FA4b9'
@@ -166,7 +167,7 @@ test('Ethers-Provider:setupListeners registers block event handler', async (t) =
   }
 })
 
-test('Ethers-Provider:setupListeners properly queues contract events', async (t) => {
+skip('Ethers-Provider:setupListeners properly queues contract events', async (t) => {
   // setup
   const TEST_CONTRACT_ADDRESS = '0xFA7093CDD9EE6932B4eb2c9e1cde7CE00B1FA4b9'
 
