@@ -96,7 +96,7 @@ class SubsquidProvider<T = any> extends EventEmitter implements AsyncIterable<T>
     const currentPageBlock = startBlock
     // let currentPage = 0
     let lastResults = null
-    const lastQuery = null
+    let lastQuery = null
     while (hasNextPage) {
     // for (let i = BigInt(startBlock); i < BigInt(endBlock); i += BLOCKS_PER_ITERATION) {
       const fromBlock = currentPageBlock
@@ -107,14 +107,11 @@ class SubsquidProvider<T = any> extends EventEmitter implements AsyncIterable<T>
       if (lastQuery === null) {
         nextQuery = fullSyncQuery
       } else {
-        nextQuery = paginateQuery(lastQuery, fullSyncQuery)
+        nextQuery = paginateQuery(lastQuery, lastResults)
       }
-      if (lastResults === null) {
-        nextQuery = fullSyncQuery
-      } else {
-        nextQuery = paginateQuery(fu)
-      }
-      const { allResults: events } = await autoPaginateQuery(this.network, fullSyncQuery)
+      lastQuery = nextQuery
+
+      const { allResults: events } = await autoPaginateQuery(this.network, nextQuery)
       // Logic to fetch events from the provider
       // currentPageBlock = lastEventBlock
       lastResults = events
