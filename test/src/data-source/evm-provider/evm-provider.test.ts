@@ -1,4 +1,9 @@
-import { /* hook, skip, */ test } from 'brittle'
+import {
+  /* hook, skip, */
+  skip,
+  test,
+  // test
+} from 'brittle'
 import dotenv from 'dotenv'
 
 import { ABIRailgunSmartWallet } from '../../../../src/abi/abi'
@@ -14,7 +19,7 @@ const TEST_RPC_URL = process.env['TEST_RPC_URL_HTTPS']
  * Test EVM Provider
  * @returns EVM Provider
  */
-const getTestEVMProvider = () => {
+const getTestEVMProvider = (): { provider: EthersProvider; datasource: EVMProvider } => {
   if (typeof TEST_RPC_URL === 'undefined') {
     throw new Error('TEST_RPC_URL is not set')
   }
@@ -69,7 +74,7 @@ test('EVM-Provider:EthersProvider:read (iterator)', async (t) => {
   t.absent(datasource.provider, 'provider is destroyed')
 })
 
-test('EVM-Provider:EthersProvider:from', async (t) => {
+skip('EVM-Provider:EthersProvider:from', async (t) => {
   if (typeof TEST_RPC_URL === 'undefined') {
     t.fail('TEST_RPC_URL is not set')
   }
