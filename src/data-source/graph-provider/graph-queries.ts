@@ -277,6 +277,7 @@ const paginateQuery = async (
     return query
   }
   const queries = Object.keys(query)
+  console.log('queries', queries)
   for (const key of queries) {
     const latest = lastResults[key]
     // @ts-ignore
@@ -285,7 +286,7 @@ const paginateQuery = async (
     // print out the goods
     console.log('blockNumber', blockNumber, 'key', key, 'latest', latest.length)
     // check if the limit has been reached.
-    if (latest.length === query[key].limit) {
+    if (latest.length !== query[key].limit) {
       // @ts-ignore
       delete query[key]
     } else {
@@ -334,15 +335,19 @@ const autoPaginateQuery = async (netowrk: NetworkName, query: any) => {
     // }
 
     const paginatedQueryWithLastResults = await paginateQuery(query, lastResults)
-    console.log('paginatedQueryWithLastResults', paginatedQueryWithLastResults)
+    // console.log('paginatedQueryWithLastResults', paginatedQueryWithLastResults)
     const remainingKeys = Object.keys(paginatedQueryWithLastResults)
     // @ts-ignore
     hasNextPage = remainingKeys.length > 0
+    console.log('hasNextPage', hasNextPage, 'remainingKeys', remainingKeys)
     if (!hasNextPage) {
       break
     }
     // Fetch the results for the current page
-    const { events: results } = await fetchGraphQL(netowrk, paginatedQueryWithLastResults)
+    // @ts-ignore
+    const { events: results } = await fetchGraphQL(netowrk, paginatedQueryWithLastResults).catch((e) => {
+      console.log('Error fetching GraphQL data', e)
+    })
     // Add the results to the allResults array
     // @ts-ignore
     // allResults = [...allResults, ...results[`${queryName}`]]
