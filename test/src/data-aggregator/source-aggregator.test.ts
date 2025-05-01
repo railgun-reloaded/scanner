@@ -13,6 +13,10 @@ const TEST_RPC_URL = process.env['TEST_RPC_URL_HTTPS']
 // 'http://127.0.0.1:8545'//
 const TEST_CONTRACT_ADDRESS = RailgunProxyContract[NetworkName.Ethereum]
 const TEST_RPC_CHUNK_SIZE = process.env['TEST_RPC_CHUNK_SIZE'] ?? '500'
+const TEST_IS_CI = Boolean(process.env['TEST_IS_CI']) ?? false
+console.log('TEST IS CI', TEST_IS_CI)
+const START_TESTING_BLOCK = TEST_IS_CI ? '22191561' : RailgunProxyDeploymentBlock[NetworkName.Ethereum]
+
 /**
  * Test Ethers Provider
  * @returns EVM Provider
@@ -74,7 +78,7 @@ test('Source Aggregator', async () => {
     // START BLOCK
     await aggregator.initialize()
     await aggregator.sync()
-    const START_TESTING_BLOCK = RailgunProxyDeploymentBlock[NetworkName.Ethereum]
+    // const START_TESTING_BLOCK = RailgunProxyDeploymentBlock[NetworkName.Ethereum]
     // Kills source to exit test.
 
     setTimeout(async () => {
@@ -108,7 +112,6 @@ test('Source Aggregator', async () => {
     // START BLOCK
     await aggregator.initialize()
     await aggregator.sync()
-    const START_TESTING_BLOCK = RailgunProxyDeploymentBlock[NetworkName.Ethereum]
     // Kills source to exit test.
     console.log('Finished Syncing')
     setTimeout(async () => {
