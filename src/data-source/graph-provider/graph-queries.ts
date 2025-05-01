@@ -397,5 +397,6 @@ export {
   getTransactionsQuery,
   getCommitmentsQuery,
   autoPaginateQuery,
-  paginateQuery
+  paginateQuery,
+  fetchGraphQL
 }

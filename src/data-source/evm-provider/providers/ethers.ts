@@ -149,6 +149,8 @@ class EthersProvider<T = any> extends EventEmitter implements AsyncIterable<T> {
     this.contract.on('*', (event: T) => {
       // TODO: Handle contract event - properly
       // console.log('Contract event:', event)
+      // TODO: these need to get formatted before being pushed here.
+
       this.eventQueue.push(event)
       // these events go into latestEvents[]
     })
