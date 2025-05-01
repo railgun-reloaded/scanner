@@ -93,6 +93,7 @@ test('Ethers-Provider:from https with scanOptions', async (t) => {
     endBlock: RAILGUN_SCAN_START_BLOCK_V2 + 5_000n,
   }
   for await (const event of provider.from(scanOptions)) {
+    t.is(event.length, 47)
     t.pass(`FoundEvents: ${event.length}`)
   }
   await provider.destroy()
@@ -122,7 +123,8 @@ test('Ethers-Provider:from wss with scanOptions', async (t) => {
     endBlock: RAILGUN_SCAN_START_BLOCK_V2 + 5_000n,
   }
   for await (const event of provider.from(scanOptions)) {
-    t.pass(`FoundEvents: ${event.length}`)
+    t.is(event.length, 47)
+    // t.pass(`FoundEvents: ${event.length}`)
   }
   await provider.destroy()
 })
@@ -192,16 +194,16 @@ test('Ethers-Provider:setupListeners properly queues contract events', async (t)
   // Use scan options to generate some events
   const scanOptions = {
     startBlock: RAILGUN_SCAN_START_BLOCK_V2,
-    endBlock: RAILGUN_SCAN_START_BLOCK_V2 + 1000n,
+    endBlock: RAILGUN_SCAN_START_BLOCK_V2 + 5000n,
   }
 
   // Check if events from contract get queued properly
   let eventsFound = 0
   for await (const events of provider.from(scanOptions)) {
-    console.log(events[0])
     if (events.length > 0) {
       eventsFound += events.length
-      t.pass(`Found ${events.length} events from contract scan`)
+      t.is(events.length, 47)
+      // t.pass(`Found ${events.length} events from contract scan`)
       break // We only need to verify events are processed
     }
   }

@@ -280,9 +280,9 @@ class EthersProvider<T = any> extends EventEmitter implements AsyncIterable<T> {
           SCAN_TIMEOUT_ERROR_MESSAGE
         ).catch((_err) => {
           console.log('Error in queryFilter:', _err)
-          process.exit(0)
-          // retry = true
-          // return undefined
+          // process.exit(0)
+          retry = true
+          return undefined
         })
         if (!events) {
           // try again
