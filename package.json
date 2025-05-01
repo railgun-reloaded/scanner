@@ -34,7 +34,7 @@
   "dependencies": {
     "@msgpack/msgpack": "^3.1.1",
     "@railgun-reloaded/contract-abis": "1.0.0",
-    "@railgun-reloaded/subsquid-client": "/Users/zy0n/github/railgun-reloaded/subsquid-client",
+    "@railgun-reloaded/subsquid-client": "github:railgun-reloaded/subsquid-client#fix/nested-query-entities",
     "abstract-level": "^3.1.0",
     "dotenv": "^16.4.7",
     "ethers": "^6.13.5",
