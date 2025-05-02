@@ -4,6 +4,7 @@ import type { DataSource } from './datasource'
 import type { EthersProvider } from './evm-provider/providers/ethers'
 import type { ViemProvider } from './evm-provider/providers/viem'
 import type { Event, RPCData } from './types'
+import { DataSourceType } from './types'
 // TODO: properly type this out for the 'formatted event' type that both providers exude.
 // TODO: make sure both providers 'watching' events format the same way.
 type EVMProviders = EthersProvider<any> | ViemProvider<any>
@@ -46,6 +47,11 @@ class EVMProvider implements DataSource<RPCData> {
    * Provides the most recent updates from its source.
    */
   provider: EVMProviders
+
+  /**
+   * The current most complete chronological order of events seen by this data source.
+   */
+  sourceType = DataSourceType.Live
 
   // TODO: alter provider to be more ROBUST
   /**

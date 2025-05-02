@@ -383,13 +383,32 @@ const autoPaginateQuery = async (netowrk: NetworkName, query: any) => {
  * @param paginatedQuery - The paginated query to execute
  * @returns - The results of the query
  */
+// TODO: make this a class, and store the client or pass it in...
 const fetchGraphQL = async (network: NetworkName, paginatedQuery: any) => {
   const client = getClientForNetwork(network)
   const result = await client.query(paginatedQuery)
   return { events: result }
 }
 
+/**
+ * Get the block height from the client
+ * @param network - The network name
+ * @returns - The block height
+ */
+const getCurrentBlockheight = async (network: NetworkName) => {
+  const client = getClientForNetwork(network)
+
+  const { squidStatus } = await client.query({
+    squidStatus: {
+      fields: ['height'],
+    }
+  })
+  console.log('blockHeightQuery', squidStatus)
+  return squidStatus.height
+}
+
 export {
+  getCurrentBlockheight,
   getFullSyncQuery,
   getClientForNetwork,
   getUnshieldsQuery,

@@ -116,6 +116,7 @@ class SourceAggregator<T extends Data> {
     const events = []
     let startBlock = BigInt(RailgunProxyDeploymentBlock[NetworkName.Ethereum] - 100_000)
     if (block) {
+      // TODO: Build SnapshotProvider
       console.log('Snapshot Found:', block.events.length)
       // we have found storage. lets load it.
       const { blockHeight, events: storedEvents } = block
@@ -213,7 +214,7 @@ class SourceAggregator<T extends Data> {
         }
         sortedObj[name].push(event)
       } else {
-        console.log('Event', event)
+        // console.log('Event', event)
       }
     }
     // console.log('SortedEvents', sortedObj)
@@ -235,6 +236,8 @@ class SourceAggregator<T extends Data> {
       }
       return acc
     }, 0)
+    console.log('events[events.length - 1]', events[events.length - 1])
+    console.log('chronologicalEvents', chronologicalEvents[chronologicalEvents.length - 1])
     console.log('TotalCheck', totalCheck)
     console.log('leaves', expectedPosition)
     console.log('SAVING EVENTS', chronologicalEvents.length)

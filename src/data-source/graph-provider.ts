@@ -1,6 +1,8 @@
 import type { DataSource } from './datasource'
 import type { SubsquidProvider } from './graph-provider/subsquid'
 import type { Event, RPCData } from './types'
+// TODO: move this to datasource?
+import { DataSourceType } from './types'
 
 /**
  * The GraphProvider class is a data source provider that interacts with the Subsquid API.
@@ -19,6 +21,11 @@ class GraphProvider implements DataSource<RPCData> {
    * The most recent events that this source can provide.
    */
   provider: SubsquidProvider<RPCData>
+
+  /**
+   * The current most complete chronological order of events seen by this data source.
+   */
+  sourceType: DataSourceType = DataSourceType.Historical
 
   /**
    * The GraphProvider constructor initializes the provider.
@@ -65,7 +72,7 @@ class GraphProvider implements DataSource<RPCData> {
         if (event) {
           // console.log('FoundEvent', event)
           const { blockHeight } = event
-          console.log('FoundEvent', event)
+          // console.log('FoundEvent', event)
           // @ts-expect-error
           yield { blockHeight, event }
         }
@@ -103,17 +110,23 @@ class GraphProvider implements DataSource<RPCData> {
       if (typeof target !== 'undefined') {
         if ('blockNumber' in target) {
           // console.log('setting blockheight', target.blockNumber)
-          this.blockHeight = BigInt(target.blockNumber)
+          const nextBlockHeight = BigInt(target.blockNumber)
+          if (nextBlockHeight > this.blockHeight) {
+            this.blockHeight = BigInt(target.blockNumber)
+          }
         }
       }
       // Use the resolved endBlockNumber instead of endBlock which could be 'latest'
-      const blockHeight = endBlockNumber
+      // const blockHeight = endBlockNumber
       //
       for (const e of event) {
-        this.blockHeight = BigInt(e.blockNumber)
+        const nextBlockHeight = BigInt(e.blockNumber)
+        if (nextBlockHeight > this.blockHeight) {
+          this.blockHeight = BigInt(e.blockNumber)
+        }
         // console.log('event')
         // @ts-ignore TODO: Fix this
-        yield { blockHeight, event: e }
+        yield { blockHeight: this.blockHeight, event: e }
       }
     }
     // this will effectively kill the read iterator above

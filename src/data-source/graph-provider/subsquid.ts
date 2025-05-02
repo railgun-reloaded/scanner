@@ -5,7 +5,7 @@ import type { SubsquidClient } from '@railgun-reloaded/subsquid-client'
 import type { NetworkName } from '../../globals'
 
 import {
-  autoPaginateQuery, getClientForNetwork, getFullSyncQuery,
+  autoPaginateQuery, getClientForNetwork, getCurrentBlockheight, getFullSyncQuery,
   //  paginateQuery
 } from './graph-queries'
 
@@ -30,6 +30,17 @@ class SubsquidProvider<T = any> extends EventEmitter implements AsyncIterable<T>
    * The start block for the provider
    */
   provider: SubsquidClient
+
+  /**
+   * initialized promise
+   */
+  initializedPromise: any
+
+  /**
+   * initialized result
+   */
+  initializedResolve: any
+
   /**
    * constructor for SubsquidProvider
    * @param network - The network name
@@ -38,6 +49,9 @@ class SubsquidProvider<T = any> extends EventEmitter implements AsyncIterable<T>
     super()
     this.network = network
     this.provider = getClientForNetwork(network)
+    this.initializedPromise = new Promise((resolve) => {
+      this.initializedResolve = resolve
+    })
     this.setupListeners()
   }
 
@@ -45,6 +59,10 @@ class SubsquidProvider<T = any> extends EventEmitter implements AsyncIterable<T>
    *  Start iterating from a given height.
    */
   private async setupListeners () {
+    await getCurrentBlockheight(this.network).then((blockHeight) => {
+      this.emit('newHead', blockHeight)
+      this.initializedResolve(blockHeight)
+    })
   }
 
   /**
@@ -57,8 +75,10 @@ class SubsquidProvider<T = any> extends EventEmitter implements AsyncIterable<T>
 
   /**
    * Await initialization of the provider.
+   * @returns - A promise that resolves when the provider is initialized
    */
   async awaitInitialized () {
+    return this.initializedPromise
   }
 
   /**
@@ -109,11 +129,15 @@ class SubsquidProvider<T = any> extends EventEmitter implements AsyncIterable<T>
       // currentPageBlock = lastEventBlock
       // lastResults = events
       // need to sort through everything
-      const consolidatedEvents = []
+      const consolidatedEvents: T[] = []
       for (const key in events) {
         const event = events[key]
         // @ts-ignore TODO: Fix this
-        consolidatedEvents.push(...event)
+        for (const k of event) {
+          k.name = k.commitmentType ?? key
+          consolidatedEvents.push(k)
+        }
+        // consolidatedEvents.push(...event)
       }
       const sortedEvents = consolidatedEvents.sort((ae: any, be: any) => {
         const a = ae
@@ -130,9 +154,21 @@ class SubsquidProvider<T = any> extends EventEmitter implements AsyncIterable<T>
 
         return b.blockNumber - a.blockNumber
       })
+
+      const formattedEvents = sortedEvents.map((event: any) => {
+        // console.log('event', event)
+        return {
+          name: event.name,
+          blockNumber: parseInt(event.blockNumber),
+          transactionIndex: parseInt(BigInt(event.id).toString()),
+          transactionHash: event.transactionHash,
+          logIndex: parseInt(BigInt(event.id).toString()),
+          args: { ...event }
+        }
+      })
       // @ts-ignore
       hasNextPage = events.length > 0
-      yield sortedEvents
+      yield formattedEvents
       // yield events
     }
   }

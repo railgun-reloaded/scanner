@@ -251,13 +251,28 @@ const test = async () => {
   //   }
   // })
   const shields = await getAllShields()
+  await blockHeightQuery()
 
   return { shields }
 }
+
+/**
+ * Example usage of the SubsquidClients
+ */
+const blockHeightQuery = async () => {
+  const client = new SubsquidClient({ network: 'ethereum' })
+  const { squidStatus } = await client.query({
+    squidStatus: {
+      fields: ['height'],
+    }
+  })
+  console.log('blockHeightQuery', squidStatus)
+}
+
 test().then(e => {
   for (const key in e.shields) {
     console.log(key)
-    // @ts-expect-error
+    // @ts-ignore
     for (const shield of e.shields[key]) {
       console.log(key, shield)
       // console.log('preimage', shield.preimage)
