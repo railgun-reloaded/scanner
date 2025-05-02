@@ -132,13 +132,13 @@ class SubsquidProvider<T = any> extends EventEmitter implements AsyncIterable<T>
     const fullSyncQuery = getFullSyncQuery(Number(startBlock.toString()), 10_000)
     while (hasNextPage && this.syncing) {
       // TODO: make this iterate outwards from this function, autoPaginate should keep track of this.syncing
-      const { allResults: events } = await autoPaginateQuery(this.network, fullSyncQuery, this.syncing)
+      const { allResults: events } = await autoPaginateQuery(this.network, fullSyncQuery, this)
       // Logic to fetch events from the provider
       // currentPageBlock = lastEventBlock
       // lastResults = events
       // need to sort through everything
       // @ts-ignore
-      for (const key in events) console.log(key, 'evets', events[key].length)
+      for (const key in events) console.log(key, 'events', events[key].length)
       const consolidatedEvents: T[] = []
       for (const key in events) {
         const event = events[key]
