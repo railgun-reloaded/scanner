@@ -4,6 +4,8 @@ import { CommitmentOrderByInput, NullifierOrderByInput, TransactionOrderByInput,
 import type { NetworkName } from '../../globals'
 import { SubsquidNetworkName } from '../../globals'
 
+import type { SubsquidProvider } from './subsquid'
+
 /**
  * Get all unshields
  * @param fromBlock - The block number to start from
@@ -272,10 +274,10 @@ const getClientForNetwork = (network: NetworkName) => {
  * Auto paginate a GraphQL query
  * @param netowrk - The network name
  * @param query - The query to execute
- * @param syncing
+ * @param provider - The provider to use (optional)
  * @returns - The results of the query
  */
-const autoPaginateQuery = async (netowrk: NetworkName, query: any, syncing = true) => {
+const autoPaginateQuery = async (netowrk: NetworkName, query: any, provider: SubsquidProvider) => {
   const allResults: Record<string, any[]> = {}
   // let currentPage = 0
   // let currentPageBlock = fromBlock
@@ -285,7 +287,7 @@ const autoPaginateQuery = async (netowrk: NetworkName, query: any, syncing = tru
   // const lastResult = null
 
   // @ts-ignore - TODO: clean this up
-  while (hasNextPage && syncing) {
+  while (hasNextPage && provider.syncing) {
     // const paginatedQuery = {
     //   [`${queryName}`]: {
     //     ...query,
@@ -299,13 +301,13 @@ const autoPaginateQuery = async (netowrk: NetworkName, query: any, syncing = tru
     const remainingKeys = Object.keys(paginatedQueryWithLastResults)
     // @ts-ignore
     hasNextPage = remainingKeys.length > 0
-    // console.log('hasNextPage', hasNextPage, 'remainingKeys', remainingKeys)
+    console.log('hasNextPage', hasNextPage, 'syncing', provider.syncing, 'remainingKeys', remainingKeys)
     if (!hasNextPage) {
       break
     }
     // Fetch the results for the current page
     // @ts-ignore
-    const { events: results } = await fetchGraphQL(netowrk, paginatedQueryWithLastResults).catch((e) => {
+    const { events: results } = await fetchGraphQL(netowrk, paginatedQueryWithLastResults, provider.getProvider()).catch((e) => {
       console.log('Error fetching GraphQL data', e)
     })
     // Add the results to the allResults array
@@ -343,11 +345,12 @@ const autoPaginateQuery = async (netowrk: NetworkName, query: any, syncing = tru
  * Fetch GraphQL data
  * @param network - The network name
  * @param paginatedQuery - The paginated query to execute
+ * @param _client - The client to use (optional)
  * @returns - The results of the query
  */
 // TODO: make this a class, and store the client or pass it in...
-const fetchGraphQL = async (network: NetworkName, paginatedQuery: any) => {
-  const client = getClientForNetwork(network)
+const fetchGraphQL = async (network: NetworkName, paginatedQuery: any, _client?: SubsquidClient) => {
+  const client = _client ?? getClientForNetwork(network)
   const result = await client.query(paginatedQuery)
   return { events: result }
 }
