@@ -1,5 +1,5 @@
 import { RailgunSmartWalletV21 } from '@railgun-reloaded/contract-abis'
-import { solo as test } from 'brittle'
+import { test } from 'brittle'
 import dotenv from 'dotenv'
 
 import { SourceAggregator } from '../../../src/data-aggregator/source-aggregator.js'
@@ -165,7 +165,7 @@ test('Source Aggregator:Full Sync', async () => {
     setTimeout(async () => {
       console.log('Destroying datasource')
       await datasource.destroy()
-    }, 50_000)
+    }, 5_000)
     // let blockHeightIncreased = false
     for await (const event of (await aggregator.read(BigInt(START_TESTING_BLOCK)))) {
       // console.log('FoundEvent', event)
