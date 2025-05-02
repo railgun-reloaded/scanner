@@ -1,4 +1,4 @@
-import * as fs from 'fs'
+import * as fs from 'node:fs'
 import * as zlib from 'zlib'
 
 import { decode, encode } from '@msgpack/msgpack'
@@ -96,9 +96,14 @@ class SnapshotDB {
   /**
    * - Restore from snapshot
    * @param filePath - The file path to restore from
+   * @param destroyDatabase - Whether to destroy the database before restoring
    * @returns - The restored data
    */
-  async restoreGzip (filePath = 'snapshot.gz') {
+  async restoreGzip (filePath = 'snapshot.gz', destroyDatabase = false) {
+    if (destroyDatabase) {
+      fs.rmSync(filePath)
+      return undefined
+    }
     // check if file exists
     if (!fs.existsSync(filePath)) {
       // create it
