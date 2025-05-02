@@ -198,47 +198,6 @@ const getCommitmentsQuery = (fromBlock: number, limit = 10000) => {
           }
         ]
       },
-      {
-        '... on ShieldCommitment': [
-          'shieldKey',
-          'fee',
-          'encryptedBundle',
-          {
-            preimage: [
-              'npk',
-              'value',
-              {
-                token: [
-                  'id',
-                  'tokenType',
-                  'tokenSubID',
-                  'tokenAddress',
-                ]
-              }
-            ]
-          }
-        ]
-      },
-      {
-        '... on TransactCommitment': [
-          {
-            ciphertext: [
-              {
-                ciphertext: [
-                  'iv',
-                  'tag',
-                  'data',
-                ]
-              },
-              'blindedSenderViewingKey',
-              'blindedReceiverViewingKey',
-              'annotationData',
-              'memo'
-
-            ]
-          }
-        ]
-      }
     ],
   }
 }

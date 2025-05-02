@@ -101,6 +101,7 @@ class SnapshotDB {
    */
   async restoreGzip (filePath = 'snapshot.gz', destroyDatabase = false) {
     if (destroyDatabase) {
+      console.log('DESTROYING DATABASE: WARNING WARNING WARNING')
       fs.rmSync(filePath)
       return undefined
     }
