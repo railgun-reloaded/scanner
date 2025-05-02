@@ -19,7 +19,10 @@ test('Graph-Provider:GraphQL', async (t) => {
       endBlock: 'latest'
     })) {
       // g.ok(event, 'Event should be yielded')
-      if (event?.event) { hasYeilded = true }
+      if (event?.event) {
+        hasYeilded = true
+        break
+      }
     }
     g.ok(hasYeilded, 'GraphQL should yield events')
     await graphProvider.destroy()

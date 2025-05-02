@@ -33,29 +33,24 @@ test('SubsquidProvider', (t) => {
     const iterator = provider[Symbol.asyncIterator]()
     t.ok(iterator, 'Async iterator should be returned')
     let totalCount = 0
+    const idSet = new Set()
     for await (const event of provider.from({ startBlock: BigInt(0), endBlock: BigInt(30_000_000) })) {
-      // console.log('Event:', event)
-      t.ok(event, 'Event should be yielded')
-
-      // totalcount += event.length
+      t.ok(event, `Events should be yielded: ${event.length} events`)
       // @ts-ignore
-      // for (const e in event ?? []) {
-      //   if (!totalCount[e]) {
-      //     totalCount[e] = 0
-      //   }
-      totalCount++
-      // t.ok(event[e], 'Event should be yielded')
-      // t.is(e.blockHeight > BigInt(0), true)
-      // }
-      // t.fail('Should not yield any events')
+
+      for (const e of event ?? []) {
+        if (!idSet.has(e.args.id)) {
+          totalCount++
+          idSet.add(e.args.id)
+        }
+      }
     }
     console.log('Total events:', totalCount)
     // for (const e in totalCount) {
     if (totalCount > 0) {
-      t.is(totalCount > 30_000, true)
-      // } else {
+      t.is(totalCount > 30_000, true, 'Total events should be greater than 30_000')
+    } else {
       t.fail('No events found')
-      // }
     }
   })
 })
