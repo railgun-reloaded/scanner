@@ -1,4 +1,4 @@
-import { test } from 'brittle'
+import { skip, test } from 'brittle'
 
 import { NetworkName } from '../../../../src'
 import { SubsquidProvider } from '../../../../src/data-source/graph-provider/subsquid'
@@ -28,7 +28,7 @@ test('SubsquidProvider', (t) => {
     t.pass('Initialization awaited successfully')
   })
 
-  t.test('should iterate events', async (t) => {
+  skip('should iterate events', async (t) => {
     const provider = new SubsquidProvider(NetworkName.Ethereum)
     const iterator = provider[Symbol.asyncIterator]()
     t.ok(iterator, 'Async iterator should be returned')

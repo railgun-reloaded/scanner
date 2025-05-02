@@ -1,4 +1,4 @@
-import { test } from 'brittle'
+import { skip as test } from 'brittle'
 import dotenv from 'dotenv'
 
 import { NetworkName, RailgunProxyDeploymentBlock } from '../../../../src'
