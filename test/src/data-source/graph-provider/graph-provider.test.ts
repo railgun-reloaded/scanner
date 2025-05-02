@@ -1,7 +1,7 @@
-import { solo as test } from 'brittle'
+import { test } from 'brittle'
 import dotenv from 'dotenv'
 
-import { NetworkName } from '../../../../src'
+import { NetworkName, RailgunProxyDeploymentBlock } from '../../../../src'
 import { GraphProvider } from '../../../../src/data-source'
 import { SubsquidProvider } from '../../../../src/data-source/graph-provider/subsquid'
 
@@ -15,8 +15,8 @@ test('Graph-Provider:GraphQL', async (t) => {
     )
     let hasYeilded = false
     for await (const event of graphProvider.from({
-      startBlock: BigInt(0),
-      endBlock: BigInt(30_000_000),
+      startBlock: BigInt(RailgunProxyDeploymentBlock[NetworkName.Ethereum]),
+      endBlock: 'latest'
     })) {
       // g.ok(event, 'Event should be yielded')
       if (event?.event) { hasYeilded = true }

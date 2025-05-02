@@ -1,11 +1,13 @@
 import { RailgunSmartWalletV21 } from '@railgun-reloaded/contract-abis'
-import { test } from 'brittle'
+import { solo as test } from 'brittle'
 import dotenv from 'dotenv'
 
 import { SourceAggregator } from '../../../src/data-aggregator/source-aggregator.js'
 import { EthersProvider } from '../../../src/data-source/evm-provider/providers/ethers.js'
 import { ViemProvider } from '../../../src/data-source/evm-provider/providers/viem.js'
 import { EVMProvider } from '../../../src/data-source/evm-provider.js'
+import { SubsquidProvider } from '../../../src/data-source/graph-provider/subsquid.js'
+import { GraphProvider } from '../../../src/data-source/graph-provider.js'
 import { NetworkName, RailgunProxyContract, RailgunProxyDeploymentBlock } from '../../../src/globals/constants.js'
 
 dotenv.config()
@@ -64,7 +66,17 @@ const getTestViemProvider = () => {
   return { provider, datasource, }
 }
 
-test('Source Aggregator', async () => {
+/**
+ * Test Subsquid Provider
+ * @returns Graph Provider
+ */
+const getTestGraphProvider = () => {
+  const provider = new SubsquidProvider(NetworkName.Ethereum)
+  const datasource = new GraphProvider(provider)
+  return { provider, datasource }
+}
+
+test('Source Aggregator:Full Sync', async () => {
   test('EthersProvider: Source should sync from zero state given a single evm provider', async (t) => {
     // scenario 0. NO STORED DATA. BUILD ALL
     t.timeout(390_000)
@@ -131,6 +143,44 @@ test('Source Aggregator', async () => {
     t.pass('Data Synced.')
 
     // check the height
+  })
+
+  test('SubsquidProvider: Source should sync from zero state given a single evm provider', async (t) => {
+    // scenario 0. NO STORED DATA. BUILD ALL
+    t.timeout(390_000)
+    const { datasource, provider } = getTestGraphProvider()
+    // await datasource.initialize()
+    // comes from provider, data source is not an emitter.
+
+    const aggregator = new SourceAggregator([datasource as any], './subsquidstore.rgblock')
+
+    provider.on('newHead', (blockNumber) => {
+      t.pass(`http:iterator New block: ${blockNumber}`)
+    })
+    // START BLOCK
+    await aggregator.initialize()
+    await aggregator.sync()
+    // Kills source to exit test.
+    console.log('Finished Syncing')
+    setTimeout(async () => {
+      console.log('Destroying datasource')
+      await datasource.destroy()
+    }, 50_000)
+    // let blockHeightIncreased = false
+    for await (const event of (await aggregator.read(BigInt(START_TESTING_BLOCK)))) {
+      // console.log('FoundEvent', event)
+      // t.pass('EVM-Provider:http:iterator FoundEvent')
+      if (event?.blockHeight) {
+        if (event.blockHeight > BigInt(START_TESTING_BLOCK)) {
+          t.pass('BlockHeight is greater than start block')
+          break
+        }
+
+        // t.is(event.blockHeight > BigInt(START_TESTING_BLOCK), true, 'BlockHeight is greater than start block')
+      }
+      // console.log('handledEvent', event?.blockHeight)
+    }
+    t.pass('Data Synced.')
   })
 })
 // export { getTestEthersProvider, getTestViemProvider }

@@ -43,7 +43,7 @@ test('SubsquidProvider', (t) => {
         if (!totalCount[e]) {
           totalCount[e] = 0
         }
-        totalCount[e] += event[e]?.length ?? 0
+        totalCount[e]++
         t.ok(event[e], 'Event should be yielded')
         // t.is(e.blockHeight > BigInt(0), true)
       }
