@@ -272,9 +272,10 @@ const getClientForNetwork = (network: NetworkName) => {
  * Auto paginate a GraphQL query
  * @param netowrk - The network name
  * @param query - The query to execute
+ * @param syncing
  * @returns - The results of the query
  */
-const autoPaginateQuery = async (netowrk: NetworkName, query: any) => {
+const autoPaginateQuery = async (netowrk: NetworkName, query: any, syncing = true) => {
   const allResults: Record<string, any[]> = {}
   // let currentPage = 0
   // let currentPageBlock = fromBlock
@@ -282,7 +283,9 @@ const autoPaginateQuery = async (netowrk: NetworkName, query: any) => {
   let lastResults = null
   // console.log('queryName', queryName, 'fromBlock', fromBlock, 'limit', limit)
   // const lastResult = null
-  while (hasNextPage) {
+
+  // @ts-ignore - TODO: clean this up
+  while (hasNextPage && syncing) {
     // const paginatedQuery = {
     //   [`${queryName}`]: {
     //     ...query,
