@@ -100,16 +100,16 @@ class SnapshotDB {
    * @returns - The restored data
    */
   async restoreGzip (filePath = 'snapshot.gz', destroyDatabase = false) {
-    if (destroyDatabase) {
-      console.log('DESTROYING DATABASE: WARNING WARNING WARNING')
-      fs.rmSync(filePath)
-      return undefined
-    }
     // check if file exists
     if (!fs.existsSync(filePath)) {
       // create it
       return undefined
       // throw new Error(`File ${filePath} does not exist`)
+    }
+    if (destroyDatabase) {
+      console.log('DESTROYING DATABASE: WARNING WARNING WARNING')
+      fs.rmSync(filePath)
+      return undefined
     }
     const stream = fs.createReadStream(filePath).pipe(zlib.createGunzip({
       chunkSize: (1024 * 1024) * 10, // - doesnt seem to be respected?
