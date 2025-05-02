@@ -45,15 +45,21 @@ class SourceAggregator<T extends Data> {
    * - The database used for storing snapshots.
    */
   private db: any
+  /**
+   * - The most recent blockHeight that this source can provide.
+   */
+  destroyDatabase: boolean
 
   /**
    * TODO: constructor
    * @param sources - The sources to aggregate.
    * @param storage - The storage location for the snapshot database.
+   * @param destroyDatabase - Whether to destroy the database on initialization.
    */
-  constructor (sources: DataSource<T>[], storage: string = './store.rgblock') {
+  constructor (sources: DataSource<T>[], storage: string = './store.rgblock', destroyDatabase: boolean = false) {
     this.sources = sources
     this.storage = storage
+    this.destroyDatabase = destroyDatabase
     this.db = new SnapshotDB()
   }
 
@@ -69,7 +75,7 @@ class SourceAggregator<T extends Data> {
       await source.initialize()
     }
     console.time('restoreGzip')
-    await this.db.restoreGzip(this.storage).catch((err: any) => {
+    await this.db.restoreGzip(this.storage, this.destroyDatabase).catch((err: any) => {
       console.error('Error restoring gzip', err)
     })
     console.timeEnd('restoreGzip')
@@ -236,8 +242,8 @@ class SourceAggregator<T extends Data> {
       }
       return acc
     }, 0)
-    console.log('events[events.length - 1]', events[events.length - 1])
-    console.log('chronologicalEvents', chronologicalEvents[chronologicalEvents.length - 1])
+    // console.log('events[events.length - 1]', events[events.length - 1])
+    // console.log('chronologicalEvents', chronologicalEvents[chronologicalEvents.length - 1])
     console.log('TotalCheck', totalCheck)
     console.log('leaves', expectedPosition)
     console.log('SAVING EVENTS', chronologicalEvents.length)
