@@ -42,6 +42,11 @@ class SubsquidProvider<T = any> extends EventEmitter implements AsyncIterable<T>
   initializedResolve: any
 
   /**
+   * The start block for the provider
+   */
+  syncing: boolean | undefined
+
+  /**
    * constructor for SubsquidProvider
    * @param network - The network name
    */
@@ -49,6 +54,7 @@ class SubsquidProvider<T = any> extends EventEmitter implements AsyncIterable<T>
     super()
     this.network = network
     this.provider = getClientForNetwork(network)
+    this.syncing = false
     this.initializedPromise = new Promise((resolve) => {
       this.initializedResolve = resolve
     })
@@ -110,6 +116,7 @@ class SubsquidProvider<T = any> extends EventEmitter implements AsyncIterable<T>
    */
   async * from (options:{ startBlock: bigint, endBlock: bigint }) {
     const { startBlock } = options
+    this.syncing = true
     // this.startBlock = BigInt(startBlock)
     // this.lastScannedBlock = BigInt(endBlock)
     // Logic to iterate from a given height
@@ -123,8 +130,9 @@ class SubsquidProvider<T = any> extends EventEmitter implements AsyncIterable<T>
     // let lastResults = null
     // const lastQuery = null
     const fullSyncQuery = getFullSyncQuery(Number(startBlock.toString()), 10_000)
-    while (hasNextPage) {
-      const { allResults: events } = await autoPaginateQuery(this.network, fullSyncQuery)
+    while (hasNextPage && this.syncing) {
+      // TODO: make this iterate outwards from this function, autoPaginate should keep track of this.syncing
+      const { allResults: events } = await autoPaginateQuery(this.network, fullSyncQuery, this.syncing)
       // Logic to fetch events from the provider
       // currentPageBlock = lastEventBlock
       // lastResults = events
@@ -171,6 +179,7 @@ class SubsquidProvider<T = any> extends EventEmitter implements AsyncIterable<T>
       yield formattedEvents
       // yield events
     }
+    this.syncing = false
   }
 
   /**
@@ -180,6 +189,7 @@ class SubsquidProvider<T = any> extends EventEmitter implements AsyncIterable<T>
   async destroy () {
     // Logic to destroy the provider and iterators
     console.log('SubsquidProvider: Destroying provider')
+    this.syncing = false
     // @ts-expect-error // TODO: fix this typeshit
     delete this.provider
   }
