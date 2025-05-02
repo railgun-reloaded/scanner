@@ -85,6 +85,7 @@ class GraphProvider implements DataSource<RPCData> {
    * @param error - An optional error to throw from all active iterators.
    */
   async destroy (error?: Error): Promise<void> {
+    this.syncing = false
     await this.provider.destroy()
     // @ts-ignore -- no need to require optional. // TODO: fix this typeshit
     delete this.provider

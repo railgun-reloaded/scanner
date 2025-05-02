@@ -137,6 +137,8 @@ class SubsquidProvider<T = any> extends EventEmitter implements AsyncIterable<T>
       // currentPageBlock = lastEventBlock
       // lastResults = events
       // need to sort through everything
+      // @ts-ignore
+      for (const key in events) console.log(key, 'evets', events[key].length)
       const consolidatedEvents: T[] = []
       for (const key in events) {
         const event = events[key]
@@ -192,6 +194,7 @@ class SubsquidProvider<T = any> extends EventEmitter implements AsyncIterable<T>
     this.syncing = false
     // @ts-expect-error // TODO: fix this typeshit
     delete this.provider
+    console.log('SubsquidProvider: Destroyed provider')
   }
 }
 
