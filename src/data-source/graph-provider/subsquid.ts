@@ -49,8 +49,10 @@ class SubsquidProvider<T = any> extends EventEmitter implements AsyncIterable<T>
 
   /**
    *  Get the provider
+   * @returns - The provider
    */
   getProvider () {
+    return this.provider
   }
 
   /**
@@ -106,9 +108,31 @@ class SubsquidProvider<T = any> extends EventEmitter implements AsyncIterable<T>
       // Logic to fetch events from the provider
       // currentPageBlock = lastEventBlock
       // lastResults = events
+      // need to sort through everything
+      const consolidatedEvents = []
+      for (const key in events) {
+        const event = events[key]
+        // @ts-ignore TODO: Fix this
+        consolidatedEvents.push(...event)
+      }
+      const sortedEvents = consolidatedEvents.sort((ae: any, be: any) => {
+        const a = ae
+        const b = be
+
+        const aTransactionIndex = parseInt(BigInt(a.id).toString())
+        const bTransactionIndex = parseInt(BigInt(b.id).toString())
+        if (a.blockNumber === b.blockNumber) {
+          // if (aTransactionIndex === bTransactionIndex) {
+          //   return b.logIndex - a.logIndex
+          // }
+          return bTransactionIndex - aTransactionIndex
+        }
+
+        return b.blockNumber - a.blockNumber
+      })
       // @ts-ignore
       hasNextPage = events.length > 0
-      yield events
+      yield sortedEvents
       // yield events
     }
   }
@@ -120,6 +144,8 @@ class SubsquidProvider<T = any> extends EventEmitter implements AsyncIterable<T>
   async destroy () {
     // Logic to destroy the provider and iterators
     console.log('SubsquidProvider: Destroying provider')
+    // @ts-expect-error // TODO: fix this typeshit
+    delete this.provider
   }
 }
 

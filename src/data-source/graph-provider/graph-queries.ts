@@ -277,14 +277,14 @@ const paginateQuery = async (
     return query
   }
   const queries = Object.keys(query)
-  console.log('queries', queries)
+  // console.log('queries', queries)
   for (const key of queries) {
     const latest = lastResults[key]
     // @ts-ignore
     const lastResult = latest[latest.length - 1]
     const blockNumber = lastResult.blockNumber
     // print out the goods
-    console.log('blockNumber', blockNumber, 'key', key, 'latest', latest.length)
+    // console.log('blockNumber', blockNumber, 'key', key, 'latest', latest.length)
     // check if the limit has been reached.
     if (latest.length !== query[key].limit) {
       // @ts-ignore
@@ -317,7 +317,7 @@ const getClientForNetwork = (network: NetworkName) => {
  */
 const autoPaginateQuery = async (netowrk: NetworkName, query: any) => {
   const allResults: Record<string, any[]> = {}
-  let currentPage = 0
+  // let currentPage = 0
   // let currentPageBlock = fromBlock
   let hasNextPage = true
   let lastResults = null
@@ -337,7 +337,7 @@ const autoPaginateQuery = async (netowrk: NetworkName, query: any) => {
     const remainingKeys = Object.keys(paginatedQueryWithLastResults)
     // @ts-ignore
     hasNextPage = remainingKeys.length > 0
-    console.log('hasNextPage', hasNextPage, 'remainingKeys', remainingKeys)
+    // console.log('hasNextPage', hasNextPage, 'remainingKeys', remainingKeys)
     if (!hasNextPage) {
       break
     }
@@ -370,8 +370,8 @@ const autoPaginateQuery = async (netowrk: NetworkName, query: any) => {
     // Check if there are more pages
 
     // currentPageBlock = allResults[allResults.length - 1].blockNumber
-    console.log('currentPage', currentPage, 'hasNextPage', hasNextPage)
-    currentPage++
+    // console.log('currentPage', currentPage, 'hasNextPage', hasNextPage)
+    // currentPage++
   }
 
   return { allResults }
