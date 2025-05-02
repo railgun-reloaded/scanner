@@ -151,8 +151,7 @@ test('Source Aggregator:Full Sync', async () => {
     const { datasource, provider } = getTestGraphProvider()
     // await datasource.initialize()
     // comes from provider, data source is not an emitter.
-
-    const aggregator = new SourceAggregator([datasource as any], './subsquidstore.rgblock')
+    const aggregator = new SourceAggregator([datasource as any], './subsquidstore.rgblock', true)
 
     provider.on('newHead', (blockNumber) => {
       t.pass(`http:iterator New block: ${blockNumber}`)
