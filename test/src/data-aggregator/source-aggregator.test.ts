@@ -1,5 +1,5 @@
 import { RailgunSmartWalletV21 } from '@railgun-reloaded/contract-abis'
-import { test } from 'brittle'
+import { solo, test } from 'brittle'
 import dotenv from 'dotenv'
 
 import { SourceAggregator } from '../../../src/data-aggregator/source-aggregator.js'
@@ -145,7 +145,7 @@ test('Source Aggregator:Full Sync', async () => {
     // check the height
   })
 
-  test('SubsquidProvider: Source should sync from zero state given a single evm provider', async (t) => {
+  solo('SubsquidProvider: Source should sync from zero state given a single evm provider', async (t) => {
     // scenario 0. NO STORED DATA. BUILD ALL
     t.timeout(390_000)
     const { datasource, provider } = getTestGraphProvider()
