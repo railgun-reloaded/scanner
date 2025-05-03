@@ -199,8 +199,10 @@ class SourceAggregator<T extends Data> {
         const treeNum = parseInt(treeNumber.toString())
         const normalized = (treeNum * (2 ** 16)) + startPos
         if (normalized === expectedPosition) {
+          console.log('Commitmentsc', args)
           if ('commitments' in args) {
             expectedPosition += args['commitments'].length
+            process.exit(0)
           } else if ('hash' in args) {
             expectedPosition += args['hash'].length
           }
@@ -242,8 +244,14 @@ class SourceAggregator<T extends Data> {
       }
       return acc
     }, 0)
-    // console.log('events[events.length - 1]', events[events.length - 1])
-    // console.log('chronologicalEvents', chronologicalEvents[chronologicalEvents.length - 1])
+    console.log('events[events.length - 1]', JSON.stringify(events[events.length - 1], (_, value) => {
+      if (typeof value === 'bigint') {
+        return value.toString()
+      }
+      return value
+    }, 2))
+    console.log('chronologicalEvents', chronologicalEvents[chronologicalEvents.length - 1])
+
     console.log('TotalCheck', totalCheck)
     console.log('leaves', expectedPosition)
     console.log('SAVING EVENTS', chronologicalEvents.length)

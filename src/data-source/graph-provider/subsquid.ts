@@ -137,14 +137,24 @@ class SubsquidProvider<T = any> extends EventEmitter implements AsyncIterable<T>
       // currentPageBlock = lastEventBlock
       // lastResults = events
       // need to sort through everything
+
+      console.log('events', Object.keys(events))
+      const filteredKeys = ['commitments', 'nullifiers', 'unshields']
       // @ts-ignore
+      // TODO: honestly this current arrangement of data is kind of perfect, might be ideal to serailize rpc data into this 'finalized' format.
       for (const key in events) console.log(key, 'events', events[key].length)
       const consolidatedEvents: T[] = []
-      for (const key in events) {
+      for (const key of filteredKeys) {
         const event = events[key]
         // @ts-ignore TODO: Fix this
         for (const k of event) {
           k.name = k.commitmentType ?? key
+          if (typeof k.treePosition !== 'undefined') {
+            k.startPosition = k.treePosition // k.batchStartTreePosition ?? 0n
+          }
+          if (typeof k.treeNumber !== 'undefined') {
+            k.treeNumber = k.treeNumber ?? 0n
+          }
           consolidatedEvents.push(k)
         }
         // consolidatedEvents.push(...event)
@@ -164,15 +174,16 @@ class SubsquidProvider<T = any> extends EventEmitter implements AsyncIterable<T>
 
         return b.blockNumber - a.blockNumber
       })
-
+      let logIndex = 0
       const formattedEvents = sortedEvents.map((event: any) => {
         // console.log('event', event)
+        logIndex++
         return {
           name: event.name,
           blockNumber: parseInt(event.blockNumber),
-          transactionIndex: parseInt(BigInt(event.id).toString()),
+          transactionIndex: logIndex,
           transactionHash: event.transactionHash,
-          logIndex: parseInt(BigInt(event.id).toString()),
+          logIndex,
           args: { ...event }
         }
       })
