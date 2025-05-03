@@ -149,12 +149,15 @@ class SubsquidProvider<T = any> extends EventEmitter implements AsyncIterable<T>
         // @ts-ignore TODO: Fix this
         for (const k of event) {
           k.name = k.commitmentType ?? key
-          if (typeof k.treePosition !== 'undefined') {
-            k.startPosition = k.treePosition // k.batchStartTreePosition ?? 0n
-          }
-          if (typeof k.treeNumber !== 'undefined') {
-            k.treeNumber = k.treeNumber ?? 0n
-          }
+          const parsed = k.id.slice(2)
+          k.treeNumber = parseInt(BigInt('0x' + parsed.slice(0, 64)).toString())
+          k.startPosition = parseInt(BigInt('0x' + parsed.slice(64)).toString())
+          // if (typeof k.treePosition !== 'undefined') {
+          //   k.startPosition = k.treePosition // k.batchStartTreePosition ?? 0n
+          // }
+          // if (typeof k.treeNumber !== 'undefined') {
+          //   k.treeNumber = k.treeNumber ?? 0n
+          // }
           consolidatedEvents.push(k)
         }
         // consolidatedEvents.push(...event)
@@ -163,8 +166,8 @@ class SubsquidProvider<T = any> extends EventEmitter implements AsyncIterable<T>
         const a = ae
         const b = be
 
-        const aTransactionIndex = parseInt(BigInt(a.id).toString())
-        const bTransactionIndex = parseInt(BigInt(b.id).toString())
+        const aTransactionIndex = parseInt(BigInt(a.startPosition).toString())
+        const bTransactionIndex = parseInt(BigInt(b.startPosition).toString())
         if (a.blockNumber === b.blockNumber) {
           // if (aTransactionIndex === bTransactionIndex) {
           //   return b.logIndex - a.logIndex
@@ -174,16 +177,14 @@ class SubsquidProvider<T = any> extends EventEmitter implements AsyncIterable<T>
 
         return b.blockNumber - a.blockNumber
       })
-      let logIndex = 0
       const formattedEvents = sortedEvents.map((event: any) => {
         // console.log('event', event)
-        logIndex++
         return {
           name: event.name,
           blockNumber: parseInt(event.blockNumber),
-          transactionIndex: logIndex,
+          transactionIndex: event.startPosition,
           transactionHash: event.transactionHash,
-          logIndex,
+          logIndex: event.startPosition,
           args: { ...event }
         }
       })

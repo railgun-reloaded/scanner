@@ -199,12 +199,14 @@ class SourceAggregator<T extends Data> {
         const treeNum = parseInt(treeNumber.toString())
         const normalized = (treeNum * (2 ** 16)) + startPos
         if (normalized === expectedPosition) {
-          console.log('Commitmentsc', args)
+          // console.log('Commitmentsc', args)
           if ('commitments' in args) {
             expectedPosition += args['commitments'].length
-            process.exit(0)
+            // process.exit(0)
           } else if ('hash' in args) {
-            expectedPosition += args['hash'].length
+            expectedPosition += 1
+            // weird++
+            // expectedPosition += args['hash'].length
           }
         }
       }
