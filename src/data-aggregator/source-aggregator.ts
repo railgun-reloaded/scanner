@@ -204,6 +204,7 @@ class SourceAggregator<T extends Data> {
             expectedPosition += args['commitments'].length
             // process.exit(0)
           } else if ('hash' in args) {
+            // TODO: fix this for EVM providers, quick hack for ironing out subsquid indexing.
             expectedPosition += 1
             // weird++
             // expectedPosition += args['hash'].length
