@@ -6,6 +6,7 @@ import type { NetworkName } from '../../globals'
 
 import {
   autoPaginateQuery, getClientForNetwork, getCurrentBlockheight, getFullSyncQuery,
+  getTotalCounts,
   //  paginateQuery
 } from './graph-queries'
 
@@ -140,9 +141,101 @@ class SubsquidProvider<T = any> extends EventEmitter implements AsyncIterable<T>
 
       console.log('events', Object.keys(events))
       const filteredKeys = ['commitments', 'nullifiers', 'unshields']
-      // @ts-ignore
       // TODO: honestly this current arrangement of data is kind of perfect, might be ideal to serailize rpc data into this 'finalized' format.
-      for (const key in events) console.log(key, 'events', events[key].length)
+      const seenCommitments = new Set()
+      let totalCommitments = 0
+      const seenNullifiers = new Set()
+      let totalNullifiers = 0
+      const seenUnshields = new Set()
+      let totalUnshields = 0
+      const seenTransactions = new Set()
+      let totalTransactions = 0
+
+      const recordCounts: Record< string, Set<number>> = {}
+      for (const key of Object.keys(events)) {
+        recordCounts[key] = new Set()
+      }
+
+      // NEED TO DEDUPE EVENTS HERE.
+      const dedupedEvents: Record<string, any[]> = {}
+      // setup keys
+      for (const key of Object.keys(events)) {
+        dedupedEvents[key] = []
+      }
+      for (const key in events) {
+        // @ts-ignore
+        for (const e of events[key]) {
+          // @ts-ignore
+          if (!recordCounts[key].has(e.id)) {
+            // @ts-ignore
+            recordCounts[key].add(e.id)
+            // @ts-ignore
+            dedupedEvents[key].push(e)
+          }
+        }
+      }
+
+      for (const key in dedupedEvents) {
+        // @ts-ignore
+        console.log('DEDUPED', key, 'events', dedupedEvents[key].length)
+
+        // @ts-ignore
+        // for (const e of dedupedEvents[key]) {
+        //   // @ts-ignore
+        //   if (!recordCounts[key].has(e.id)) {
+        //     // @ts-ignore
+        //     recordCounts[key].add(e.id)
+        //   }
+        // }
+
+        if (key === 'transactions') {
+        // @ts-ignore
+          for (const transaction of dedupedEvents[key]) {
+            if (!seenTransactions.has(transaction.id)) {
+              seenTransactions.add(transaction.id)
+              totalTransactions++
+            } else {
+              continue
+            }
+            // @ts-ignore
+            for (const commitment of transaction.commitments) {
+              if (!seenCommitments.has(commitment)) {
+                seenCommitments.add(commitment)
+              }
+              totalCommitments++
+            }
+            // commitments += transaction.commitments.length
+            for (const nullifier of transaction.nullifiers) {
+              if (!seenNullifiers.has(nullifier)) {
+                seenNullifiers.add(nullifier)
+              }
+              totalNullifiers++
+            }
+            if (transaction.hasUnshield) {
+              if (!seenUnshields.has(`${transaction.id}`)) {
+                seenUnshields.add(`${transaction.id}`)
+              }
+              totalUnshields++
+            }
+          }
+          // nullifiers += transaction.nullifiers.length
+        }
+      }
+
+      await getTotalCounts(this.network, this.provider)
+
+      for (const key in recordCounts) {
+        // @ts-ignore
+        console.log('DEDUPED:', key, recordCounts[key].size, 'orig:', events[key].length)
+      }
+      console.log('\n\n')
+      console.log('TRANSACT:commitments', seenCommitments.size, 'orig:', totalCommitments)
+      console.log('TRANSACT:nullifiers', seenNullifiers.size, 'orig:', totalNullifiers)
+      console.log('TRANSACT:unshields', seenUnshields.size, 'orig:', totalUnshields)
+      // @ts-ignore
+      console.log('TRANSACT:transactions', 'orig: ', events['transactions'].length, 'flattened:', totalTransactions)
+
+      // compare them
       const consolidatedEvents: T[] = []
       for (const key of filteredKeys) {
         const event = events[key]
@@ -152,15 +245,8 @@ class SubsquidProvider<T = any> extends EventEmitter implements AsyncIterable<T>
           const parsed = k.id.slice(2)
           k.treeNumber = parseInt(BigInt('0x' + parsed.slice(0, 64)).toString())
           k.startPosition = parseInt(BigInt('0x' + parsed.slice(64)).toString())
-          // if (typeof k.treePosition !== 'undefined') {
-          //   k.startPosition = k.treePosition // k.batchStartTreePosition ?? 0n
-          // }
-          // if (typeof k.treeNumber !== 'undefined') {
-          //   k.treeNumber = k.treeNumber ?? 0n
-          // }
           consolidatedEvents.push(k)
         }
-        // consolidatedEvents.push(...event)
       }
       const sortedEvents = consolidatedEvents.sort((ae: any, be: any) => {
         const a = ae

@@ -247,13 +247,13 @@ class SourceAggregator<T extends Data> {
       }
       return acc
     }, 0)
-    console.log('events[events.length - 1]', JSON.stringify(events[events.length - 1], (_, value) => {
-      if (typeof value === 'bigint') {
-        return value.toString()
-      }
-      return value
-    }, 2))
-    console.log('chronologicalEvents', chronologicalEvents[chronologicalEvents.length - 1])
+    // console.log('events[events.length - 1]', JSON.stringify(events[events.length - 1], (_, value) => {
+    //   if (typeof value === 'bigint') {
+    //     return value.toString()
+    //   }
+    //   return value
+    // }, 2))
+    // console.log('chronologicalEvents', chronologicalEvents[chronologicalEvents.length - 1])
 
     console.log('TotalCheck', totalCheck)
     console.log('leaves', expectedPosition)
