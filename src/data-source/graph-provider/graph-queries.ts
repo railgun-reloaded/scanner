@@ -243,7 +243,7 @@ const paginateQuery = async (
     const latest = lastResults[key]
     // @ts-ignore
     const lastResult = latest[latest.length - 1]
-    const blockNumber = parseInt(lastResult.blockNumber)
+    const blockNumber = parseInt(lastResult.blockNumber) - 1
     // print out the goods
     // console.log('blockNumber', blockNumber, 'key', key, 'latest', latest.length)
     // check if the limit has been reached.
@@ -358,10 +358,11 @@ const fetchGraphQL = async (network: NetworkName, paginatedQuery: any, _client?:
 /**
  * Get the block height from the client
  * @param network - The network name
+ * @param _client - The client to use (optional)
  * @returns - The block height
  */
-const getCurrentBlockheight = async (network: NetworkName) => {
-  const client = getClientForNetwork(network)
+const getCurrentBlockheight = async (network: NetworkName, _client?: SubsquidClient) => {
+  const client = _client ?? getClientForNetwork(network)
 
   const { squidStatus } = await client.query({
     squidStatus: {
@@ -372,6 +373,36 @@ const getCurrentBlockheight = async (network: NetworkName) => {
   return squidStatus.height
 }
 
+/**
+ * Get the total counts from the client
+ * @param network - The network name
+ * @param _client - The client to use (optional)
+ * @returns - The total counts
+ */
+const getTotalCounts = async (network: NetworkName, _client: SubsquidClient) => {
+  const client = getClientForNetwork(network)
+  const totalCounts = await client.query({
+    commitmentsConnection: {
+      orderBy: [CommitmentOrderByInput.IdAsc],
+      fields: ['totalCount'],
+    },
+    nullifiersConnection: {
+      orderBy: [NullifierOrderByInput.IdAsc],
+      fields: ['totalCount'],
+    },
+    transactionsConnection: {
+      orderBy: [TransactionOrderByInput.IdAsc],
+      fields: ['totalCount'],
+    },
+    unshieldsConnection: {
+      orderBy: [UnshieldOrderByInput.IdAsc],
+      fields: ['totalCount'],
+    },
+  })
+  console.log('totalCounts', totalCounts)
+  return totalCounts
+}
+
 export {
   getCurrentBlockheight,
   getFullSyncQuery,
@@ -379,6 +410,7 @@ export {
   getUnshieldsQuery,
   getNullifiersQuery,
   getTransactionsQuery,
+  getTotalCounts,
   getCommitmentsQuery,
   autoPaginateQuery,
   paginateQuery,
