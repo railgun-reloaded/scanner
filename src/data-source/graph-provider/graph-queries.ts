@@ -243,7 +243,7 @@ const paginateQuery = async (
     const latest = lastResults[key]
     // @ts-ignore
     const lastResult = latest[latest.length - 1]
-    const blockNumber = parseInt(lastResult.blockNumber) + 1
+    const blockNumber = parseInt(lastResult.blockNumber)
     // print out the goods
     // console.log('blockNumber', blockNumber, 'key', key, 'latest', latest.length)
     // check if the limit has been reached.
