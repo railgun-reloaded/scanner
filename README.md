@@ -1,4 +1,15 @@
 # Notes 
+<br><br><br><br>
+
+ ## Railgun Differences across deployment upgrades.
+  ### V1 > V2
+  - event ABI's upgraded, name changed, funcSig change (inputs)
+  - transact() function ABI Changed, inputs were altered.
+
+  ### V2 > V2.1
+  - Shield event ABI Changed. inputs were altered.
+
+<br><br><br><br>
 
 # TODO
 
