@@ -182,8 +182,8 @@ class SubsquidProvider<T = any> extends EventEmitter implements AsyncIterable<T>
         if (key === 'commitments') {
           // @ts-ignore
           for (const transaction of dedupedEvents[key]) {
-            // const parsed = '0x' + BigInt(transaction.hash).toString(16).padStart(64, '0')
-            constCommitments.add(BigInt(transaction.hash).toString())
+            const parsed = '0x' + BigInt(transaction.hash).toString(16).padStart(64, '0')
+            constCommitments.add(parsed)
           }
         }
 
@@ -215,7 +215,7 @@ class SubsquidProvider<T = any> extends EventEmitter implements AsyncIterable<T>
             // @ts-ignore
             for (const commitment of transaction.commitments) {
               // if (!seenCommitments.has(commitment)) {
-              seenCommitments.add(BigInt(commitment).toString())
+              seenCommitments.add(commitment)
               // console.log('commitment', commitment)
               // }
               totalCommitments++
@@ -269,7 +269,7 @@ class SubsquidProvider<T = any> extends EventEmitter implements AsyncIterable<T>
       // compare them
       const consolidatedEvents: T[] = []
       for (const key of filteredKeys) {
-        const event = events[key]
+        const event = dedupedEvents[key]
         // @ts-ignore TODO: Fix this
         for (const k of event) {
           k.name = k.commitmentType ?? key

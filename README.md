@@ -75,7 +75,7 @@
 
   ## transactions- 
     - contains:
-      - full utxo commitment leaf hash list
+      - full utxo commitment leaf hash list???
         - commitments[] = the associated commitments with the log
       - full nullifier list
         -nullifiers[] = the associated nullifiers with the log
