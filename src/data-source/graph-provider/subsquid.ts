@@ -10,15 +10,6 @@ import {
   //  paginateQuery
 } from './graph-queries'
 
-// import type { NetworkName } from '../../../src/globals'
-// import { delay, getAbiForNetworkBlockRange, promiseTimeout } from '../../utils'
-
-// const SCAN_CHUNKS = 50_000n // need to categorize this by provider, they each have their own limits. 500 is base low. we can attempt to just 'find it' but this can also incur 'ratelimits' that will effect the calculation 'guestimate' of this value.
-// const EVENTS_SCAN_TIMEOUT = 20_000
-// const SCAN_TIMEOUT_ERROR_MESSAGE = 'getLogs request timed out after 5 seconds.'
-const RAILGUN_SCAN_START_BLOCK = 14693000n
-const RAILGUN_SCAN_START_BLOCK_V2 = 16076000n
-
 /**
  *   SubsquidProvider
  */
@@ -118,41 +109,18 @@ class SubsquidProvider<T = any> extends EventEmitter implements AsyncIterable<T>
   async * from (options:{ startBlock: bigint, endBlock: bigint }) {
     const { startBlock } = options
     this.syncing = true
-    // this.startBlock = BigInt(startBlock)
-    // this.lastScannedBlock = BigInt(endBlock)
-    // Logic to iterate from a given height
-    // const TOTAL_BLOCKS = BigInt(endBlock) - BigInt(startBlock)
-    // const BATCH_SIZE = 10_000
-    // const BLOCKS_PER_ITERATION = BigInt(100_000)
 
     let hasNextPage = true
-    // const currentPageBlock = startBlock
-    // let currentPage = 0
-    // let lastResults = null
-    // const lastQuery = null
     const fullSyncQuery = getFullSyncQuery(Number(startBlock.toString()), 10_000)
 
-    const missingEvents: Set<string> = new Set()
     const constCommitments: Set<string> = new Set()
     while (hasNextPage && this.syncing) {
       // TODO: make this iterate outwards from this function, autoPaginate should keep track of this.syncing
       const { allResults: events } = await autoPaginateQuery(this.network, fullSyncQuery, this)
-      // Logic to fetch events from the provider
-      // currentPageBlock = lastEventBlock
-      // lastResults = events
-      // need to sort through everything
 
       console.log('events', Object.keys(events))
       const filteredKeys = ['commitments', 'nullifiers', 'unshields']
       // TODO: honestly this current arrangement of data is kind of perfect, might be ideal to serailize rpc data into this 'finalized' format.
-      const seenCommitments = new Set()
-      let totalCommitments = 0
-      const seenNullifiers = new Set()
-      let totalNullifiers = 0
-      const seenUnshields = new Set()
-      let totalUnshields = 0
-      const seenTransactions = new Set()
-      let totalTransactions = 0
 
       const recordCounts: Record< string, Set<number>> = {}
       for (const key of Object.keys(events)) {
@@ -177,7 +145,7 @@ class SubsquidProvider<T = any> extends EventEmitter implements AsyncIterable<T>
           }
         }
       }
-      let checkTotal = 0
+      // let checkTotal = 0
       for (const key in dedupedEvents) {
         if (key === 'commitments') {
           // @ts-ignore
@@ -189,82 +157,12 @@ class SubsquidProvider<T = any> extends EventEmitter implements AsyncIterable<T>
 
         // @ts-ignore
         console.log('DEDUPED', key, 'events', dedupedEvents[key].length)
-
-        // @ts-ignore
-        // for (const e of dedupedEvents[key]) {
-        //   // @ts-ignore
-        //   if (!recordCounts[key].has(e.id)) {
-        //     // @ts-ignore
-        //     recordCounts[key].add(e.id)
-        //   }
-        // }
-
-        if (key === 'transactions') {
-        // @ts-ignore
-          for (const transaction of dedupedEvents[key]) {
-            if (transaction.commitments.length > 0) {
-              checkTotal += transaction.commitments.length
-            }
-            if (!seenTransactions.has(transaction.id)) {
-              seenTransactions.add(transaction.id)
-              totalTransactions++
-            }
-            // else {
-            //   continue
-            // }
-            // @ts-ignore
-            for (const commitment of transaction.commitments) {
-              // if (!seenCommitments.has(commitment)) {
-              seenCommitments.add(commitment)
-              // console.log('commitment', commitment)
-              // }
-              totalCommitments++
-            }
-            // commitments += transaction.commitments.length
-            for (const nullifier of transaction.nullifiers) {
-              if (!seenNullifiers.has(nullifier)) {
-                seenNullifiers.add(nullifier)
-              }
-              totalNullifiers++
-            }
-            if (transaction.hasUnshield) {
-              if (!seenUnshields.has(`${transaction.id}`)) {
-                seenUnshields.add(`${transaction.id}`)
-              }
-              totalUnshields++
-            }
-          }
-          // nullifiers += transaction.nullifiers.length
-        }
       }
 
       await getTotalCounts(this.network, this.provider)
       // loop through the set of const, and determine which are not in the seenCommitments
-      console.log('seenCommitments', seenCommitments.size)
-      console.log('constCommitments', constCommitments.size)
-      const unknownCommitments = new Set()
-      for (const commitment of constCommitments) {
-        if (!seenCommitments.has(commitment)) {
-          missingEvents.add(commitment)
-        } else {
-          unknownCommitments.add(commitment)
-        }
-      }
-      // for (const key in recordCounts) {
-      //   // @ts-ignore
-      //   console.log('DEDUPED:', key, recordCounts[key].size, 'orig:', events[key].length)
-      // }
-      console.log('HUNTING FOR MISSING EVENTS')
-      console.log('CONSTCOUNT', constCommitments.size)
-      console.log('MATCHED:', unknownCommitments.size)
-      console.log('MISSING:', missingEvents.size)
-      console.log('\n\n')
-      console.log('TRANSACT:checkTotal', checkTotal)
-      console.log('TRANSACT:commitments', seenCommitments.size, 'orig:', totalCommitments)
-      console.log('TRANSACT:nullifiers', seenNullifiers.size, 'orig:', totalNullifiers)
-      console.log('TRANSACT:unshields', seenUnshields.size, 'orig:', totalUnshields)
       // @ts-ignore
-      console.log('TRANSACT:transactions', 'orig: ', events['transactions'].length, 'flattened:', totalTransactions)
+      console.log('TRANSACT:transactions', 'orig: ', events['transactions'].length)
 
       // compare them
       const consolidatedEvents: T[] = []
@@ -327,4 +225,4 @@ class SubsquidProvider<T = any> extends EventEmitter implements AsyncIterable<T>
   }
 }
 
-export { SubsquidProvider, RAILGUN_SCAN_START_BLOCK, RAILGUN_SCAN_START_BLOCK_V2 }
+export { SubsquidProvider }
