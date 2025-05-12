@@ -131,6 +131,9 @@ class SubsquidProvider<T = any> extends EventEmitter implements AsyncIterable<T>
     // let lastResults = null
     // const lastQuery = null
     const fullSyncQuery = getFullSyncQuery(Number(startBlock.toString()), 10_000)
+
+    const missingEvents: Set<string> = new Set()
+    const constCommitments: Set<string> = new Set()
     while (hasNextPage && this.syncing) {
       // TODO: make this iterate outwards from this function, autoPaginate should keep track of this.syncing
       const { allResults: events } = await autoPaginateQuery(this.network, fullSyncQuery, this)
@@ -174,8 +177,16 @@ class SubsquidProvider<T = any> extends EventEmitter implements AsyncIterable<T>
           }
         }
       }
-
+      let checkTotal = 0
       for (const key in dedupedEvents) {
+        if (key === 'commitments') {
+          // @ts-ignore
+          for (const transaction of dedupedEvents[key]) {
+            // const parsed = '0x' + BigInt(transaction.hash).toString(16).padStart(64, '0')
+            constCommitments.add(BigInt(transaction.hash).toString())
+          }
+        }
+
         // @ts-ignore
         console.log('DEDUPED', key, 'events', dedupedEvents[key].length)
 
@@ -191,17 +202,22 @@ class SubsquidProvider<T = any> extends EventEmitter implements AsyncIterable<T>
         if (key === 'transactions') {
         // @ts-ignore
           for (const transaction of dedupedEvents[key]) {
+            if (transaction.commitments.length > 0) {
+              checkTotal += transaction.commitments.length
+            }
             if (!seenTransactions.has(transaction.id)) {
               seenTransactions.add(transaction.id)
               totalTransactions++
-            } else {
-              continue
             }
+            // else {
+            //   continue
+            // }
             // @ts-ignore
             for (const commitment of transaction.commitments) {
-              if (!seenCommitments.has(commitment)) {
-                seenCommitments.add(commitment)
-              }
+              // if (!seenCommitments.has(commitment)) {
+              seenCommitments.add(BigInt(commitment).toString())
+              // console.log('commitment', commitment)
+              // }
               totalCommitments++
             }
             // commitments += transaction.commitments.length
@@ -223,12 +239,27 @@ class SubsquidProvider<T = any> extends EventEmitter implements AsyncIterable<T>
       }
 
       await getTotalCounts(this.network, this.provider)
-
-      for (const key in recordCounts) {
-        // @ts-ignore
-        console.log('DEDUPED:', key, recordCounts[key].size, 'orig:', events[key].length)
+      // loop through the set of const, and determine which are not in the seenCommitments
+      console.log('seenCommitments', seenCommitments.size)
+      console.log('constCommitments', constCommitments.size)
+      const unknownCommitments = new Set()
+      for (const commitment of constCommitments) {
+        if (!seenCommitments.has(commitment)) {
+          missingEvents.add(commitment)
+        } else {
+          unknownCommitments.add(commitment)
+        }
       }
+      // for (const key in recordCounts) {
+      //   // @ts-ignore
+      //   console.log('DEDUPED:', key, recordCounts[key].size, 'orig:', events[key].length)
+      // }
+      console.log('HUNTING FOR MISSING EVENTS')
+      console.log('CONSTCOUNT', constCommitments.size)
+      console.log('MATCHED:', unknownCommitments.size)
+      console.log('MISSING:', missingEvents.size)
       console.log('\n\n')
+      console.log('TRANSACT:checkTotal', checkTotal)
       console.log('TRANSACT:commitments', seenCommitments.size, 'orig:', totalCommitments)
       console.log('TRANSACT:nullifiers', seenNullifiers.size, 'orig:', totalNullifiers)
       console.log('TRANSACT:unshields', seenUnshields.size, 'orig:', totalUnshields)
