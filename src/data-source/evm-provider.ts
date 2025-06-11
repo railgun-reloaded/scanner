@@ -3,11 +3,11 @@
 import type { DataSource } from './datasource'
 import type { EthersProvider } from './evm-provider/providers/ethers'
 import type { ViemProvider } from './evm-provider/providers/viem'
-import type { Event, RPCData } from './types'
+import type { RPCData, RPCEvent } from './types'
 import { DataSourceType } from './types'
 // TODO: properly type this out for the 'formatted event' type that both providers exude.
 // TODO: make sure both providers 'watching' events format the same way.
-type EVMProviders = EthersProvider<any> | ViemProvider<any>
+type EVMProviders = EthersProvider<RPCEvent> | ViemProvider<RPCEvent>
 
 // TODO: make source provide 'chunk size' default it low like 500 events...
 // most providers allow alot but, some dont....
@@ -143,7 +143,7 @@ class EVMProvider implements DataSource<RPCData> {
    */
   // TODO: fix return type, remove undefined
 
-  async * read (height?:bigint): AsyncGenerator<Event | undefined> {
+  async * read (height?:bigint): AsyncGenerator<RPCData> {
     // console.log('HEIGHT', height)
     // these essentially should get added in order from the provider.
     // TODO: check to see if another 'sorting' needs to take place
@@ -152,17 +152,11 @@ class EVMProvider implements DataSource<RPCData> {
     //  first we sort through any events we have gathered here?
     while (true) {
       for await (const event of this.provider) {
-        // console.log('event', event)
         const { blockNumber } = event
         if (height && blockNumber < height) {
           continue
         }
-        const output = {
-          blockHeight: BigInt(blockNumber),
-          event
-        }
-        this.events.push(output)
-        yield output
+        yield event
       }
       if (!this.syncing) { break }
     }
@@ -177,6 +171,7 @@ class EVMProvider implements DataSource<RPCData> {
    * @returns - An async generator that yields events
    * @yields T - The data read from the source
    */
+  /*
   async * from (options: { startBlock: bigint, endBlock: bigint | 'latest' }): AsyncGenerator<RPCData | undefined> {
     const { startBlock, endBlock } = options
     this.syncing = true
@@ -203,8 +198,8 @@ class EVMProvider implements DataSource<RPCData> {
     // this will effectively kill the read iterator above
     // this.syncing = false
   }
+*/
 }
-
 // data iterator.
 
 export { EVMProvider }

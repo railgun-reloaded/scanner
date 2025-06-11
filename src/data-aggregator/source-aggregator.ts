@@ -1,8 +1,8 @@
 import type { DataSource } from '../data-source'
 import type { Data } from '../data-source/types'
 // import { readFile } from '../data-store'
-import { SnapshotDB, serializeBigInt } from '../data-store/database'
-import { NetworkName, RailgunProxyDeploymentBlock } from '../globals'
+// import { SnapshotDB, /* serializeBigInt */ } from '../data-store/database'
+// import { NetworkName, RailgunProxyDeploymentBlock } from '../globals'
 
 // aggregates multiple data sources into a single complete source of railgun history.
 
@@ -33,7 +33,7 @@ class SourceAggregator<T extends Data> {
   /**
    * - where to store the raw data chunk.
    */
-  private storage: string = './store.rgblock'
+  // private storage: string = './store.rgblock'
   /**
    * - The list of aggregated data sources.
    *  // TODO: add more explanation here.
@@ -44,23 +44,21 @@ class SourceAggregator<T extends Data> {
   /**
    * - The database used for storing snapshots.
    */
-  private db: any
+  // private db: any
   /**
    * - The most recent blockHeight that this source can provide.
    */
-  destroyDatabase: boolean
+  // destroyDatabase: boolean
 
   /**
    * TODO: constructor
    * @param sources - The sources to aggregate.
-   * @param storage - The storage location for the snapshot database.
-   * @param destroyDatabase - Whether to destroy the database on initialization.
    */
-  constructor (sources: DataSource<T>[], storage: string = './store.rgblock', destroyDatabase: boolean = false) {
+  constructor (sources: DataSource<T>[] /* storage: string = './store.rgblock', destroyDatabase: boolean = false */) {
     this.sources = sources
-    this.storage = storage
-    this.destroyDatabase = destroyDatabase
-    this.db = new SnapshotDB()
+    // this.storage = storage
+    // this.destroyDatabase = destroyDatabase
+    // this.db = new SnapshotDB()
   }
 
   /**
@@ -74,11 +72,13 @@ class SourceAggregator<T extends Data> {
       }
       await source.initialize()
     }
+    /*
     console.time('restoreGzip')
     await this.db.restoreGzip(this.storage, this.destroyDatabase).catch((err: any) => {
       console.error('Error restoring gzip', err)
     })
     console.timeEnd('restoreGzip')
+    */
   }
 
   /**
@@ -86,7 +86,7 @@ class SourceAggregator<T extends Data> {
    * @param height - The block height to start reading from.
    * @returns An async generator that yields data from all sources.
    */
-  async read (height: bigint): Promise<AsyncGenerator<T | undefined>> {
+  async read (height: bigint): Promise<AsyncGenerator<T>> {
     const self = this
     /**
      * Generator function that reads data from all sources.
@@ -116,6 +116,7 @@ class SourceAggregator<T extends Data> {
   /**
    * Function to full sync railgun data from a source
    */
+  /*
   async sync () {
     // check localCache, if none make it.
     const block = await this.db.get('events')
@@ -261,5 +262,6 @@ class SourceAggregator<T extends Data> {
     await this.db.set('events', { blockHeight: '0x' + events[events.length - 1]?.blockHeight.toString(16), events: chronologicalEvents.map(serializeBigInt) })
     await this.db.snapshotGzip(this.storage)
   }
+  */
 }
 export { SourceAggregator }

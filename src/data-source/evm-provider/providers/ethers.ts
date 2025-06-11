@@ -1,16 +1,18 @@
 import EventEmitter from 'node:events'
 
+import type { ContractEventPayload, InterfaceAbi, Log } from 'ethers'
 import { Contract, Interface, JsonRpcProvider, Network, WebSocketProvider } from 'ethers'
 
 import type { NetworkName } from '../../../globals'
-import { getAbiForNetworkBlockRange } from '../../../utils'
-import { delay, promiseTimeout } from '../../utils'
+import { getAbiForNetworkBlockRange, getLatestABI } from '../../../utils'
+import type { RPCEvent } from '../../types'
+import { promiseTimeout } from '../../utils'
 
 // DEFAULT THIS TO 500 blocks, must provide a value on instantiation
-const SCAN_CHUNKS = 500n
+const SCAN_CHUNKS = 200_000n
+const EVENTS_SCAN_TIMEOUT = 200_000
 // need to categorize this by provider, they each have their own limits. 500 is base low. we can attempt to just 'find it' but this can also incur 'ratelimits' that will effect the calculation 'guestimate' of this value.
-const EVENTS_SCAN_TIMEOUT = 20_000
-const SCAN_TIMEOUT_ERROR_MESSAGE = 'getLogs request timed out after 5 seconds.'
+// const SCAN_TIMEOUT_ERROR_MESSAGE = 'getLogs request timed out after 5 seconds.'
 const RAILGUN_SCAN_START_BLOCK = 14693000n
 const RAILGUN_SCAN_START_BLOCK_V2 = 16076000n
 
@@ -30,7 +32,7 @@ const parseNestedArgs = (input: any, value: any): any => {
 /**
  *   EthersProvider
  */
-class EthersProvider<T = any> extends EventEmitter implements AsyncIterable<T> {
+class EthersProvider<T = RPCEvent> extends EventEmitter implements AsyncIterable<T> {
   /**
    *  provider URL
    */
@@ -39,6 +41,12 @@ class EthersProvider<T = any> extends EventEmitter implements AsyncIterable<T> {
    * last scanned block
    */
   lastScannedBlock: bigint
+
+  /**
+   * Block from which the contract starts listening to the event directly
+   */
+  liveBlockStart: bigint
+
   /**
    * syncing status
    */
@@ -58,7 +66,12 @@ class EthersProvider<T = any> extends EventEmitter implements AsyncIterable<T> {
   /**
    * event queue
    */
-  private eventQueue: T[] = []
+  private historicalEventQueue: T[] = []
+
+  /**
+   * newer event queue
+   */
+  private latestEventQueue: T[] = []
 
   /**
    *  initialized status
@@ -118,6 +131,7 @@ class EthersProvider<T = any> extends EventEmitter implements AsyncIterable<T> {
     this.lastScannedBlock = BigInt(0)
     this.syncing = false
     this.startBlock = BigInt(0)
+    this.liveBlockStart = BigInt(0)
     this.network = networkName
     const network = Network.from(options.chainId)
     this.chunkSize = options.chunkSize ?? SCAN_CHUNKS
@@ -152,7 +166,9 @@ class EthersProvider<T = any> extends EventEmitter implements AsyncIterable<T> {
     // })
 
     const blockNum = await this.provider.getBlock('latest')
-    this.emit('newHead', BigInt(blockNum?.number ?? 0))
+    if (!blockNum) { throw new Error('Error fetching the latest block data') }
+    this.emit('newHead', BigInt(blockNum.number))
+    this.liveBlockStart = BigInt(blockNum.number)
 
     this.provider.on('block', (blockNumber) => {
       // TODO: Handle block event
@@ -165,18 +181,137 @@ class EthersProvider<T = any> extends EventEmitter implements AsyncIterable<T> {
       console.error('Error:', error)
     })
 
-    this.contract.on('*', (event: T) => {
+    this.contract.on('*', (event: ContractEventPayload) => {
       // TODO: Handle contract event - properly
       // console.log('Contract event:', event)
       // TODO: these need to get formatted before being pushed here.
-
-      this.eventQueue.push(event)
       // these events go into latestEvents[]
+      this.latestEventQueue.push(this.decodeAndFormatEventLog(event.log, getLatestABI()))
     })
+
+    this.processHistoricalEvent(BigInt(blockNum.number))
+
     this.initialized = true
     this.syncing = true
     this.initializedResolve()
     // handle railgun
+  }
+
+  /**
+   * Process historical events
+   * @param endHeight - End height upto which log is to be processed
+   * @param startHeight - Starting height of the processor
+   */
+  private async processHistoricalEvent (endHeight: bigint, startHeight?: bigint) {
+    let currentHeight = startHeight ?? RAILGUN_SCAN_START_BLOCK
+    const chunkSize = this.chunkSize
+    const processedEventIds = new Set()
+
+    while (currentHeight < endHeight) {
+      const start = currentHeight
+      const end = currentHeight + chunkSize
+      const abi = getAbiForNetworkBlockRange(this.network, currentHeight, end)
+
+      let retry = true
+      const maxRetry = 10
+      for (const abib of abi) {
+        let retryCount = 1
+        while (retry && retryCount < maxRetry) {
+          // @TODO handle rate limit
+          const logs = await promiseTimeout(
+            this.provider.getLogs(
+              {
+                address: this.address,
+                fromBlock: '0x' + start.toString(16),
+                toBlock: '0x' + end.toString(16),
+                topics: [abib.eventTopics],
+              }
+            ),
+            EVENTS_SCAN_TIMEOUT)
+            .catch((_err) => {
+              console.log('Error in queryFilter:', _err)
+              retryCount += 1
+              retry = true
+            })
+
+          if (logs) {
+            for (const log of logs) {
+              const eventId = `${log.blockNumber}-${log.transactionIndex}-${log.transactionHash}-${log.index}`
+              if (processedEventIds.has(eventId)) {
+                console.log('Duplicate event', eventId)
+              } else {
+                this.historicalEventQueue.push(this.decodeAndFormatEventLog(log, abib.abi))
+                processedEventIds.add(eventId)
+              }
+            }
+          } else {
+            console.log('No events found')
+          }
+          retry = false
+        }
+
+        console.log('PROCESSED HISTORICAL BLOCK: ', start, ' ', end)
+        this.lastScannedBlock = currentHeight
+        currentHeight += chunkSize
+      }
+    }
+  }
+
+  /**
+   * Format the provider event to our custom event type
+   * @param log - event log
+   * @param abi - ABI
+   * @returns Decoded event
+   */
+  private decodeAndFormatEventLog (log: Log, abi: InterfaceAbi) : T {
+    if (!log) { throw new Error('Cannot decode invalid event log') }
+
+    const { blockNumber, transactionIndex, transactionHash, index: logIndex } = log
+    if (!abi) throw new Error('Invalid abi for given block')
+
+    const iface = new Interface(abi)
+    const decoded = iface.parseLog(log)
+
+    if (!decoded?.name) {
+      throw new Error(`No name found for event: ${event}`)
+    }
+
+    // Create a human-readable object with named arguments from the event
+    const parsedArgs: Record<string, any> = {}
+    if (decoded && decoded.args) {
+      // Map each argument to its corresponding name from the fragment inputs
+      if (decoded.fragment && decoded.fragment.inputs) {
+        // its possible this is not properly running async. use for loop
+        for (let index = 0; index < decoded.fragment.inputs.length; index++) {
+          const input = decoded.fragment.inputs[index]
+          if (!input) {
+            console.log('NO INPUT FOUND')
+            continue
+          }
+          if (input.name) {
+            // Recursively decode nested array arguments
+            parsedArgs[input.name] = parseNestedArgs(input, decoded.args[index])
+          } else {
+            console.log('NO NAME FOUND')
+          }
+        }
+      } else {
+        console.log('missing fragment', decoded)
+        console.log('missing inputs', decoded.fragment)
+      }
+    } else {
+      console.log('failed to decode', event)
+      console.log('decoded', decoded)
+    }
+    const output: RPCEvent = {
+      name: decoded?.name ?? 'UNKNOWN',
+      args: parsedArgs,
+      blockNumber,
+      transactionIndex,
+      transactionHash,
+      logIndex,
+    }
+    return output as T
   }
 
   /**
@@ -204,14 +339,30 @@ class EthersProvider<T = any> extends EventEmitter implements AsyncIterable<T> {
    * @yields T - The data read from the source
    */
   async * [Symbol.asyncIterator] (): AsyncGenerator<T> {
-    while (true) {
-      if (this.eventQueue.length > 0) {
-        yield this.eventQueue.shift() as T
-      } else {
-        // TODO: return undefined ONLY FOR TESTING
-        if (this.syncing) {
+    while (this.syncing && this.initialized) {
+      if (this.lastScannedBlock < this.liveBlockStart) {
+        // We process the historical block
+        if (this.historicalEventQueue.length > 0) {
+          yield this.historicalEventQueue.shift()!
+        } else {
+          // Let's wait for data to be available
+          // @TODO find a better way to do this
           await new Promise(resolve => setTimeout(resolve, 1000)) // Wait for 1 second before checking again
-        } else { return }
+        }
+      } else {
+        // We still haven't processed all the historical data
+        // but have finished syncing them
+        if (this.historicalEventQueue.length > 0) {
+          yield this.historicalEventQueue.shift()!
+        } else {
+          if (this.latestEventQueue.length > 0) {
+            yield this.latestEventQueue.shift()!
+          } else {
+            // We wait again
+            // @TODO find a better way to do this
+            await new Promise(resolve => setTimeout(resolve, 1000)) // Wait for 1 second before checking again
+          }
+        }
       }
     }
   }
@@ -224,6 +375,7 @@ class EthersProvider<T = any> extends EventEmitter implements AsyncIterable<T> {
    * @returns - An async generator that yields events
    * @yields T - The data read from the source
    */
+  /*
   async * from (options:{ startBlock: bigint, endBlock: bigint }) {
     const { startBlock, endBlock } = options
     this.startBlock = BigInt(startBlock)
@@ -276,9 +428,7 @@ class EthersProvider<T = any> extends EventEmitter implements AsyncIterable<T> {
               topics: [abib.eventTopics],
             }
           ),
-          EVENTS_SCAN_TIMEOUT,
-          SCAN_TIMEOUT_ERROR_MESSAGE
-        ).catch((_err) => {
+          EVENTS_SCAN_TIMEOUT).catch((_err) => {
           console.log('Error in queryFilter:', _err)
           // process.exit(0)
           retry = true
@@ -396,6 +546,7 @@ class EthersProvider<T = any> extends EventEmitter implements AsyncIterable<T> {
       }
     }
   }
+  */
 
   /**
    * Destroy the provider
