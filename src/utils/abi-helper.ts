@@ -195,5 +195,13 @@ const getAbiForNetworkBlockRange = (networkName: NetworkName, start: bigint, end
   // return filteredUpgrades.map((upgrade: NetworkUpgrade) => upgrade.abi)
 }
 
+/**
+ * Get Railgun ABI for given block number
+ * @returns ABI
+ */
+const getLatestABI = () => {
+  return RailgunSmartWalletV21
+}
+
 export type { NetworkUpgrade }
-export { getAbiForNetworkBlockRange, getEventsFromAbi }
+export { getAbiForNetworkBlockRange, getEventsFromAbi, getLatestABI }

@@ -1,25 +1,26 @@
-import type { ContractEventPayload } from 'ethers'
-
-// TODO:
-type Data = {
-  blockHeight: bigint
-  event: ContractEventPayload
+type RPCEvent = {
+  name: string
+  args: Record<string, any>
+  blockNumber: number
+  transactionIndex: number
+  transactionHash: string
+  logIndex: number
 }
-// TODO:
 
+type Data = RPCEvent
 type RPCData = Data & {}
-
+/*
 // TODO:
 type Event = {
   blockHeight: bigint
   event: ContractEventPayload
 }
-
+*/
 enum DataSourceType {
   Snapshot = 0x0,
   Historical = 0x1,
   Live = 0x2,
 }
 
-export type { Data, RPCData, Event }
+export type { RPCData, RPCEvent, Data }
 export { DataSourceType }

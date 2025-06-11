@@ -40,7 +40,7 @@ interface DataSource<T extends Data> {
    * Alternatively async initialisation logic can be pushed into the iterator,
    * which would allow this method to be sync
    */
-  read (height: bigint): AsyncGenerator<T | undefined>;
+  read (height: bigint): AsyncGenerator<T>;
 
   /**
    * Destory the source and clean up resources.
@@ -52,7 +52,7 @@ interface DataSource<T extends Data> {
   // initialize hook
   initialize(): Promise<void>;
 
-  from (options: { startBlock: bigint, endBlock: bigint | 'latest' }): AsyncGenerator<T | undefined>;
+  // from (options: { startBlock: bigint, endBlock: bigint | 'latest' }): AsyncGenerator<T | undefined>;
 }
 
 export type { DataSource }
