@@ -3,21 +3,20 @@ import fs from 'fs'
 import { solo, test } from 'brittle'
 import dotenv from 'dotenv'
 
-import { NetworkName, SourceAggregator } from '../src'
+import { NetworkName, RAILGUN_SCAN_START_BLOCK_V2, SourceAggregator } from '../src'
 import { ABIRailgunSmartWallet } from '../src/abi'
-import { EVMProvider } from '../src/data-source'
+import { EVMProvider, GraphProvider } from '../src/data-source'
 import { EthersProvider, RAILGUN_SCAN_START_BLOCK } from '../src/data-source/evm-provider/providers/ethers'
-import type { RPCData, RPCEvent } from '../src/data-source/types'
-import EVENT_JSON from '../test.json'
+import { SubsquidProvider } from '../src/data-source/graph-provider/subsquid'
+import type { RPCData } from '../src/data-source/types'
 
 const TEST_CONTRACT_ADDRESS = '0xFA7093CDD9EE6932B4eb2c9e1cde7CE00B1FA4b9'
 dotenv.config()
 const TEST_RPC_URL = process.env['TEST_RPC_URL_HTTPS']
 const TEST_RPC_CHUNK_SIZE = process.env['TEST_RPC_CHUNK_SIZE'] ?? '500'
 
-test('Iterate over all the sources', async (t) => {
+test('Iterate over EVM aggregated source', async (t) => {
   t.timeout(100_000_000)
-
   const provider = new EthersProvider(
     NetworkName.Ethereum,
     TEST_RPC_URL!,
@@ -29,15 +28,43 @@ test('Iterate over all the sources', async (t) => {
   const evmDataSource = new EVMProvider(provider)
   const aggregatedSource = new SourceAggregator([evmDataSource])
   await aggregatedSource.initialize()
-
-  const eventIterator = await aggregatedSource.read(RAILGUN_SCAN_START_BLOCK)
+  const eventIterator = await aggregatedSource.read(RAILGUN_SCAN_START_BLOCK_V2)
   const data = new Array<RPCData>()
   for await (const event of eventIterator) {
-    if (event.blockNumber >= 22670000) break
+    if (data.length > 200) break
     data.push(event)
   }
 
-  fs.writeFileSync('test.json', JSON.stringify(data, (_, v) => typeof v === 'bigint' ? v.toString() : v))
+  fs.writeFileSync('evm-events.json', JSON.stringify(data, (_, v) => typeof v === 'bigint' ? v.toString() : v))
+
+  t.pass()
+
+  await aggregatedSource.destroy()
+})
+
+solo('Iterate over subsquid aggregated source', async (t) => {
+  t.timeout(100_000_000)
+
+  const provider = new SubsquidProvider(
+    NetworkName.Ethereum
+  )
+  const graphProvider = new GraphProvider(provider)
+  const evmProvider = new EVMProvider(new EthersProvider(NetworkName.Ethereum,
+    TEST_RPC_URL!, TEST_CONTRACT_ADDRESS, ABIRailgunSmartWallet,
+    {
+      chainId: 1,
+      ws: false,
+      chunkSize: BigInt(TEST_RPC_CHUNK_SIZE)
+    }))
+
+  const aggregatedSource = new SourceAggregator([graphProvider, evmProvider])
+  await aggregatedSource.initialize()
+  const eventIterator = await aggregatedSource.read(RAILGUN_SCAN_START_BLOCK)
+  const data = new Array<RPCData>()
+  for await (const event of eventIterator) {
+    data.push(event)
+  }
+  console.log(data.length)
 
   t.pass()
 

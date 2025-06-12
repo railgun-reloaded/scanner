@@ -14,6 +14,10 @@ interface DataSource<T extends Data> {
    * or the tip of the chain
    */
   head: bigint;
+  /**
+   * Name of datasource
+   */
+  name: string;
 
   /**
    * Is the source still ingesting data, ie can you expect it to update?

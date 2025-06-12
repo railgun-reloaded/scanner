@@ -180,7 +180,7 @@ class EthersProvider<T = RPCEvent> extends EventEmitter implements AsyncIterable
       // TODO: Handle error event
       console.error('Error:', error)
     })
-
+    /*
     this.contract.on('*', (event: ContractEventPayload) => {
       // TODO: Handle contract event - properly
       // console.log('Contract event:', event)
@@ -188,8 +188,9 @@ class EthersProvider<T = RPCEvent> extends EventEmitter implements AsyncIterable
       // these events go into latestEvents[]
       this.latestEventQueue.push(this.decodeAndFormatEventLog(event.log, getLatestABI()))
     })
-
-    this.processHistoricalEvent(BigInt(blockNum.number))
+    */
+    // Store this promise and wait on it later
+    // this.processHistoricalEvent(BigInt(blockNum.number), RAILGUN_SCAN_START_BLOCK_V2)
 
     this.initialized = true
     this.syncing = true
@@ -206,10 +207,18 @@ class EthersProvider<T = RPCEvent> extends EventEmitter implements AsyncIterable
     let currentHeight = startHeight ?? RAILGUN_SCAN_START_BLOCK
     const chunkSize = this.chunkSize
     const processedEventIds = new Set()
+    /**
+     * Compare bigint
+     * @param a - left args
+     * @param b -right args
+     * @returns smallest
+     */
+    const minBigint = (a: bigint, b : bigint) => a < b ? a : b
 
-    while (currentHeight < endHeight) {
+    while (currentHeight < endHeight && this.syncing) {
       const start = currentHeight
-      const end = currentHeight + chunkSize
+      const end = minBigint(currentHeight + chunkSize, endHeight)
+
       const abi = getAbiForNetworkBlockRange(this.network, currentHeight, end)
 
       let retry = true
@@ -249,10 +258,8 @@ class EthersProvider<T = RPCEvent> extends EventEmitter implements AsyncIterable
           }
           retry = false
         }
-
-        console.log('PROCESSED HISTORICAL BLOCK: ', start, ' ', end)
-        this.lastScannedBlock = currentHeight
-        currentHeight += chunkSize
+        this.lastScannedBlock = end
+        currentHeight = end
       }
     }
   }
@@ -356,6 +363,70 @@ class EthersProvider<T = RPCEvent> extends EventEmitter implements AsyncIterable
           yield this.historicalEventQueue.shift()!
         } else {
           if (this.latestEventQueue.length > 0) {
+            yield this.latestEventQueue.shift()!
+          } else {
+            // We wait again
+            // @TODO find a better way to do this
+            await new Promise(resolve => setTimeout(resolve, 1000)) // Wait for 1 second before checking again
+          }
+        }
+      }
+    }
+  }
+
+  /**
+   * Start reading from given height
+   * @param height - blockHeight
+   * @returns Event
+   * @yields T
+   */
+  async * read (height: bigint): AsyncGenerator<T> {
+    const blockNum = await this.provider.getBlock('latest')
+    if (!blockNum) { throw new Error('Error fetching the latest block data') }
+    // Setup the new event listener at the same time
+    // @TODO clean it up after usage
+    this.contract.on('*', (event: ContractEventPayload) => {
+      // TODO: Handle contract event - properly
+      // console.log('Contract event:', event)
+      // TODO: these need to get formatted before being pushed here.
+      // these events go into latestEvents[]
+      this.latestEventQueue.push(this.decodeAndFormatEventLog(event.log, getLatestABI()))
+    })
+    this.liveBlockStart = BigInt(blockNum.number)
+
+    // Process historical events from the log
+    this.historicalEventQueue = []
+    this.latestEventQueue = []
+
+    console.log('[EthersProvider] Processing logs in range ', height, blockNum.number)
+    await this.processHistoricalEvent(BigInt(blockNum.number), height)
+    console.log('Found events: ', this.historicalEventQueue.length)
+
+    let finishedHistorical = false
+    while (this.syncing && this.initialized) {
+      if (this.lastScannedBlock < this.liveBlockStart) {
+        // We process the historical block
+        if (this.historicalEventQueue.length > 0) {
+          yield this.historicalEventQueue.shift()!
+        } else {
+          // Let's wait for data to be available
+          // @TODO find a better way to do this
+          await new Promise(resolve => setTimeout(resolve, 1000)) // Wait for 1 second before checking again
+        }
+      } else {
+        // We still haven't processed all the historical data
+        // but have finished syncing them
+        if (this.historicalEventQueue.length > 0) {
+          yield this.historicalEventQueue.shift()!
+        } else {
+          // DEBUG BEGIN
+          if (!finishedHistorical) {
+            console.log('Switching to live contract event: ', blockNum.number)
+          }
+          finishedHistorical = true
+          // DEBUG END
+          if (this.latestEventQueue.length > 0) {
+            console.log(this.latestEventQueue[0])
             yield this.latestEventQueue.shift()!
           } else {
             // We wait again

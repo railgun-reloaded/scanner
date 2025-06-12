@@ -99,6 +99,32 @@ class SubsquidProvider<T = any> extends EventEmitter implements AsyncIterable<T>
   }
 
   /**
+   * Given a subsquid table name, it returns the eventName
+   * @param name - subsquid table name
+   * @returns  Railgun Event name
+   */
+  getEventName (name: string) {
+    switch (name) {
+      case 'LegacyGeneratedCommitment':
+        return 'GeneratedCommitmentBatch'
+      case 'LegacyEncryptedCommitment':
+        return 'CommitmentBatch'
+      case 'nullifiers':
+        return 'Nullifiers'
+      case 'TransactCommitment':
+        return 'Transact'
+      case 'ShieldCommitment':
+        return 'Shield'
+      case 'unshields':
+        return 'Unshield'
+
+      default:
+        console.log(name)
+        throw new Error('Unhandeld event name')
+    }
+  }
+
+  /**
    *  Start iterating from a given height.
    * @param options - Options for the iterator
    * @param options.startBlock - The block number to start from
@@ -118,7 +144,7 @@ class SubsquidProvider<T = any> extends EventEmitter implements AsyncIterable<T>
       // TODO: make this iterate outwards from this function, autoPaginate should keep track of this.syncing
       const { allResults: events } = await autoPaginateQuery(this.network, fullSyncQuery, this)
 
-      console.log('events', Object.keys(events))
+      // console.log('events', Object.keys(events))
       const filteredKeys = ['commitments', 'nullifiers', 'unshields']
       // TODO: honestly this current arrangement of data is kind of perfect, might be ideal to serailize rpc data into this 'finalized' format.
 
@@ -156,13 +182,13 @@ class SubsquidProvider<T = any> extends EventEmitter implements AsyncIterable<T>
         }
 
         // @ts-ignore
-        console.log('DEDUPED', key, 'events', dedupedEvents[key].length)
+        // console.log('DEDUPED', key, 'events', dedupedEvents[key].length)
       }
 
       await getTotalCounts(this.network, this.provider)
       // loop through the set of const, and determine which are not in the seenCommitments
       // @ts-ignore
-      console.log('TRANSACT:transactions', 'orig: ', events['transactions'].length)
+      // console.log('TRANSACT:transactions', 'orig: ', events['transactions'].length)
 
       // compare them
       const consolidatedEvents: T[] = []
@@ -187,15 +213,15 @@ class SubsquidProvider<T = any> extends EventEmitter implements AsyncIterable<T>
           // if (aTransactionIndex === bTransactionIndex) {
           //   return b.logIndex - a.logIndex
           // }
-          return bTransactionIndex - aTransactionIndex
+          return aTransactionIndex - bTransactionIndex
         }
 
-        return b.blockNumber - a.blockNumber
+        return a.blockNumber - b.blockNumber
       })
       const formattedEvents = sortedEvents.map((event: any) => {
         // console.log('event', event)
         return {
-          name: event.name,
+          name: this.getEventName(event.name),
           blockNumber: parseInt(event.blockNumber),
           transactionIndex: event.startPosition,
           transactionHash: event.transactionHash,
