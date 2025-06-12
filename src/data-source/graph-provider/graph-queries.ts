@@ -301,7 +301,7 @@ const autoPaginateQuery = async (netowrk: NetworkName, query: any, provider: Sub
     const remainingKeys = Object.keys(paginatedQueryWithLastResults)
     // @ts-ignore
     hasNextPage = remainingKeys.length > 0
-    console.log('hasNextPage', hasNextPage, 'syncing', provider.syncing, 'remainingKeys', remainingKeys)
+    // console.log('hasNextPage', hasNextPage, 'syncing', provider.syncing, 'remainingKeys', remainingKeys)
     if (!hasNextPage) {
       break
     }
@@ -369,7 +369,6 @@ const getCurrentBlockheight = async (network: NetworkName, _client?: SubsquidCli
       fields: ['height'],
     }
   })
-  console.log('blockHeightQuery', squidStatus)
   return squidStatus.height
 }
 

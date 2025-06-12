@@ -2,12 +2,12 @@
 
 import type { DataSource } from './datasource'
 import type { EthersProvider } from './evm-provider/providers/ethers'
-import type { ViemProvider } from './evm-provider/providers/viem'
+// import type { ViemProvider } from './evm-provider/providers/viem'
 import type { RPCData, RPCEvent } from './types'
 import { DataSourceType } from './types'
 // TODO: properly type this out for the 'formatted event' type that both providers exude.
 // TODO: make sure both providers 'watching' events format the same way.
-type EVMProviders = EthersProvider<RPCEvent> | ViemProvider<RPCEvent>
+type EVMProviders = EthersProvider<RPCEvent>// | ViemProvider<RPCEvent>
 
 // TODO: make source provide 'chunk size' default it low like 500 events...
 // most providers allow alot but, some dont....
@@ -53,6 +53,11 @@ class EVMProvider implements DataSource<RPCData> {
    */
   sourceType = DataSourceType.Live
 
+  /**
+   * Name of datasource
+   */
+  name: string
+
   // TODO: alter provider to be more ROBUST
   /**
    * Creates an instance of the EVMProvider class.
@@ -60,7 +65,7 @@ class EVMProvider implements DataSource<RPCData> {
    */
   constructor (provider: EVMProviders) {
     // TODO: load up events from storage?
-
+    this.name = 'EVMDataSource'
     this.syncing = false
     this.provider = provider
     // BE SURE TO CALL THIS PRIOR TO USING THE PROVIDER
@@ -143,7 +148,7 @@ class EVMProvider implements DataSource<RPCData> {
    */
   // TODO: fix return type, remove undefined
 
-  async * read (height?:bigint): AsyncGenerator<RPCData> {
+  async * read (height:bigint): AsyncGenerator<RPCData> {
     // console.log('HEIGHT', height)
     // these essentially should get added in order from the provider.
     // TODO: check to see if another 'sorting' needs to take place
@@ -151,7 +156,7 @@ class EVMProvider implements DataSource<RPCData> {
     // TODO: decide if we manage the new events here, or in the provider...
     //  first we sort through any events we have gathered here?
     while (true) {
-      for await (const event of this.provider) {
+      for await (const event of this.provider.read(height)) {
         const { blockNumber } = event
         if (height && blockNumber < height) {
           continue

@@ -95,8 +95,12 @@ class SourceAggregator<T extends Data> {
      */
     async function * generator () {
       for (const source of self.sources) {
+        console.log('Syncing from: ', source.name)
         // this is where we should re-sort the updated events, delete any duplicates.
         yield * source.read(height)
+
+        // Update the height to new height so that other source can pick it from here
+        height = source.head
       }
     }
     return generator()
