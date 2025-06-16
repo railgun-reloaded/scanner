@@ -3,6 +3,7 @@ import EventEmitter from 'node:events'
 import type { ContractEventPayload, InterfaceAbi, Log } from 'ethers'
 import { Contract, Interface, JsonRpcProvider, Network, WebSocketProvider } from 'ethers'
 
+import { formatEvents } from '../../../formatter/formatter'
 import type { NetworkName } from '../../../globals'
 import { getAbiForNetworkBlockRange, getLatestABI } from '../../../utils'
 import type { RPCEvent } from '../../types'
@@ -249,7 +250,7 @@ class EthersProvider<T = RPCEvent> extends EventEmitter implements AsyncIterable
               if (processedEventIds.has(eventId)) {
                 console.log('Duplicate event', eventId)
               } else {
-                this.historicalEventQueue.push(this.decodeAndFormatEventLog(log, abib.abi))
+                this.historicalEventQueue.push(...this.decodeAndFormatEventLog(log, abib.abi))
                 processedEventIds.add(eventId)
               }
             }
@@ -270,7 +271,7 @@ class EthersProvider<T = RPCEvent> extends EventEmitter implements AsyncIterable
    * @param abi - ABI
    * @returns Decoded event
    */
-  private decodeAndFormatEventLog (log: Log, abi: InterfaceAbi) : T {
+  private decodeAndFormatEventLog (log: Log, abi: InterfaceAbi) : T[] {
     if (!log) { throw new Error('Cannot decode invalid event log') }
 
     const { blockNumber, transactionIndex, transactionHash, index: logIndex } = log
@@ -310,15 +311,15 @@ class EthersProvider<T = RPCEvent> extends EventEmitter implements AsyncIterable
       console.log('failed to decode', event)
       console.log('decoded', decoded)
     }
-    const output: RPCEvent = {
+    const output = formatEvents({
       name: decoded?.name ?? 'UNKNOWN',
       args: parsedArgs,
       blockNumber,
       transactionIndex,
       transactionHash,
       logIndex,
-    }
-    return output as T
+    })
+    return output as T[]
   }
 
   /**
@@ -390,7 +391,7 @@ class EthersProvider<T = RPCEvent> extends EventEmitter implements AsyncIterable
       // console.log('Contract event:', event)
       // TODO: these need to get formatted before being pushed here.
       // these events go into latestEvents[]
-      this.latestEventQueue.push(this.decodeAndFormatEventLog(event.log, getLatestABI()))
+      this.latestEventQueue.push(...this.decodeAndFormatEventLog(event.log, getLatestABI()))
     })
     this.liveBlockStart = BigInt(blockNum.number)
 
