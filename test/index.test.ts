@@ -1,12 +1,12 @@
-import fs from 'fs'
+// import fs from 'fs'
 
-import { solo, test } from 'brittle'
+import { solo } from 'brittle'
 import dotenv from 'dotenv'
 
-import { NetworkName, RAILGUN_SCAN_START_BLOCK_V2, SourceAggregator } from '../src'
+import { NetworkName, SourceAggregator } from '../src'
 import { ABIRailgunSmartWallet } from '../src/abi'
 import { EVMProvider, GraphProvider } from '../src/data-source'
-import { EthersProvider, RAILGUN_SCAN_START_BLOCK } from '../src/data-source/evm-provider/providers/ethers'
+import { EthersProvider } from '../src/data-source/evm-provider/providers/ethers'
 import { SubsquidProvider } from '../src/data-source/graph-provider/subsquid'
 import type { RPCData } from '../src/data-source/types'
 
@@ -14,7 +14,7 @@ const TEST_CONTRACT_ADDRESS = '0xFA7093CDD9EE6932B4eb2c9e1cde7CE00B1FA4b9'
 dotenv.config()
 const TEST_RPC_URL = process.env['TEST_RPC_URL_HTTPS']
 const TEST_RPC_CHUNK_SIZE = process.env['TEST_RPC_CHUNK_SIZE'] ?? '500'
-
+/*
 test('Iterate over EVM aggregated source', async (t) => {
   t.timeout(100_000_000)
   const provider = new EthersProvider(
@@ -41,14 +41,16 @@ test('Iterate over EVM aggregated source', async (t) => {
 
   await aggregatedSource.destroy()
 })
-
+*/
 solo('Iterate over subsquid aggregated source', async (t) => {
   t.timeout(100_000_000)
 
   const provider = new SubsquidProvider(
     NetworkName.Ethereum
   )
+
   const graphProvider = new GraphProvider(provider)
+
   const evmProvider = new EVMProvider(new EthersProvider(NetworkName.Ethereum,
     TEST_RPC_URL!, TEST_CONTRACT_ADDRESS, ABIRailgunSmartWallet,
     {
@@ -59,12 +61,14 @@ solo('Iterate over subsquid aggregated source', async (t) => {
 
   const aggregatedSource = new SourceAggregator([graphProvider, evmProvider])
   await aggregatedSource.initialize()
-  const eventIterator = await aggregatedSource.read(RAILGUN_SCAN_START_BLOCK)
+
+  const eventIterator = await aggregatedSource.read(0n)
   const data = new Array<RPCData>()
+
   for await (const event of eventIterator) {
     data.push(event)
+    // fs.writeFileSync('latest-events.json', JSON.stringify(data, (_, v) => typeof v === 'bigint' ? v.toString() : v))
   }
-  console.log(data.length)
 
   t.pass()
 
