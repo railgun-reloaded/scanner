@@ -33,7 +33,7 @@ const parseNestedArgs = (input: any, value: any): any => {
 /**
  *   EthersProvider
  */
-class EthersProvider<T = RPCEvent> extends EventEmitter implements AsyncIterable<T> {
+class EthersProvider<T = RPCEvent> extends EventEmitter {
   /**
    *  provider URL
    */
@@ -346,6 +346,7 @@ class EthersProvider<T = RPCEvent> extends EventEmitter implements AsyncIterable
    * @throws - Error if the source is not a ReadableStream or an AsyncIterable
    * @yields T - The data read from the source
    */
+  /*
   async * [Symbol.asyncIterator] (): AsyncGenerator<T> {
     while (this.syncing && this.initialized) {
       if (this.lastScannedBlock < this.liveBlockStart) {
@@ -374,7 +375,7 @@ class EthersProvider<T = RPCEvent> extends EventEmitter implements AsyncIterable
       }
     }
   }
-
+  */
   /**
    * Start reading from given height
    * @param height - blockHeight
@@ -403,38 +404,18 @@ class EthersProvider<T = RPCEvent> extends EventEmitter implements AsyncIterable
     await this.processHistoricalEvent(BigInt(blockNum.number), height)
     console.log('Found events: ', this.historicalEventQueue.length)
 
-    let finishedHistorical = false
+    // Process historical events
+    while (this.historicalEventQueue.length > 0) {
+      yield this.historicalEventQueue.shift()!
+    }
+
+    // Process live events
     while (this.syncing && this.initialized) {
-      if (this.lastScannedBlock < this.liveBlockStart) {
-        // We process the historical block
-        if (this.historicalEventQueue.length > 0) {
-          yield this.historicalEventQueue.shift()!
-        } else {
-          // Let's wait for data to be available
-          // @TODO find a better way to do this
-          await new Promise(resolve => setTimeout(resolve, 1000)) // Wait for 1 second before checking again
-        }
+      if (this.latestEventQueue.length > 0) {
+        yield this.latestEventQueue.shift() !
       } else {
-        // We still haven't processed all the historical data
-        // but have finished syncing them
-        if (this.historicalEventQueue.length > 0) {
-          yield this.historicalEventQueue.shift()!
-        } else {
-          // DEBUG BEGIN
-          if (!finishedHistorical) {
-            console.log('Switching to live contract event: ', blockNum.number)
-          }
-          finishedHistorical = true
-          // DEBUG END
-          if (this.latestEventQueue.length > 0) {
-            console.log(this.latestEventQueue[0])
-            yield this.latestEventQueue.shift()!
-          } else {
-            // We wait again
-            // @TODO find a better way to do this
-            await new Promise(resolve => setTimeout(resolve, 1000)) // Wait for 1 second before checking again
-          }
-        }
+        // @TODO handle this properly
+        await new Promise(resolve => setTimeout(resolve, 12_000)) // Wait for 1 second before checking again
       }
     }
   }
