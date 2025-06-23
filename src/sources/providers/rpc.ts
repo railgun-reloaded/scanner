@@ -39,10 +39,15 @@ class RpcProvider<T extends RailgunTransactionData> implements DataSource<T> {
 
     // Find the height range for processing historical data
     let { startHeight, chunkSize, endHeight } = options
+
+    // @TODO Fetch it from the RPC
     const latestHeight = 0n
-    // @@ TODO: Check from further latest height from the rpc
+
+    // Limit the endHeight to the latestHeight
     endHeight = endHeight ? minBigInt(endHeight, latestHeight) : latestHeight
-    // @@TODO: If chuncksize is not defined fetch from either param or .env ??
+
+    // Set chunkSize to 500 if it is not provided
+    if (chunkSize === 0n) throw new Error('ChunkSize cannot be zero')
     chunkSize = chunkSize ?? 500n
 
     /**
@@ -82,6 +87,8 @@ class RpcProvider<T extends RailgunTransactionData> implements DataSource<T> {
            */
           async next () {
             let data = []
+            // Await for the request until there is valid data
+            // Also, for each request resolved we add another request
             while (data.length > 0 && startHeight < endHeight) {
               // Queue next batch
               queueNextBatch(startHeight, startHeight + chunkSize)
@@ -89,7 +96,7 @@ class RpcProvider<T extends RailgunTransactionData> implements DataSource<T> {
               // Wait for next nearest batch
               data = await requestBatch.shift()
             }
-
+            // Cannot return one by one here :(
             return { done: false, data: data.shift() }
           },
         }
