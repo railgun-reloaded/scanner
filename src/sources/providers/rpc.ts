@@ -40,7 +40,9 @@ class RpcProvider<T extends RailgunTransactionData> implements DataSource<T> {
     // Find the height range for processing historical data
     let { startHeight, chunkSize, endHeight } = options
     const latestHeight = 0n
+    // @@ TODO: Check from further latest height from the rpc
     endHeight = endHeight ? minBigInt(endHeight, latestHeight) : latestHeight
+    // @@TODO: If chuncksize is not defined fetch from either param or .env ??
     chunkSize = chunkSize ?? 500n
 
     /**
@@ -49,18 +51,24 @@ class RpcProvider<T extends RailgunTransactionData> implements DataSource<T> {
      * @param _endHeight - End height for the batch
      */
     const queueNextBatch = (_startHeight: bigint, _endHeight: bigint) => {
+      // @@TODO
     }
 
-    const totalBlocks = endHeight - options.startHeight
+    const amountOfBlocksToRead = endHeight - options.startHeight
 
-    let queuedBlockSize = totalBlocks < 10000n ? 10000n : totalBlocks
-    const requestBatch = []
-    while (queuedBlockSize > 0) {
-      requestBatch.push(queueNextBatch(startHeight, chunkSize))
-      startHeight += chunkSize
-      queuedBlockSize -= chunkSize
+    let queuedBlockSize = amountOfBlocksToRead < 10000n ? 10000n : amountOfBlocksToRead
+    const requestBatch = [] // Q: Whats the type of request batch here
+    // This is more explicit about the iteration bounds and avoids potential infinite loops
+    const totalBatches = Number((queuedBlockSize + chunkSize - 1n) / chunkSize)
+    for (let i = 0; i < totalBatches; i++) {
+      const batchEndHeight = startHeight + chunkSize > endHeight ? endHeight : startHeight + chunkSize
+      requestBatch.push(queueNextBatch(startHeight, batchEndHeight))
+      startHeight = batchEndHeight
+      if (startHeight >= endHeight) break
     }
 
+    // Reset startHeight for iterator usage
+    startHeight = options.startHeight
     return {
       /**
        * Async iterator
