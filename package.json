@@ -1,12 +1,15 @@
 {
   "name": "fafo-scanner",
   "version": "1.0.0",
-  "description": "",
+  "description": "DataSync Repo for RAILGUN",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "lint": "eslint",
+    "lint:fix": "eslint --fix",
+    "build": "tsc --build",
+    "clean": "tsc --build --clean"
   },
-  "author": "",
+  "author": "RAILGUN Contributors",
   "license": "ISC",
   "dependencies": {
     "@railgun-reloaded/eslint-config": "^1.1.0",
