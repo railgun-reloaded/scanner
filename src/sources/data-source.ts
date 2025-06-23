@@ -2,8 +2,9 @@ import type { RailgunTransactionData } from '../models'
 
 type SyncOptions = {
   startHeight: bigint;
-  endHeight: bigint;
+  endHeight?: bigint;
   liveSource?: boolean;
+  chunkSize?: bigint;
 }
 
 /**
@@ -46,18 +47,6 @@ interface DataSource<T extends RailgunTransactionData> {
    * needs to do any async initialisation logic.
    */
   from(options: SyncOptions) : AsyncIterable<T>
-
-  /**
-   * Destory the source and clean up resources.
-   * This will immediately terminate any active iterators.
-   * If an error is provided, this should be thrown from all active iterators.
-   */
-  destroy(error?: Error): Promise<void>;
-
-  // initialize hook
-  initialize(): Promise<void>;
-
-  // from (options: { startBlock: bigint, endBlock: bigint | 'latest' }): AsyncGenerator<T | undefined>;
 }
 
-export type { DataSource }
+export type { DataSource, SyncOptions }
