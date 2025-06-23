@@ -28,7 +28,7 @@ type EVMLog = {
   log: Record<string, any>
 }
 
-type RailgunTransactionBatch = {
+type RailgunTransactionData = {
   blockNumber: bigint;
   blockTimestamp: bigint;
   transactionIndex: number;
@@ -43,4 +43,4 @@ type RailgunTransactionBatch = {
   input: RailgunFunctions
 }
 
-export type { RailgunTransactionBatch, EVMLog }
+export type { RailgunTransactionData, EVMLog }
