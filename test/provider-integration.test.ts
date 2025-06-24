@@ -1,10 +1,14 @@
-import { test, describe } from 'node:test'
 import assert from 'node:assert'
+import { describe, test } from 'node:test'
+
+import dotenv from 'dotenv'
 
 import { Provider } from '../src/sources/providers/provider'
 
-// Mock RPC URL and Railgun proxy address for testing
-const MOCK_RPC_URL = 'https://eth-mainnet.g.alchemy.com/v2/your-api-key'
+dotenv.config()
+
+// Load RPC API key from environment
+const MOCK_RPC_URL = process.env['RPC_API_KEY'] || 'https://eth-mainnet.g.alchemy.com/v2/your-api-key'
 const RAILGUN_PROXY_ADDRESS = '0x19B620929f97b7b990801496c3b361ca5def8c71' as `0x${string}`
 const RAILGUN_PROXY_DEPLOYMENT_BLOCK = 17000000n
 
@@ -50,6 +54,9 @@ describe('Provider Integration Tests', () => {
 
     try {
       // Process iterator1
+      /**
+       *
+       */
       const processIterator1 = async () => {
         console.log('🔄 Starting iterator1 processing...')
         for await (const data of iterator1) {
@@ -63,6 +70,9 @@ describe('Provider Integration Tests', () => {
       }
 
       // Process iterator2
+      /**
+       *
+       */
       const processIterator2 = async () => {
         console.log('🔄 Starting iterator2 processing...')
         for await (const data of iterator2) {
@@ -77,7 +87,6 @@ describe('Provider Integration Tests', () => {
 
       // Run both iterators concurrently
       await Promise.all([processIterator1(), processIterator2()])
-
     } catch (error) {
       console.error('❌ Error during processing:', error)
       // This is expected to fail due to invalid API key, so we don't throw
@@ -90,7 +99,7 @@ describe('Provider Integration Tests', () => {
     console.log(`- Iterator1 processed ${iterator1Count} events`)
     console.log(`- Iterator2 processed ${iterator2Count} events`)
     console.log(`- Provider head: ${provider.head}`)
-    console.log(`- Connection status:`, provider.getConnectionStatus())
+    console.log('- Connection status:', provider.getConnectionStatus())
     console.log(`- Active iterators: ${provider.getIteratorsStatus().length}`)
 
     console.log('\n✅ Provider Integration Test completed!')
@@ -121,4 +130,4 @@ describe('Provider Integration Tests', () => {
       assert.ok(true, 'Error handling works correctly')
     }
   })
-}) 
+})
