@@ -9,8 +9,8 @@ dotenv.config()
 
 // Load RPC API key from environment
 const MOCK_RPC_URL = process.env['RPC_API_KEY'] || 'https://eth-mainnet.g.alchemy.com/v2/your-api-key'
-const RAILGUN_PROXY_ADDRESS = '0x19B620929f97b7b990801496c3b361ca5def8c71' as `0x${string}`
-const RAILGUN_PROXY_DEPLOYMENT_BLOCK = 17000000n
+const RAILGUN_PROXY_ADDRESS = '0xFA7093CDD9EE6932B4eb2c9e1cde7CE00B1FA4b9' as `0x${string}`
+const RAILGUN_PROXY_DEPLOYMENT_BLOCK = 14737691n
 
 describe('Provider Integration Tests', () => {
   test('Provider Integration Test - Two Iterators', async () => {
@@ -29,8 +29,8 @@ describe('Provider Integration Tests', () => {
     console.log('\nCreating first iterator...')
     const iterator1 = provider.from({
       startHeight: RAILGUN_PROXY_DEPLOYMENT_BLOCK,
-      endHeight: RAILGUN_PROXY_DEPLOYMENT_BLOCK + 10_000n,
-      chunkSize: 500n
+      endHeight: RAILGUN_PROXY_DEPLOYMENT_BLOCK + 100_000n,
+      chunkSize: 499n
     })
 
     console.log('Both iterators created successfully')
