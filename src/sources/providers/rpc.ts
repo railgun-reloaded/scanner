@@ -4,7 +4,8 @@ import { mainnet } from 'viem/chains'
 import type { RailgunTransactionData } from '../../models'
 import type { DataSource, SyncOptions } from '../data-source'
 
-const DEFAULT_CHUNK_SIZE = 500n;
+const DEFAULT_CHUNK_SIZE = 500n
+const INITIAL_BATCH_SIZE = 10000n
 
 /**
  * A RPC provider for Data Source
@@ -114,7 +115,7 @@ class RpcProvider<T extends RailgunTransactionData> implements DataSource<T> {
       })
     }
     const amountOfBlocksToRead = endHeight - options.startHeight
-    const queuedBlockSize = minBigInt(amountOfBlocksToRead, 10000n)
+    const queuedBlockSize = minBigInt(amountOfBlocksToRead, INITIAL_BATCH_SIZE)
 
     // This stores all the promise created for log request using createRequestBatch
     const requestBatch = []
