@@ -37,7 +37,7 @@ interface DataSource<T extends RailgunTransactionData> {
    * For socket based communication the field could signal whether it is
    * connected or a connection needs to be established
    */
-  syncing: boolean;
+  isLiveProvider: boolean;
 
   /**
    * Start iterating from a given height.

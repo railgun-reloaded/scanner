@@ -12,7 +12,8 @@ const INITIAL_BATCH_SIZE = 10000n
  */
 class RpcProvider<T extends RailgunTransactionData> implements DataSource<T> {
   /**
-   * Current head
+   * The latest height upto which this provider can get data
+   * For RPC this might be a tip of the chain
    */
   head = 0n
 
@@ -22,9 +23,9 @@ class RpcProvider<T extends RailgunTransactionData> implements DataSource<T> {
   name = 'RpcProvider'
 
   /**
-   * Flag to indicate if the data-source is syncing or not
+   * Flag to indicate if the data-source can provide live data or not
    */
-  syncing = false
+  isLiveProvider = true
 
   /**
    * RPC url
@@ -37,11 +38,6 @@ class RpcProvider<T extends RailgunTransactionData> implements DataSource<T> {
   railgunProxyAddress: `0x${string}`
 
   /**
-   * Event topics to filter the logs
-   */
-  filterEventTopics: string[]
-
-  /**
    * Initialize a rpc provider with rpc url
    * @param rpcURL - RPC url to scan events from
    * @param railgunProxyAddress - Railgun Proxy Contract address
@@ -49,8 +45,6 @@ class RpcProvider<T extends RailgunTransactionData> implements DataSource<T> {
   constructor (rpcURL: string, railgunProxyAddress: `0x${string}`) {
     this.rpcURL = rpcURL
     this.railgunProxyAddress = railgunProxyAddress
-
-    this.filterEventTopics = []
   }
 
   /**
@@ -129,11 +123,10 @@ class RpcProvider<T extends RailgunTransactionData> implements DataSource<T> {
       queuedHeight = batchEndHeight
     }
 
-    const data = []
-    this.head = startHeight
+    let currentHead = startHeight
     // Await for the request until there is valid data
     // Also, for each request resolved we add another request
-    while (this.head < endHeight && requestBatch.length > 0) {
+    while (currentHead < endHeight && requestBatch.length > 0) {
       // Queue next batch
       if (queuedHeight < endHeight) {
         requestBatch.push(createLogRequest(queuedHeight, queuedHeight + chunkSize))
@@ -144,7 +137,6 @@ class RpcProvider<T extends RailgunTransactionData> implements DataSource<T> {
 
       // Return the result
       if (result && result.length > 0) {
-        data.push(...result)
         /*
         // Create RailgunTransactionData from data[]
          const formattedData : RailgunTransactionData[] = []
@@ -152,15 +144,15 @@ class RpcProvider<T extends RailgunTransactionData> implements DataSource<T> {
         // Cannot return one by one here :(
         for (const entry of formattedData) { yield entry as T }
         */
-        for (const entry of data) {
+        for (const entry of result) {
           yield entry as T
         }
       }
 
       // Increment the head for the block that doesn't have data
-      // @TODO I am slightly doubtful about this
-      this.head += chunkSize
-      console.log('Head: ', this.head, ' Remaining: ', endHeight - this.head)
+      // @TODO seems incorrect, need to look at it
+      currentHead = minBigInt(currentHead + chunkSize, endHeight)
+      console.log('Head: ', currentHead, ' Remaining: ', endHeight - currentHead)
     }
   }
 }
