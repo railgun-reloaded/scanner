@@ -1,6 +1,4 @@
-// eslint-disable-next-line camelcase
-import { RailgunV1, RailgunV2, RailgunV2_1 } from '@railgun-reloaded/contract-abis'
-import { createPublicClient, http, parseAbiItem } from 'viem'
+import { createPublicClient, http } from 'viem'
 import { mainnet } from 'viem/chains'
 
 import type { RailgunTransactionData } from '../../models'
@@ -100,52 +98,67 @@ class RpcProvider<T extends RailgunTransactionData> implements DataSource<T> {
     if (chunkSize === 0n) throw new Error('ChunkSize cannot be zero')
     chunkSize = chunkSize ?? 500n
 
-    // Create a merged abi for all the version and create interface
-    // eslint-disable-next-line camelcase
-    const mergedABI = mergeABIs[...RailgunV1, ...RailgunV2, ...RailgunV2_1]
-
     /**
      * Get next batch of events
      * @param startHeight - Start height for the batch
      * @param endHeight - End height for the batch
+     * @returns - Promise to log request
      */
-    const queueNextBatch = async (startHeight: bigint, endHeight: bigint) => {
-      const logs = client.getLogs({
+    const createLogRequest = async (startHeight: bigint, endHeight: bigint) => {
+      return client.getLogs({
         address: this.railgunProxyAddress,
-        event: parseAbiItem(mergedABI),
         fromBlock: startHeight,
         toBlock: endHeight
       })
     }
-
     const amountOfBlocksToRead = endHeight - options.startHeight
-    const queuedBlockSize = amountOfBlocksToRead < 10000n ? 10000n : amountOfBlocksToRead
-    const requestBatch = [] // Q: Whats the type of request batch here
+    const queuedBlockSize = minBigInt(amountOfBlocksToRead, 10000n)
+
+    // This stores all the promise created for log request using createRequestBatch
+    const requestBatch = []
 
     // This is more explicit about the iteration bounds and avoids potential infinite loops
     const totalBatches = Number((queuedBlockSize + chunkSize - 1n) / chunkSize)
+    let queuedHeight = startHeight
     for (let i = 0; i < totalBatches; i++) {
-      const batchEndHeight = minBigInt(startHeight + chunkSize, endHeight)
-      requestBatch.push(queueNextBatch(startHeight, batchEndHeight))
-      startHeight = batchEndHeight
-      if (startHeight > endHeight) break
+      const batchEndHeight = minBigInt(queuedHeight + chunkSize, endHeight)
+      requestBatch.push(createLogRequest(queuedHeight, batchEndHeight))
+      queuedHeight = batchEndHeight
     }
 
-    let data = []
+    const data = []
+    this.head = startHeight
     // Await for the request until there is valid data
     // Also, for each request resolved we add another request
-    while (data.length > 0 && startHeight < endHeight) {
+    while (this.head < endHeight && requestBatch.length > 0) {
       // Queue next batch
-      queueNextBatch(startHeight, startHeight + chunkSize)
-      startHeight = minBigInt(startHeight + chunkSize, endHeight)
+      if (queuedHeight < endHeight) {
+        requestBatch.push(createLogRequest(queuedHeight, queuedHeight + chunkSize))
+      }
+      queuedHeight = minBigInt(queuedHeight + chunkSize, endHeight)
       // Wait for next nearest batch
-      data = await requestBatch.shift()
-    }
-    // Create RailgunTransactionData from data[]
-    const formattedData : RailgunTransactionData[] = []
+      const result = await requestBatch.shift()
 
-    // Cannot return one by one here :(
-    for (const entry of formattedData) { yield entry as T }
+      // Return the result
+      if (result && result.length > 0) {
+        data.push(...result)
+        /*
+        // Create RailgunTransactionData from data[]
+         const formattedData : RailgunTransactionData[] = []
+
+        // Cannot return one by one here :(
+        for (const entry of formattedData) { yield entry as T }
+        */
+        for (const entry of data) {
+          yield entry as T
+        }
+      }
+
+      // Increment the head for the block that doesn't have data
+      // @TODO I am slightly doubtful about this
+      this.head += chunkSize
+      console.log('Head: ', this.head, ' Remaining: ', endHeight - this.head)
+    }
   }
 }
 
