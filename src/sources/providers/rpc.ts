@@ -4,6 +4,8 @@ import { mainnet } from 'viem/chains'
 import type { RailgunTransactionData } from '../../models'
 import type { DataSource, SyncOptions } from '../data-source'
 
+const DEFAULT_CHUNK_SIZE = 500n;
+
 /**
  * A RPC provider for Data Source
  */
@@ -96,7 +98,7 @@ class RpcProvider<T extends RailgunTransactionData> implements DataSource<T> {
 
     // Set chunkSize to 500 if it is not provided
     if (chunkSize === 0n) throw new Error('ChunkSize cannot be zero')
-    chunkSize = chunkSize ?? 500n
+    chunkSize = chunkSize ?? DEFAULT_CHUNK_SIZE
 
     /**
      * Get next batch of events
