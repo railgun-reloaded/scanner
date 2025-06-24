@@ -12,11 +12,13 @@
   "author": "RAILGUN Contributors",
   "license": "ISC",
   "dependencies": {
+    "@railgun-reloaded/contract-abis": "^1.0.1",
     "@railgun-reloaded/eslint-config": "^1.1.0",
     "@railgun-reloaded/tsconfig": "^1.2.0",
     "@types/node": "^24.0.3",
     "brittle": "^3.16.3",
     "eslint": "^9.29.0",
-    "typescript": "^5.8.3"
+    "typescript": "^5.8.3",
+    "viem": "^2.31.4"
   }
 }
