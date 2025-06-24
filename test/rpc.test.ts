@@ -1,4 +1,5 @@
-import { test } from 'brittle'
+import assert from 'node:assert'
+import { test } from 'node:test'
 
 import { RpcProvider } from '../src/sources/providers/rpc'
 
@@ -6,7 +7,7 @@ const TEST_RPC_URL = 'https://eth.llamarpc.com'
 const RAILGUN_PROXY_ADDRESS = '0xFA7093CDD9EE6932B4eb2c9e1cde7CE00B1FA4b9'
 const RAILGUN_PROXY_DEPLOYMENT_BLOCK = 14737691n
 
-test('Fetch first 10000 block from RPC', async (t) => {
+test('Fetch first 10000 block from RPC', async () => {
   const rpcProvider = new RpcProvider(TEST_RPC_URL, RAILGUN_PROXY_ADDRESS)
 
   const iterator = rpcProvider.from({
@@ -19,5 +20,5 @@ test('Fetch first 10000 block from RPC', async (t) => {
   for await (const event of iterator) {
     events.push(event)
   }
-  t.ok('Finished')
+  assert.ok(true, 'Finished')
 })
