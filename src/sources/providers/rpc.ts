@@ -50,8 +50,8 @@ class RpcProvider<T extends RailgunTransactionData> implements DataSource<T> {
   /**
    * Create an async iterator with given config
    * @param options - Sync options
-   * @returns - AsyncIterator of T
-   * @yields - fdskfd
+   * @returns - AsyncGenerator that returns viem events
+   * @yields - Returns an array of viem events
    */
   async * from (options: SyncOptions) : AsyncGenerator<T> {
     /**
@@ -65,10 +65,8 @@ class RpcProvider<T extends RailgunTransactionData> implements DataSource<T> {
      */
     const minBigInt = (a: bigint, b: bigint) => a < b ? a : b
 
-    // Find the height range for processing historical data
     let { startHeight, chunkSize, endHeight } = options
 
-    // @TODO Fetch it from the RPC
     if (!this.rpcURL || this.rpcURL.length === 0) {
       throw new Error(`RPC Url is invalid: ${this.rpcURL}`)
     }
@@ -83,15 +81,13 @@ class RpcProvider<T extends RailgunTransactionData> implements DataSource<T> {
     const latestHeight = await client.getBlockNumber()
     if (!latestHeight) throw new Error('Failed to get latest height')
 
-    /**
-     * The idea here is to create a point where we register a contract listener for latest block and
-     * use eth_getLogs to get old events. Should we create this separation using the latest height?
-     */
+    // The idea here is to create a point where we register a contract listener for latest block and
+    // use eth_getLogs to get old events.
 
     // Limit the endHeight to the latestHeight
     endHeight = endHeight ? minBigInt(endHeight, BigInt(latestHeight)) : BigInt(latestHeight)
 
-    // Set chunkSize to 500 if it is not provided
+    // Set chunkSize to DEFAULT_CHUNK_SIZE if it is not provided
     if (chunkSize === 0n) throw new Error('ChunkSize cannot be zero')
     chunkSize = chunkSize ?? DEFAULT_CHUNK_SIZE
 
@@ -108,6 +104,7 @@ class RpcProvider<T extends RailgunTransactionData> implements DataSource<T> {
         toBlock: endHeight
       })
     }
+
     const amountOfBlocksToRead = endHeight - options.startHeight
     const queuedBlockSize = minBigInt(amountOfBlocksToRead, INITIAL_BATCH_SIZE)
 
@@ -137,20 +134,12 @@ class RpcProvider<T extends RailgunTransactionData> implements DataSource<T> {
 
       // Return the result
       if (result && result.length > 0) {
-        /*
-        // Create RailgunTransactionData from data[]
-         const formattedData : RailgunTransactionData[] = []
-
-        // Cannot return one by one here :(
-        for (const entry of formattedData) { yield entry as T }
-        */
         for (const entry of result) {
           yield entry as T
         }
       }
 
       // Increment the head for the block that doesn't have data
-      // @TODO seems incorrect, need to look at it
       currentHead = minBigInt(currentHead + chunkSize, endHeight)
       console.log('Head: ', currentHead, ' Remaining: ', endHeight - currentHead)
     }
