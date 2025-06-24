@@ -1,3 +1,4 @@
+/*
 enum RailgunFunctions {
   CGenerateDepositV1,
   CTransactV1,
@@ -27,7 +28,7 @@ type EVMLog = {
   name: RailgunEvents
   log: Record<string, any>
 }
-
+/*
 type RailgunTransactionData = {
   blockNumber: bigint;
   blockTimestamp: bigint;
@@ -42,5 +43,8 @@ type RailgunTransactionData = {
   tracePath: [number]
   input: RailgunFunctions
 }
+*/
 
-export type { RailgunTransactionData, EVMLog }
+type RailgunTransactionData = any
+
+export type { RailgunTransactionData, /* EVMLog */ }
