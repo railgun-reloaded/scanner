@@ -93,11 +93,14 @@ export class Iterator<T extends RailgunTransactionData> {
    */
   private async createLogRequest (fromBlock: bigint, toBlock: bigint): Promise<any[]> {
     const client = this.connectionManager.getClient()
-    return client.getLogs({
+    const logs = await client.getLogs({
       address: this.railgunProxyAddress,
       fromBlock,
       toBlock
     })
+    console.log(`${Date.now().toString()} -  From: ${fromBlock} To: ${toBlock} - CLIENT LOGS:`, logs)
+    console.log('\n')
+    return logs
   }
 
   /**

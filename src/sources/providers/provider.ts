@@ -51,14 +51,21 @@ export class Provider<T extends RailgunTransactionData> implements DataSource<T>
    */
   async * from (options: SyncOptions): AsyncGenerator<T> {
     // Create new iterator
+
+    console.log('Iterator from');
+
     const iterator = new Iterator<T>(
       this.connectionManager,
       this.railgunProxyAddress,
       options
     )
 
+    console.log('Iterator');
+
     // Add to active iterators
     this.activeIterators.push(iterator)
+
+    console.log('Active iterators: ', this.activeIterators)
 
     try {
       // Iterate through the data
