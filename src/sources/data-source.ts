@@ -46,7 +46,7 @@ interface DataSource<T extends RailgunTransactionData> {
    * The method itself is made `async` as a lowest-common-denominator if a source
    * needs to do any async initialisation logic.
    */
-  from(options: SyncOptions) : AsyncIterable<T>
+  from(options: SyncOptions) : AsyncGenerator<T>;
 }
 
 export type { DataSource, SyncOptions }
