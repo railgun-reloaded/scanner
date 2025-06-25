@@ -141,7 +141,6 @@ class RpcProvider<T extends RailgunTransactionData> implements DataSource<T> {
 
       // Increment the head for the block that doesn't have data
       currentHead = minBigInt(currentHead + chunkSize, endHeight)
-      console.log('Head: ', currentHead, ' Remaining: ', endHeight - currentHead)
     }
   }
 }

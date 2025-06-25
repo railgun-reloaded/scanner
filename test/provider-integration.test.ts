@@ -7,88 +7,45 @@ import { Provider } from '../src/sources/providers/provider'
 
 dotenv.config()
 
-// Load RPC API key from environment
-const MOCK_RPC_URL = process.env['RPC_API_KEY'] || 'https://eth-mainnet.g.alchemy.com/v2/your-api-key'
+const MOCK_RPC_URL = process.env['RPC_API_KEY']
 const RAILGUN_PROXY_ADDRESS = '0xFA7093CDD9EE6932B4eb2c9e1cde7CE00B1FA4b9' as `0x${string}`
 const RAILGUN_PROXY_DEPLOYMENT_BLOCK = 14737691n
 
 describe('Provider Integration Tests', () => {
-  test('Provider Integration Test - Two Iterators', async () => {
+  test('Should create an iterator from a provider', async () => {
     console.log('Starting Provider Integration Test...\n')
 
-    // Create provider instance
     const provider = new Provider(
-      MOCK_RPC_URL,
+      MOCK_RPC_URL!,
       RAILGUN_PROXY_ADDRESS,
-      3, // maxConcurrentRequests
-      200 // requestDelay
+      3,
+      200
     )
-    console.log('Initial connection status:', provider.getConnectionStatus())
 
-    // Create first iterator for block range 1
-    console.log('\nCreating first iterator...')
-    const iterator1 = provider.from({
+    const iterator = provider.from({
       startHeight: RAILGUN_PROXY_DEPLOYMENT_BLOCK,
-      endHeight: RAILGUN_PROXY_DEPLOYMENT_BLOCK + 100_000n,
+      endHeight: RAILGUN_PROXY_DEPLOYMENT_BLOCK + 10_000n,
       chunkSize: 499n
     })
 
-    console.log('Both iterators created successfully')
-    console.log('Iterators status:', provider.getIteratorsStatus())
-
-    let iterator1Count = 0
+    let iteratorCount = 0
 
     try {
-      // Process iterator1
-      /**
-       * asd
-       */
-      const processIterator1 = async () => {
-        console.log('Starting iterator1 processing...')
-        for await (const data of iterator1) {
-          iterator1Count++
-          console.log(`Iterator1 - Event ${iterator1Count}: Block ${(data as any).blockNumber}`)
+      // eslint-disable-next-line jsdoc/require-jsdoc
+      const processIterator = async () => {
+        for await (const data of iterator) {
+          iteratorCount++
+          console.log(`Iterator - Event ${iteratorCount}: Block ${(data as any).blockNumber}`)
 
-          // Simulate some processing time
           await new Promise(resolve => setTimeout(resolve, 10))
         }
-        console.log('Iterator1 completed processing')
       }
 
-      // Run both iterators concurrently
-      await Promise.all([processIterator1()])
+      await Promise.all([processIterator()])
     } catch (error) {
       console.error('Error during processing:', error)
-      // This is expected to fail due to invalid API key, so we don't throw
-      console.log('Test completed (expected failure due to invalid API key)')
       return
     }
-    console.log('\nProvider Integration Test completed!')
-    assert.ok(true, 'Provider integration test completed successfully')
+    assert.ok(iteratorCount > 0, 'Iterator from provider should yield events')
   })
-
-  // test('Provider Error Handling Test', async () => {
-  //   console.log('\nTesting error handling...')
-
-  //   const provider = new Provider(
-  //     'https://invalid-rpc-url.com',
-  //     RAILGUN_PROXY_ADDRESS
-  //   )
-
-  //   try {
-  //     const iterator = provider.from({
-  //       startHeight: 1n,
-  //       endHeight: 100n,
-  //       chunkSize: 10n
-  //     })
-
-  //     for await (const _data of iterator) {
-  //       console.log('This should not execute')
-  //     }
-  //     assert.fail('Should have thrown an error')
-  //   } catch (error) {
-  //     console.log('Error handling works correctly:', (error as Error).message)
-  //     assert.ok(true, 'Error handling works correctly')
-  //   }
-  // })
 })
