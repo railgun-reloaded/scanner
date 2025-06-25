@@ -1,6 +1,6 @@
 {
   "name": "fafo-scanner",
-  "version": "1.0.0",
+  "version": "0.0.1",
   "description": "DataSync Repo for RAILGUN",
   "main": "index.js",
   "scripts": {
@@ -22,8 +22,5 @@
     "eslint": "^9.29.0",
     "typescript": "^5.8.3",
     "viem": "^2.31.4"
-  },
-  "devDependencies": {
-    "@types/brittle": "^3.5.0"
   }
 }
