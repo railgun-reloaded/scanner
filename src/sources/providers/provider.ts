@@ -52,30 +52,21 @@ export class Provider<T extends RailgunTransactionData> implements DataSource<T>
   async * from (options: SyncOptions): AsyncGenerator<T> {
     // Create new iterator
 
-    console.log('Iterator from');
-
     const iterator = new Iterator<T>(
       this.connectionManager,
       this.railgunProxyAddress,
       options
     )
 
-    console.log('Iterator');
-
-    // Add to active iterators
     this.activeIterators.push(iterator)
-
-    console.log('Active iterators: ', this.activeIterators)
 
     try {
       // Iterate through the data
       for await (const data of iterator) {
-        // Update head to the latest processed block
         this.head = iterator.getLatestBlockHeight()
         yield data
       }
     } finally {
-      // Remove iterator from active list when done
       const index = this.activeIterators.indexOf(iterator)
       if (index > -1) {
         this.activeIterators.splice(index, 1)
@@ -106,4 +97,4 @@ export class Provider<T extends RailgunTransactionData> implements DataSource<T>
   getConnectionManager (): ConnectionManager {
     return this.connectionManager
   }
-} 
+}

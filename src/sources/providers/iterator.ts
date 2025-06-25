@@ -98,8 +98,6 @@ export class Iterator<T extends RailgunTransactionData> {
       fromBlock,
       toBlock
     })
-    console.log(`${Date.now().toString()} -  From: ${fromBlock} To: ${toBlock} - CLIENT LOGS:`, logs)
-    console.log('\n')
     return logs
   }
 

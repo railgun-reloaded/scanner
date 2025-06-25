@@ -18,7 +18,6 @@ test('Fetch first 10000 block from RPC', async () => {
 
   const events = []
   for await (const event of iterator) {
-    console.log('EVENT', event)
     events.push(event)
   }
   assert.ok(true, 'Finished')
