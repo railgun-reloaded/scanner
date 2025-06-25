@@ -229,8 +229,8 @@ describe('Provider / Iterator Tests', () => {
     const lowConcurrencyProvider = new Provider(
       MOCK_RPC_URL!,
       RAILGUN_PROXY_ADDRESS,
-      1, // maxConcurrent - only 1 request at a time
-      50 // rateLimit - very low rate limit
+      1,
+      50
     )
 
     const iterators = []
@@ -282,8 +282,8 @@ describe('Provider / Iterator Tests', () => {
     const moderateProvider = new Provider(
       MOCK_RPC_URL!,
       RAILGUN_PROXY_ADDRESS,
-      2, // maxConcurrent
-      100 // rateLimit
+      2,
+      100 
     )
 
     const iterators = []
@@ -335,8 +335,8 @@ describe('Provider / Iterator Tests', () => {
     const highConcurrencyProvider = new Provider(
       MOCK_RPC_URL!,
       RAILGUN_PROXY_ADDRESS,
-      5, // maxConcurrent
-      200 // rateLimit
+      5,
+      200 
     )
 
     const iterators = []
@@ -389,13 +389,13 @@ describe('Provider / Iterator Tests', () => {
       MOCK_RPC_URL!,
       RAILGUN_PROXY_ADDRESS,
       1,
-      10 // Very low rate limit
+      10
     )
 
     const edgeCaseIterator = edgeCaseProvider.from({
       startHeight: RAILGUN_PROXY_DEPLOYMENT_BLOCK,
-      endHeight: RAILGUN_PROXY_DEPLOYMENT_BLOCK + 1n, // Only 1 block
-      chunkSize: 1n // Chunk size of 1
+      endHeight: RAILGUN_PROXY_DEPLOYMENT_BLOCK + 1n,
+      chunkSize: 1n
     })
 
     let eventCount = 0
