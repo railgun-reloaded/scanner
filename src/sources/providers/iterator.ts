@@ -63,7 +63,7 @@ export class Iterator<T extends RailgunTransactionData> {
       // eslint-disable-next-line jsdoc/require-returns
       /** Function that creates the log request for this batch */
       const requestFn = () => this.createLogRequest(this.currentHeight, batchEndHeight)
-      
+
       // Submit request to connection manager
       const requestPromise = this.connectionManager.submitRequest(requestFn, requestId)
       this.pendingRequests.set(requestId, requestPromise)
