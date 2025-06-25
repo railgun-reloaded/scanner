@@ -1,5 +1,3 @@
-// @@ TODO: read rpc-and-connection-manager-spec.md for more information
-
 import type { RailgunTransactionData } from '../../models'
 import type { SyncOptions } from '../data-source'
 

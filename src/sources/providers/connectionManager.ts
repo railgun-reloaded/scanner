@@ -1,5 +1,3 @@
-// @@ TODO: read rpc-and-connection-manager-spec.md for more information
-
 import type { PublicClient } from 'viem'
 import { createPublicClient, http } from 'viem'
 import { mainnet } from 'viem/chains'
