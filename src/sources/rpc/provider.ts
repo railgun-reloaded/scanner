@@ -33,10 +33,9 @@ export class RPCProvider<T extends RailgunTransactionData> implements DataSource
   constructor (
     rpcURL: string,
     railgunProxyAddress: `0x${string}`,
-    maxConcurrentRequests: number = 5,
-    requestDelay: number = 100
+    maxConcurrentRequests: number = 5
   ) {
-    this.connectionManager = new RPCConnectionManager(rpcURL, maxConcurrentRequests, requestDelay)
+    this.connectionManager = new RPCConnectionManager(rpcURL, maxConcurrentRequests)
     this.railgunProxyAddress = railgunProxyAddress
   }
 
@@ -86,14 +85,6 @@ export class RPCProvider<T extends RailgunTransactionData> implements DataSource
       toBlock
     })
     return logs
-  }
-
-  /**
-   * Get connection status
-   * @returns Connection status information
-   */
-  getConnectionStatus () {
-    return this.connectionManager.getStatus()
   }
 
   /**
