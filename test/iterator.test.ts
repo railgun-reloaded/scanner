@@ -17,8 +17,7 @@ describe('Provider / Iterator Tests', () => {
     const provider = new RPCProvider(
       MOCK_RPC_URL!,
       RAILGUN_PROXY_ADDRESS,
-      3,
-      200
+      3
     )
 
     const iterator = provider.from({
@@ -50,8 +49,7 @@ describe('Provider / Iterator Tests', () => {
     const provider = new RPCProvider(
       MOCK_RPC_URL!,
       RAILGUN_PROXY_ADDRESS,
-      3,
-      200
+      3
     )
 
     const iterator1 = provider.from({
@@ -100,22 +98,19 @@ describe('Provider / Iterator Tests', () => {
     const provider1 = new RPCProvider(
       MOCK_RPC_URL!,
       RAILGUN_PROXY_ADDRESS,
-      2,
-      100
+      2
     )
 
     const provider2 = new RPCProvider(
       MOCK_RPC_URL!,
       RAILGUN_PROXY_ADDRESS,
-      3,
-      150
+      3
     )
 
     const provider3 = new RPCProvider(
       MOCK_RPC_URL!,
       RAILGUN_PROXY_ADDRESS,
-      1,
-      50
+      1
     )
 
     const iterators = []
@@ -215,22 +210,13 @@ describe('Provider / Iterator Tests', () => {
       `All ${iterators.length} iterators should complete successfully, but ${successfulResults.length} succeeded`)
 
     assert.ok(totalEvents >= 0, 'Should process events from concurrent iterators')
-
-    const provider1Status = provider1.getConnectionStatus()
-    const provider2Status = provider2.getConnectionStatus()
-    const provider3Status = provider3.getConnectionStatus()
-
-    assert.ok(provider1Status.activeRequests === 0, 'Provider1 should have no active requests after completion')
-    assert.ok(provider2Status.activeRequests === 0, 'Provider2 should have no active requests after completion')
-    assert.ok(provider3Status.activeRequests === 0, 'Provider3 should have no active requests after completion')
   })
 
   test('Should handle low concurrency provider with rate limiting', async () => {
     const lowConcurrencyProvider = new RPCProvider(
       MOCK_RPC_URL!,
       RAILGUN_PROXY_ADDRESS,
-      1,
-      50
+      1
     )
 
     const iterators = []
@@ -269,21 +255,15 @@ describe('Provider / Iterator Tests', () => {
     const successfulResults = Array.from(results.values()).filter(r => r.success)
     const totalEvents = successfulResults.reduce((sum, r) => sum + r.eventCount, 0)
 
-    const status = lowConcurrencyProvider.getConnectionStatus()
-
     assert.ok(successfulResults.length === iterators.length, 'All iterators should complete successfully')
     assert.ok(totalEvents >= 0, 'Should process events from all iterators')
-    assert.ok(status.activeRequests === 0, 'Provider should have no active requests')
-    assert.ok(status.queueLength === 0, 'Provider should have empty queue')
-    assert.ok(status.maxConcurrent === 1, 'Provider should have maxConcurrent = 1')
   })
 
   test('Should handle moderate concurrency provider', async () => {
     const moderateProvider = new RPCProvider(
       MOCK_RPC_URL!,
       RAILGUN_PROXY_ADDRESS,
-      2,
-      100
+      2
     )
 
     const iterators = []
@@ -322,21 +302,15 @@ describe('Provider / Iterator Tests', () => {
     const successfulResults = Array.from(results.values()).filter(r => r.success)
     const totalEvents = successfulResults.reduce((sum, r) => sum + r.eventCount, 0)
 
-    const status = moderateProvider.getConnectionStatus()
-
     assert.ok(successfulResults.length === iterators.length, 'All iterators should complete successfully')
     assert.ok(totalEvents >= 0, 'Should process events from all iterators')
-    assert.ok(status.activeRequests === 0, 'Provider should have no active requests')
-    assert.ok(status.queueLength === 0, 'Provider should have empty queue')
-    assert.ok(status.maxConcurrent === 2, 'Provider should have maxConcurrent = 2')
   })
 
   test('Should handle high concurrency provider', async () => {
     const highConcurrencyProvider = new RPCProvider(
       MOCK_RPC_URL!,
       RAILGUN_PROXY_ADDRESS,
-      5,
-      200
+      5
     )
 
     const iterators = []
@@ -375,21 +349,15 @@ describe('Provider / Iterator Tests', () => {
     const successfulResults = Array.from(results.values()).filter(r => r.success)
     const totalEvents = successfulResults.reduce((sum, r) => sum + r.eventCount, 0)
 
-    const status = highConcurrencyProvider.getConnectionStatus()
-
     assert.ok(successfulResults.length === iterators.length, 'All iterators should complete successfully')
     assert.ok(totalEvents >= 0, 'Should process events from all iterators')
-    assert.ok(status.activeRequests === 0, 'Provider should have no active requests')
-    assert.ok(status.queueLength === 0, 'Provider should have empty queue')
-    assert.ok(status.maxConcurrent === 5, 'Provider should have maxConcurrent = 5')
   })
 
   test('Should handle edge case with very small block ranges', async () => {
     const edgeCaseProvider = new RPCProvider(
       MOCK_RPC_URL!,
       RAILGUN_PROXY_ADDRESS,
-      1,
-      10
+      1
     )
 
     const edgeCaseIterator = edgeCaseProvider.from({
@@ -406,10 +374,6 @@ describe('Provider / Iterator Tests', () => {
     } catch (error) {
       console.error('Edge case iterator failed:', error)
     }
-
-    const status = edgeCaseProvider.getConnectionStatus()
-    assert.ok(status.activeRequests === 0, 'Provider should have no active requests')
-    assert.ok(status.queueLength === 0, 'Provider should have empty queue')
     assert.ok(eventCount >= 0, 'Should handle very small block ranges')
   })
 })
