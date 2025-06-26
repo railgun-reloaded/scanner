@@ -4,7 +4,7 @@ import { describe, test } from 'node:test'
 
 import dotenv from 'dotenv'
 
-import { Provider } from '../src/sources/providers/provider'
+import { RPCProvider } from '../src/sources/rpc/provider'
 
 dotenv.config()
 
@@ -14,7 +14,7 @@ const RAILGUN_PROXY_DEPLOYMENT_BLOCK = 14737691n
 
 describe('Provider / Iterator Tests', () => {
   test('Should create an iterator from a provider', async () => {
-    const provider = new Provider(
+    const provider = new RPCProvider(
       MOCK_RPC_URL!,
       RAILGUN_PROXY_ADDRESS,
       3,
@@ -47,7 +47,7 @@ describe('Provider / Iterator Tests', () => {
   })
 
   test('Should handle two iterators under the same provider', async () => {
-    const provider = new Provider(
+    const provider = new RPCProvider(
       MOCK_RPC_URL!,
       RAILGUN_PROXY_ADDRESS,
       3,
@@ -97,21 +97,21 @@ describe('Provider / Iterator Tests', () => {
   })
 
   test('Should handle multiple providers and multiple iterators concurrently', async () => {
-    const provider1 = new Provider(
+    const provider1 = new RPCProvider(
       MOCK_RPC_URL!,
       RAILGUN_PROXY_ADDRESS,
       2,
       100
     )
 
-    const provider2 = new Provider(
+    const provider2 = new RPCProvider(
       MOCK_RPC_URL!,
       RAILGUN_PROXY_ADDRESS,
       3,
       150
     )
 
-    const provider3 = new Provider(
+    const provider3 = new RPCProvider(
       MOCK_RPC_URL!,
       RAILGUN_PROXY_ADDRESS,
       1,
@@ -226,7 +226,7 @@ describe('Provider / Iterator Tests', () => {
   })
 
   test('Should handle low concurrency provider with rate limiting', async () => {
-    const lowConcurrencyProvider = new Provider(
+    const lowConcurrencyProvider = new RPCProvider(
       MOCK_RPC_URL!,
       RAILGUN_PROXY_ADDRESS,
       1,
@@ -279,11 +279,11 @@ describe('Provider / Iterator Tests', () => {
   })
 
   test('Should handle moderate concurrency provider', async () => {
-    const moderateProvider = new Provider(
+    const moderateProvider = new RPCProvider(
       MOCK_RPC_URL!,
       RAILGUN_PROXY_ADDRESS,
       2,
-      100 
+      100
     )
 
     const iterators = []
@@ -332,11 +332,11 @@ describe('Provider / Iterator Tests', () => {
   })
 
   test('Should handle high concurrency provider', async () => {
-    const highConcurrencyProvider = new Provider(
+    const highConcurrencyProvider = new RPCProvider(
       MOCK_RPC_URL!,
       RAILGUN_PROXY_ADDRESS,
       5,
-      200 
+      200
     )
 
     const iterators = []
@@ -385,7 +385,7 @@ describe('Provider / Iterator Tests', () => {
   })
 
   test('Should handle edge case with very small block ranges', async () => {
-    const edgeCaseProvider = new Provider(
+    const edgeCaseProvider = new RPCProvider(
       MOCK_RPC_URL!,
       RAILGUN_PROXY_ADDRESS,
       1,
