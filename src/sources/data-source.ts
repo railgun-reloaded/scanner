@@ -2,7 +2,7 @@ import type { RailgunTransactionData } from '../models'
 
 type SyncOptions = {
   startHeight: bigint;
-  endHeight?: bigint;
+  endHeight: bigint;
   liveSource?: boolean;
   chunkSize?: bigint;
 }

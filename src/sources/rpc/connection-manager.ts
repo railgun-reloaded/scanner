@@ -17,9 +17,9 @@ interface RequestData {
 }
 
 /**
- * Connection Manager handles RPC requests with rate limiting and queuing
+ * RPC Connection Manager handles RPC requests with rate limiting and queuing
  */
-export class ConnectionManager {
+export class RPCConnectionManager {
   /** The viem client instance */
   private client: PublicClient
   /** Queue of pending requests */
@@ -32,7 +32,7 @@ export class ConnectionManager {
   private requestDelay: number
 
   /**
-   * Initialize connection manager
+   * Initialize RPC connection manager
    * @param rpcURL - RPC endpoint URL
    * @param maxConcurrentRequests - Maximum concurrent requests allowed
    * @param requestDelay - Delay between requests in milliseconds
