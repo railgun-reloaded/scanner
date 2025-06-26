@@ -8,8 +8,8 @@ import { mainnet } from 'viem/chains'
 interface RequestData {
   /** Unique identifier for the request */
   id: string
-  /** The promise that will be executed */
-  promise: Promise<any>
+  /** The function that returns a promise (not executed yet) */
+  requestFn: () => Promise<any>
   /** Function to resolve the promise */
   resolve: (value: any) => void
   /** Function to reject the promise */
@@ -20,34 +20,33 @@ interface RequestData {
  * RPC Connection Manager handles RPC requests with rate limiting and queuing
  */
 export class RPCConnectionManager {
-  /** The viem client instance */
+  /**
+   * The viem client instance
+   */
   private client: PublicClient
-  /** Queue of pending requests */
+  /**
+   * Queue of pending requests
+   */
   private requestQueue: RequestData[] = []
-  /** Map of currently active requests */
-  private activeRequests: Map<string, RequestData> = new Map()
-  /** Maximum number of concurrent requests allowed */
+  /**
+   * Maximum concurrent requests allowed
+   */
   private maxConcurrentRequests: number
-  /** Delay between requests in milliseconds */
-  private requestDelay: number
 
   /**
    * Initialize RPC connection manager
    * @param rpcURL - RPC endpoint URL
    * @param maxConcurrentRequests - Maximum concurrent requests allowed
-   * @param requestDelay - Delay between requests in milliseconds
    */
   constructor (
     rpcURL: string,
-    maxConcurrentRequests: number = 5,
-    requestDelay: number = 100
+    maxConcurrentRequests: number = 5
   ) {
     this.client = createPublicClient({
       chain: mainnet,
       transport: http(rpcURL)
     })
-    this.maxConcurrentRequests = maxConcurrentRequests
-    this.requestDelay = requestDelay
+    this.maxConcurrentRequests = maxConcurrentRequests // this is set to define batch size
   }
 
   /**
@@ -63,7 +62,7 @@ export class RPCConnectionManager {
     return new Promise<T>((resolve, reject) => {
       const requestData: RequestData = {
         id: requestId,
-        promise: requestFn(),
+        requestFn, // Store the function, don't execute it yet
         resolve,
         reject
       }
@@ -77,31 +76,41 @@ export class RPCConnectionManager {
    * Process the request queue
    */
   private async processQueue (): Promise<void> {
-    if (this.activeRequests.size >= this.maxConcurrentRequests || this.requestQueue.length === 0) {
+    if (this.requestQueue.length === 0) {
       return
     }
 
-    const requestData = this.requestQueue.shift()
-    if (!requestData) return
+    setImmediate(async () => {
+      const batchSize = Math.min(this.maxConcurrentRequests, this.requestQueue.length)
+      const batch = this.requestQueue.splice(0, batchSize)
 
-    this.activeRequests.set(requestData.id, requestData)
+      if (batch.length === 0) return
 
-    try {
-      const result = await requestData.promise
-      requestData.resolve(result)
-    } catch (error) {
-      requestData.reject(error)
-    } finally {
-      this.activeRequests.delete(requestData.id)
+      try {
+        // Execute all request functions in the batch concurrently
+        const results = await Promise.all(
+          batch.map(requestData => requestData.requestFn())
+        )
 
-      // Add delay before processing next request
-      if (this.requestDelay > 0) {
-        await new Promise(resolve => setTimeout(resolve, this.requestDelay))
+        // Map batch results back to their respective iterators
+        // Multiple iterators from the same provider can spawn multiple requests
+        // that get processed in the same batch, so we need to ensure each iterator
+        // gets its specific result back via their individual resolve functions
+        batch.forEach((requestData, index) => {
+          requestData.resolve(results[index])
+        })
+      } catch (error) {
+        // if any of it fails reject all requests in the batch
+        batch.forEach(requestData => {
+          requestData.reject(error)
+        })
+      } finally {
+        // Continue processing the queue if there are more requests
+        if (this.requestQueue.length > 0) {
+          this.processQueue()
+        }
       }
-
-      // Process next request in queue
-      this.processQueue()
-    }
+    })
   }
 
   /**
@@ -110,17 +119,5 @@ export class RPCConnectionManager {
    */
   getClient (): PublicClient {
     return this.client
-  }
-
-  /**
-   * Get current queue status
-   * @returns Object containing queue statistics
-   */
-  getStatus () {
-    return {
-      queueLength: this.requestQueue.length,
-      activeRequests: this.activeRequests.size,
-      maxConcurrent: this.maxConcurrentRequests
-    }
   }
 }
