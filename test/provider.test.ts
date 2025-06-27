@@ -450,6 +450,56 @@ describe('RPCProvider', () => {
       }
     }
   })
+
+  test('Should retrieve exact number of events from fixed set of blocks', async () => {
+    const provider = new RPCProvider(MOCK_RPC_URL, RAILGUN_PROXY_ADDRESS)
+
+    const knownBlockEnd = 14779012n
+    const knownBlockStart = 14777791n
+
+    const knownNumberOfBlocks = 4
+    const knownNumberOfLogs = 9
+
+    const knownNumberOfBlocks2 = 8
+    const knownNumberOfLogs2 = 16
+
+    const iterator = provider.from({
+      startHeight: knownBlockStart,
+      endHeight: knownBlockEnd,
+      chunkSize: 499n,
+      liveSync: false
+    })
+
+    const knownBlockEnd2 = 14777438n
+    const knownBlockStart2 = 14771383n
+
+    const iterator2 = provider.from({
+      startHeight: knownBlockStart2,
+      endHeight: knownBlockEnd2,
+      chunkSize: 499n,
+      liveSync: false
+    })
+
+    let blockCount = 0
+    let logCount = 0
+
+    for await (const _data of iterator) {
+      blockCount++
+      logCount += _data.transactions.reduce((acc, tx) => acc + tx.logs.length, 0)
+    }
+
+    let blockCount2 = 0
+    let logCount2 = 0
+    for await (const _data of iterator2) {
+      blockCount2++
+      logCount2 += _data.transactions.reduce((acc, tx) => acc + tx.logs.length, 0)
+    }
+
+    assert.ok(blockCount === knownNumberOfBlocks, 'Should retrieve exact number of blocks from fixed set of block range')
+    assert.ok(blockCount2 === knownNumberOfBlocks2, 'Should retrieve exact number of blocks from fixed set of block range')
+    assert.ok(logCount === knownNumberOfLogs, 'Should retrieve exact number of logs from fixed set of block range')
+    assert.ok(logCount2 === knownNumberOfLogs2, 'Should retrieve exact number of logs from fixed set of block range')
+  })
 })
 
 /*
