@@ -396,7 +396,6 @@ describe('RPCProvider', () => {
     assert.ok(eventCount >= 0, 'Should handle very small block ranges')
   })
 
-
   test('Fetch first 10,000 blocks from RPC and check for valid blocks', async () => {
     const provider = new RPCProvider(TEST_RPC_URL, RAILGUN_PROXY_ADDRESS)
     const iterator = provider.from({
@@ -453,3 +452,24 @@ describe('RPCProvider', () => {
     }
   })
 })
+
+/*
+test('Listen for most recent events', async () => {
+  const provider = new RPCProvider(TEST_RPC_URL, RAILGUN_PROXY_ADDRESS)
+
+  setTimeout(() => {
+    provider.destroy()
+  }, 10_000)
+
+  const startHeight = 22792284n
+  const iterator = provider.from({
+    startHeight,
+    chunkSize: 500n,
+    liveSync: true
+  })
+
+  for await (const blockInfo of iterator) {
+    console.log(blockInfo)
+  }
+})
+*/

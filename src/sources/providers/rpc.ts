@@ -194,6 +194,7 @@ class RpcProvider<T extends EVMBlock> implements DataSource<T> {
      */
     let liveEventQueue: ViemLog[] = []
     let unwatchEvent : WatchEventReturnType | null = null
+
     if (!endHeight && options.liveSync) {
       unwatchEvent = client.watchEvent({
         address: this.railgunProxyAddress,
@@ -202,9 +203,10 @@ class RpcProvider<T extends EVMBlock> implements DataSource<T> {
          * @param logs - Event Logs
          */
         onLogs: (logs) => {
-          console.log('LOGS: ', logs)
           // @TODO this is not correct
-          liveEventQueue.push(logs as unknown as ViemLog)
+          for (const log of logs) {
+            liveEventQueue.push(log as unknown as ViemLog)
+          }
         }
       })
     }
@@ -212,6 +214,9 @@ class RpcProvider<T extends EVMBlock> implements DataSource<T> {
     const latestHeight = await client.getBlockNumber()
     if (!latestHeight) throw new Error('Failed to get latest height')
 
+    if (endHeight && endHeight > latestHeight) {
+      throw new Error('Cannot sync the height greater than the latest height. Switch to live event syncing')
+    }
     // The idea here is to create a point where we register a contract listener for latest block and
     // use eth_getLogs to get old events.
 
@@ -229,6 +234,7 @@ class RpcProvider<T extends EVMBlock> implements DataSource<T> {
      * @returns - Promise to log request
      */
     const createLogRequest = async (startHeight: bigint, endHeight: bigint) : Promise<ViemLog[]> => {
+      // @TODO remove the cast to unknown
       return client.getLogs({
         address: this.railgunProxyAddress,
         fromBlock: startHeight,
@@ -279,20 +285,21 @@ class RpcProvider<T extends EVMBlock> implements DataSource<T> {
 
     // if it is a live source, we should wait until new events are available
     if (options.liveSync) {
-      console.log('Switching to live event listener ...')
+      // Start loop to process the live events
       while (!this.stopSyncing) {
-        /*
-        const evmBlockData = this.sortLogsByBlockTxEvent(liveEventQueue)
-        for (const blockData of evmBlockData) {
-          yield blockData as T
+        if (liveEventQueue.length > 0) {
+          const evmBlockData = this.sortLogsByBlockTxEvent(liveEventQueue)
+          for (const blockData of evmBlockData) {
+            yield blockData as T
+          }
+          // Clear the processedEvents
+          liveEventQueue = []
         }
-        */
-        // if (liveEventQueue.length > 0) { console.log('LOGS', liveEventQueue) }
-        liveEventQueue = []
+        // @TODO need to select ideal time to wait for
         await new Promise((resolve) => setTimeout(resolve, 12))
       }
 
-      // Stop listening for the live events
+      // Stop listening for the live events, cleanup
       if (unwatchEvent) {
         unwatchEvent()
       }
