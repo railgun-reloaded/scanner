@@ -9,6 +9,7 @@ import type { DataSource, SyncOptions } from '../data-source'
 
 const DEFAULT_CHUNK_SIZE = 500n
 const INITIAL_BATCH_SIZE = 10000n
+const ETHEREUM_BLOCK_TIME = 12_000 // 12s
 
 interface ViemLog {
   address: string;
@@ -76,10 +77,7 @@ class RpcProvider<T extends EVMBlock> implements DataSource<T> {
     // eslint-disable-next-line camelcase
     const combinedAbi = [...RailgunV1, ...RailgunV2, ...RailgunV2_1]
 
-    // @TODO remove duplicate events
     this.eventAbis = combinedAbi.filter(item => item.type === 'event')
-
-    // @TODO Continuously update head here
   }
 
   /**
@@ -203,8 +201,8 @@ class RpcProvider<T extends EVMBlock> implements DataSource<T> {
          * @param logs - Event Logs
          */
         onLogs: (logs) => {
-          // @TODO this is not correct
           for (const log of logs) {
+          // @TODO Should we be force casting it here?
             liveEventQueue.push(log as unknown as ViemLog)
           }
         }
@@ -234,7 +232,7 @@ class RpcProvider<T extends EVMBlock> implements DataSource<T> {
      * @returns - Promise to log request
      */
     const createLogRequest = async (startHeight: bigint, endHeight: bigint) : Promise<ViemLog[]> => {
-      // @TODO remove the cast to unknown
+      // @TODO should we be doing force casting?
       return client.getLogs({
         address: this.railgunProxyAddress,
         fromBlock: startHeight,
@@ -296,7 +294,7 @@ class RpcProvider<T extends EVMBlock> implements DataSource<T> {
           liveEventQueue = []
         }
         // @TODO need to select ideal time to wait for
-        await new Promise((resolve) => setTimeout(resolve, 12))
+        await new Promise((resolve) => setTimeout(resolve, ETHEREUM_BLOCK_TIME))
       }
 
       // Stop listening for the live events, cleanup
