@@ -1,5 +1,6 @@
 /* eslint-disable camelcase */
 import { RailgunV1, RailgunV2, RailgunV2_1 } from '@railgun-reloaded/contract-abis'
+import type { WatchEventReturnType } from 'viem'
 import { decodeEventLog } from 'viem'
 
 import type { EVMBlock, EVMLog } from '../../models'
@@ -8,6 +9,19 @@ import type { DataSource, SyncOptions } from '../data-source'
 import { RPCConnectionManager } from './connection-manager'
 
 const DEFAULT_CHUNK_SIZE = 500n
+
+interface ViemLog {
+  address: string;
+  blockHash: string;
+  blockNumber: string;
+  blockTimestamp: string;
+  data: `0x${string}`;
+  logIndex: number;
+  removed: boolean;
+  topics: [];
+  transactionHash: string;
+  transactionIndex: number;
+}
 
 /**
  * RPC Provider that manages connections and provides iterators for blockchain data
@@ -30,6 +44,12 @@ export class RPCProvider<T extends EVMBlock> implements DataSource<T> {
    * List of event fragments in all the version of Railgun
    */
   eventAbis: any[]
+
+  /**
+   * A flag to indicate if it should continue syncing
+   * Is only applicable for the liveProvider
+   */
+  stopSyncing: boolean = false
 
   /**
    * Initialize RPC provider with RPC URL and railgun proxy address
@@ -126,13 +146,36 @@ export class RPCProvider<T extends EVMBlock> implements DataSource<T> {
       throw new Error(`Railgun Proxy Address is invalid: ${this.railgunProxyAddress}`)
     }
 
-    let { startHeight, endHeight, chunkSize = DEFAULT_CHUNK_SIZE } = options
+    let { startHeight, endHeight, chunkSize = DEFAULT_CHUNK_SIZE, liveSync = false } = options
     let currentHeight = startHeight
     const client = this.connectionManager.getClient()
+
+    /**
+     * Initialize a listener so that it can listen to the events
+     */
+    let liveEventQueue: ViemLog[] = []
+    let unwatchEvent : WatchEventReturnType | null = null
+    if (!endHeight && liveSync) {
+      unwatchEvent = client.watchEvent({
+        address: this.railgunProxyAddress,
+        /**
+         * Callback to listen to live events
+         * @param logs - Event Logs
+         */
+        onLogs: (logs) => {
+          console.log('LOGS: ', logs)
+          // @TODO this is not correct
+          liveEventQueue.push(logs as unknown as ViemLog)
+        }
+      })
+    }
+
     const latestHeight = await client.getBlockNumber()
     if (!latestHeight) throw new Error('Failed to get latest height')
     endHeight = endHeight ? minBigInt(endHeight, BigInt(latestHeight)) : BigInt(latestHeight)
     if (chunkSize === 0n) throw new Error('ChunkSize cannot be zero')
+
+    // Process historical blocks
     while (currentHeight < endHeight) {
       const batchEndHeight = minBigInt(currentHeight + chunkSize, endHeight)
       const requestId = `iterator_${currentHeight}_${batchEndHeight}`
@@ -150,6 +193,27 @@ export class RPCProvider<T extends EVMBlock> implements DataSource<T> {
       this.head = batchEndHeight
       currentHeight = batchEndHeight
       console.log('Head: ', this.head, ' Remaining: ', endHeight - this.head)
+    }
+
+    // if it is a live source, we should wait until new events are available
+    if (liveSync) {
+      console.log('Switching to live event listener ...')
+      while (!this.stopSyncing) {
+        /*
+        const evmBlockData = this.sortLogsByBlockTxEvent(liveEventQueue)
+        for (const blockData of evmBlockData) {
+          yield blockData as T
+        }
+        */
+        // if (liveEventQueue.length > 0) { console.log('LOGS', liveEventQueue) }
+        liveEventQueue = []
+        await new Promise((resolve) => setTimeout(resolve, 12))
+      }
+
+      // Stop listening for the live events
+      if (unwatchEvent) {
+        unwatchEvent()
+      }
     }
   }
 
@@ -175,5 +239,12 @@ export class RPCProvider<T extends EVMBlock> implements DataSource<T> {
    */
   getClient () {
     return this.connectionManager.getClient()
+  }
+
+  /**
+   * Stop provider from syncing if it is
+   */
+  destroy (): void {
+    this.stopSyncing = true
   }
 }

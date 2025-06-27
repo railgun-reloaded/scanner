@@ -33,4 +33,12 @@ export class SubsquidProvider<T extends EVMBlock> implements DataSource<T> {
     // TODO: Implement Subsquid data fetching logic
     throw new Error('Subsquid provider not yet implemented')
   }
+
+  /**
+   * Destroy the Subsquid connection
+   */
+  destroy () {
+    // TODO: Implement Subsquid connection destruction logic
+    console.log('Subsquid connection destroyed')
+  }
 }
