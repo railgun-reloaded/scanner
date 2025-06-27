@@ -8,10 +8,9 @@ import { RPCProvider } from '../src/sources/rpc/provider'
 
 dotenv.config()
 
-const MOCK_RPC_URL = process.env['RPC_API_KEY']
+const MOCK_RPC_URL = process.env['RPC_API_KEY']!
 const RAILGUN_PROXY_ADDRESS = '0xFA7093CDD9EE6932B4eb2c9e1cde7CE00B1FA4b9' as `0x${string}`
 const RAILGUN_PROXY_DEPLOYMENT_BLOCK = 14737691n
-const TEST_RPC_URL = MOCK_RPC_URL!
 const RAILGUN_DEPLOYMENT_V2 = 16076750n
 // TODO: Keep track of range of pre defined set of events
 // Verify that both iterators assert same amount of events
@@ -27,7 +26,7 @@ describe('RPCProvider', () => {
     const iterator = provider.from({
       startHeight: RAILGUN_PROXY_DEPLOYMENT_BLOCK,
       endHeight: RAILGUN_PROXY_DEPLOYMENT_BLOCK + 10_000n,
-      chunkSize: 500n,
+      chunkSize: 499n,
       liveSync: false
     })
 
@@ -60,14 +59,14 @@ describe('RPCProvider', () => {
     const iterator1 = provider.from({
       startHeight: RAILGUN_PROXY_DEPLOYMENT_BLOCK,
       endHeight: RAILGUN_PROXY_DEPLOYMENT_BLOCK + 1000n,
-      chunkSize: 500n,
+      chunkSize: 499n,
       liveSync: false
     })
 
     const iterator2 = provider.from({
       startHeight: RAILGUN_PROXY_DEPLOYMENT_BLOCK + 1000n,
       endHeight: RAILGUN_PROXY_DEPLOYMENT_BLOCK + 2000n,
-      chunkSize: 500n,
+      chunkSize: 499n,
       liveSync: false
     })
 
@@ -397,11 +396,11 @@ describe('RPCProvider', () => {
   })
 
   test('Fetch first 10,000 blocks from RPC and check for valid blocks', async () => {
-    const provider = new RPCProvider(TEST_RPC_URL, RAILGUN_PROXY_ADDRESS)
+    const provider = new RPCProvider(MOCK_RPC_URL, RAILGUN_PROXY_ADDRESS)
     const iterator = provider.from({
       startHeight: RAILGUN_PROXY_DEPLOYMENT_BLOCK,
       endHeight: RAILGUN_PROXY_DEPLOYMENT_BLOCK + 10_000n,
-      chunkSize: 500n,
+      chunkSize: 499n,
       liveSync: false
     })
     for await (const blockInfo of iterator) {
@@ -410,11 +409,11 @@ describe('RPCProvider', () => {
   })
 
   test('Fetch 10,000 blocks and check if they are sorted', async () => {
-    const provider = new RPCProvider(TEST_RPC_URL, RAILGUN_PROXY_ADDRESS)
+    const provider = new RPCProvider(MOCK_RPC_URL, RAILGUN_PROXY_ADDRESS)
     const iterator = provider.from({
       startHeight: RAILGUN_DEPLOYMENT_V2,
       endHeight: RAILGUN_DEPLOYMENT_V2 + 10_000n,
-      chunkSize: 500n,
+      chunkSize: 499n,
       liveSync: false
     })
     let lastBlockNumber = 0n
@@ -435,12 +434,12 @@ describe('RPCProvider', () => {
   })
 
   test('Fetch 10,000 blocks and check if block/transaction/log are valid', async () => {
-    const provider = new RPCProvider(TEST_RPC_URL, RAILGUN_PROXY_ADDRESS)
+    const provider = new RPCProvider(MOCK_RPC_URL, RAILGUN_PROXY_ADDRESS)
     const startHeight = RAILGUN_DEPLOYMENT_V2 + 10_000n
     const iterator = provider.from({
       startHeight,
       endHeight: startHeight + 10_000n,
-      chunkSize: 500n,
+      chunkSize: 499n,
       liveSync: false
     })
     for await (const blockInfo of iterator) {
