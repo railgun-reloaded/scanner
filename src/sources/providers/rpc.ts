@@ -1,6 +1,6 @@
-// eslint-disable-next-line camelcase
+/* eslint camelcase: ["error", {allow: ["RailgunV2_1"]}] */
 import { RailgunV1, RailgunV2, RailgunV2_1 } from '@railgun-reloaded/contract-abis'
-import type { WatchEventReturnType } from 'viem'
+import type { AbiEvent, WatchEventReturnType } from 'viem'
 import { createPublicClient, decodeEventLog, http } from 'viem'
 import { mainnet } from 'viem/chains'
 
@@ -57,7 +57,7 @@ class RpcProvider<T extends EVMBlock> implements DataSource<T> {
   /**
    * List of event fragments in all the version of Railgun
    */
-  eventAbis: any[]
+  eventAbis: AbiEvent[]
 
   /**
    * A flag to indicate if it should continue syncing
@@ -74,10 +74,8 @@ class RpcProvider<T extends EVMBlock> implements DataSource<T> {
     this.rpcURL = rpcURL
     this.railgunProxyAddress = railgunProxyAddress
 
-    // eslint-disable-next-line camelcase
     const combinedAbi = [...RailgunV1, ...RailgunV2, ...RailgunV2_1]
-
-    this.eventAbis = combinedAbi.filter(item => item.type === 'event')
+    this.eventAbis = combinedAbi.filter(item => item.type === 'event') as AbiEvent[]
   }
 
   /**
