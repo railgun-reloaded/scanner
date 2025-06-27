@@ -62,14 +62,14 @@ describe('RPCProvider', () => {
       endHeight: RAILGUN_PROXY_DEPLOYMENT_BLOCK + 1000n,
       chunkSize: 500n,
       liveSync: false
-    }) // 500
+    })
 
     const iterator2 = provider.from({
       startHeight: RAILGUN_PROXY_DEPLOYMENT_BLOCK + 1000n,
       endHeight: RAILGUN_PROXY_DEPLOYMENT_BLOCK + 2000n,
       chunkSize: 500n,
       liveSync: false
-    }) // 300
+    })
 
     // assert count of iterator 1 and 2
 
