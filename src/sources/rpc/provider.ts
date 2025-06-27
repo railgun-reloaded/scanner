@@ -2,7 +2,7 @@
 import { RailgunV1, RailgunV2, RailgunV2_1 } from '@railgun-reloaded/contract-abis'
 import { decodeEventLog } from 'viem'
 
-import type { EVMLog, RailgunTransactionData } from '../../models'
+import type { EVMBlock, EVMLog } from '../../models'
 import type { DataSource, SyncOptions } from '../data-source'
 
 import { RPCConnectionManager } from './connection-manager'
@@ -12,7 +12,7 @@ const DEFAULT_CHUNK_SIZE = 500n
 /**
  * RPC Provider that manages connections and provides iterators for blockchain data
  */
-export class RPCProvider<T extends RailgunTransactionData> implements DataSource<T> {
+export class RPCProvider<T extends EVMBlock> implements DataSource<T> {
   /** The latest height up to which this provider can get data */
   head = 0n
 
@@ -29,7 +29,7 @@ export class RPCProvider<T extends RailgunTransactionData> implements DataSource
   /**
    * List of event fragments in all the version of Railgun
    */
-  eventFragments: any[]
+  eventAbis: any[]
 
   /**
    * Initialize RPC provider with RPC URL and railgun proxy address
@@ -45,23 +45,77 @@ export class RPCProvider<T extends RailgunTransactionData> implements DataSource
     this.connectionManager = new RPCConnectionManager(rpcURL, maxConcurrentRequests)
     this.railgunProxyAddress = railgunProxyAddress
     const combinedAbi = [...RailgunV1, ...RailgunV2, ...RailgunV2_1]
-
     // @TODO remove duplicate events
-    this.eventFragments = combinedAbi.filter(item => item.type === 'event')
+    this.eventAbis = combinedAbi.filter(item => item.type === 'event')
+  }
+
+  /**
+   * Groups and sorts logs by block, transaction, and log index, yielding EVMBlock objects.
+   * @param logs - Array of raw log objects
+   * @returns Array of EVMBlock objects grouped and sorted
+   */
+  sortLogsByBlockTxEvent (logs: Array<any>) : Array<EVMBlock> {
+    const groupedBlockTxEvents : Record<string, EVMBlock> = {}
+    for (const event of logs) {
+      const { blockNumber, blockHash, blockTimestamp } = event
+      if (!groupedBlockTxEvents[blockNumber]) {
+        groupedBlockTxEvents[blockNumber] = {
+          number: BigInt(blockNumber),
+          hash: blockHash,
+          timestamp: BigInt(blockTimestamp ?? 0),
+          transactions: [],
+          internalTransaction: []
+        }
+      }
+      const { logIndex, address, transactionIndex, transactionHash, data, topics } = event
+      try {
+        const decodedLog = decodeEventLog({
+          abi: this.eventAbis,
+          data,
+          topics
+        }) as { name: string, args: Record<string, any> }
+        const evmLog: EVMLog = {
+          index: logIndex,
+          address,
+          name: decodedLog.name,
+          args: decodedLog.args
+        }
+        const transactionInfo = groupedBlockTxEvents[blockNumber].transactions.find((entry) => entry.hash === transactionHash)
+        if (!transactionInfo) {
+          groupedBlockTxEvents[blockNumber].transactions.push({
+            from: address,
+            hash: transactionHash,
+            index: transactionIndex,
+            logs: [evmLog]
+          })
+        } else {
+          transactionInfo.logs.push(evmLog)
+        }
+      } catch {
+        // Error logging for failed event decoding
+        console.error('Failed to decode log: ', topics)
+      }
+    }
+    let blockInfos = Object.values(groupedBlockTxEvents)
+    blockInfos = blockInfos.sort((a, b) => Number(a.number - b.number))
+    for (const block of blockInfos) {
+      block.transactions = block.transactions.sort((a, b) => a.index - b.index)
+      for (const tx of block.transactions) {
+        tx.logs = tx.logs.sort((a, b) => a.index - b.index)
+      }
+    }
+    return blockInfos.filter(block => block.transactions.length !== 0)
   }
 
   /**
    * Create an async iterator with given config
    * @param options - Sync options
-   * @returns AsyncGenerator that returns RailgunTransactionData
-   * @yields RailgunTransactionData - Transaction data from logs
+   * @returns AsyncGenerator that returns EVMBlock
+   * @yields EVMBlock - Block data with grouped/sorted transactions and logs
    */
   async * from (options: SyncOptions): AsyncGenerator<T> {
     /**
-     * 1. Go through all the historical block starting from startHeight to endHeight (latest)
-     * 2. Create a listener for contracts
-     * 3. Start returning data to the user
-     /
+     * Helper function to get minimum of two big ints
      * @param a - lhs
      * @param b - rhs
      * @returns - Return smallest of a and b
@@ -74,82 +128,25 @@ export class RPCProvider<T extends RailgunTransactionData> implements DataSource
 
     let { startHeight, endHeight, chunkSize = DEFAULT_CHUNK_SIZE } = options
     let currentHeight = startHeight
-    let lastBlockNumber = 0n
-
     const client = this.connectionManager.getClient()
     const latestHeight = await client.getBlockNumber()
     if (!latestHeight) throw new Error('Failed to get latest height')
-
     endHeight = endHeight ? minBigInt(endHeight, BigInt(latestHeight)) : BigInt(latestHeight)
-
-    // Validate chunk size
     if (chunkSize === 0n) throw new Error('ChunkSize cannot be zero')
-
-    // Simple sequential iteration - connection manager handles concurrency
     while (currentHeight < endHeight) {
       const batchEndHeight = minBigInt(currentHeight + chunkSize, endHeight)
       const requestId = `iterator_${currentHeight}_${batchEndHeight}`
-
-      // Delegate request handling to connection manager
+      // Use connection manager for log requests
       const logs = await this.connectionManager.submitRequest(
         () => this.createLogRequest(currentHeight, batchEndHeight),
         requestId
       )
-
       if (logs && logs.length > 0) {
-        // Process logs and group by block
-        let data = {}
-        let evmLogs: EVMLog[] = []
-
-        for (const event of logs) {
-          // Check if we have event for new blockNumber
-          if (event.blockNumber !== lastBlockNumber) {
-            // Return the old block data
-            if (evmLogs.length > 0) {
-              yield { ...data, logs: evmLogs } as T
-            }
-
-            lastBlockNumber = event.blockNumber
-            // Reinitialize with new block data
-            const { blockHash, blockNumber, transactionIndex } = event
-            data = {
-              blockHash,
-              blockNumber,
-              transactionIndex,
-              origin: event.address,
-            }
-            // Reset evmLogs
-            evmLogs = []
-          }
-
-          // Decode event log
-          try {
-            const decodedEvmLog = decodeEventLog({
-              abi: this.eventFragments,
-              data: event.data,
-              topics: event.topics
-            }) as { eventName: string, args: Record<string, any> }
-
-            // Insert the event into an array
-            evmLogs.push({
-              address: event.address,
-              name: decodedEvmLog.eventName!,
-              log: decodedEvmLog.args!,
-              index: event.logIndex,
-            })
-          } catch (err) {
-            // We don't care about events we can't decode
-            continue
-          }
-        }
-
-        // Don't forget to yield the last block's data
-        if (evmLogs.length > 0) {
-          yield { ...data, logs: evmLogs } as T
+        const evmBlockData = this.sortLogsByBlockTxEvent(logs)
+        for (const blockData of evmBlockData) {
+          yield blockData as T
         }
       }
-
-      // Update head and current height
       this.head = batchEndHeight
       currentHeight = batchEndHeight
       console.log('Head: ', this.head, ' Remaining: ', endHeight - this.head)

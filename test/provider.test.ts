@@ -382,3 +382,63 @@ describe('Provider tests', () => {
     assert.ok(eventCount >= 0, 'Should handle very small block ranges')
   })
 })
+
+describe('Ported RPCProvider block/tx/log structure tests', () => {
+  const TEST_RPC_URL = MOCK_RPC_URL!
+  const RAILGUN_PROXY_ADDRESS = '0xFA7093CDD9EE6932B4eb2c9e1cde7CE00B1FA4b9' as `0x${string}`
+  const RAILGUN_PROXY_DEPLOYMENT_BLOCK = 14737691n
+  const RAILGUN_DEPLOYMENT_V2 = 16076750n
+
+  test('Fetch first 10,000 blocks from RPC and check for valid blocks', async () => {
+    const provider = new RPCProvider(TEST_RPC_URL, RAILGUN_PROXY_ADDRESS)
+    const iterator = provider.from({
+      startHeight: RAILGUN_PROXY_DEPLOYMENT_BLOCK,
+      endHeight: RAILGUN_PROXY_DEPLOYMENT_BLOCK + 10_000n,
+      chunkSize: 500n
+    })
+    for await (const blockInfo of iterator) {
+      assert.ok(blockInfo, 'BlockInfo is invalid')
+    }
+  })
+
+  test('Fetch 10,000 blocks and check if they are sorted', async () => {
+    const provider = new RPCProvider(TEST_RPC_URL, RAILGUN_PROXY_ADDRESS)
+    const iterator = provider.from({
+      startHeight: RAILGUN_DEPLOYMENT_V2,
+      endHeight: RAILGUN_DEPLOYMENT_V2 + 10_000n,
+      chunkSize: 500n
+    })
+    let lastBlockNumber = 0n
+    for await (const blockInfo of iterator) {
+      assert.ok(blockInfo.number >= lastBlockNumber, 'BlockInfo is not sorted')
+      let lastTransactionIndex = 0
+      for (const tx of blockInfo.transactions) {
+        assert.ok(lastTransactionIndex <= tx.index, 'Transactions in block are not sorted')
+        lastTransactionIndex = tx.index
+        let lastLogIndex = 0
+        for (const log of tx.logs) {
+          assert.ok(lastLogIndex <= log.index, 'Logs are not sorted')
+          lastLogIndex = log.index
+        }
+      }
+      lastBlockNumber = blockInfo.number
+    }
+  })
+
+  test('Fetch 10,000 blocks and check if block/transaction/log are valid', async () => {
+    const provider = new RPCProvider(TEST_RPC_URL, RAILGUN_PROXY_ADDRESS)
+    const startHeight = RAILGUN_DEPLOYMENT_V2 + 10_000n
+    const iterator = provider.from({
+      startHeight,
+      endHeight: startHeight + 10_000n,
+      chunkSize: 500n
+    })
+    for await (const blockInfo of iterator) {
+      assert.ok(blockInfo, 'BlockInfo is invalid')
+      assert.ok(blockInfo.transactions && blockInfo.transactions.length > 0, 'TransactionInfo is invalid')
+      for (const tx of blockInfo.transactions) {
+        assert.ok(tx.logs && tx.logs.length > 0, 'LogInfo is invalid')
+      }
+    }
+  })
+})
