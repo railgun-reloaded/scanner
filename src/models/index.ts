@@ -26,24 +26,30 @@ type EVMLog = {
   index: number
   address: string
   name: string
-  log: Record<string, any>
+  args: Record<string, any>
   // transactionHash: string
 }
 
-type RailgunTransactionData = {
-  blockNumber: bigint;
-  blockHash: string;
-  blockTimestamp: bigint;
-  transactionIndex: number;
-
-  origin: string;
+// Only intended for the data obtained from the call traces
+type RailgunTransactionBatch = {
+  tracePath: number[]
   from: string;
-
-  logs: Array<EVMLog>
-
-  // Call traces information
-  tracePath: [number]
-  input: string
 }
 
-export type { RailgunTransactionData, EVMLog }
+type EVMTransaction = {
+  hash: string;
+  index: number;
+  from: string;
+  logs: EVMLog[]
+}
+
+type EVMBlock = {
+  number: bigint;
+  hash: string;
+  timestamp: bigint;
+  transactions: EVMTransaction[];
+  // Optional only intended for call traces
+  internalTransaction: RailgunTransactionBatch[]
+}
+
+export type { EVMBlock, EVMLog, EVMTransaction }
