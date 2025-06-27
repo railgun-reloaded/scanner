@@ -113,7 +113,7 @@ export class RPCProvider<T extends EVMBlock> implements DataSource<T> {
         }
       } catch {
         // Error logging for failed event decoding
-        console.error('Failed to decode log: ', topics)
+        // console.error('Failed to decode log: ', topics)
       }
     }
     let blockInfos = Object.values(groupedBlockTxEvents)
