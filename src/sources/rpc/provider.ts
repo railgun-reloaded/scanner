@@ -163,7 +163,6 @@ export class RPCProvider<T extends EVMBlock> implements DataSource<T> {
          * @param logs - Event Logs
          */
         onLogs: (logs) => {
-          console.log('LOGS: ', logs)
           // @TODO this is not correct
           liveEventQueue.push(logs as unknown as ViemLog)
         }
