@@ -12,7 +12,10 @@ const MOCK_RPC_URL = process.env['RPC_API_KEY']
 const RAILGUN_PROXY_ADDRESS = '0xFA7093CDD9EE6932B4eb2c9e1cde7CE00B1FA4b9' as `0x${string}`
 const RAILGUN_PROXY_DEPLOYMENT_BLOCK = 14737691n
 
-describe('Provider / Iterator Tests', () => {
+// TODO: Keep track of range of pre defined set of events
+// Verify that both iterators assert same amount of events
+
+describe('Provider tests', () => {
   test('Should create an iterator from a provider', async () => {
     const provider = new RPCProvider(
       MOCK_RPC_URL!,
@@ -56,13 +59,15 @@ describe('Provider / Iterator Tests', () => {
       startHeight: RAILGUN_PROXY_DEPLOYMENT_BLOCK,
       endHeight: RAILGUN_PROXY_DEPLOYMENT_BLOCK + 1000n,
       chunkSize: 400n
-    })
+    }) // 500 
 
     const iterator2 = provider.from({
       startHeight: RAILGUN_PROXY_DEPLOYMENT_BLOCK + 1000n,
       endHeight: RAILGUN_PROXY_DEPLOYMENT_BLOCK + 2000n,
       chunkSize: 400n
-    })
+    }) // 300 
+
+    // assert count of iterator 1 and 2
 
     let iterator1Count = 0
     let iterator2Count = 0

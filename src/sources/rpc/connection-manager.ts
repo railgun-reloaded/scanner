@@ -53,27 +53,28 @@ export class RPCConnectionManager {
    * Submit a new request to the connection manager
    * @param requestFn - Function that returns a promise
    * @param requestId - Unique identifier for the request
-   * @returns Promise that resolves with the request result
+   * @returns Promise that will be resolved or rejected by processQueue
    */
   async submitRequest<T> (
     requestFn: () => Promise<T>,
     requestId: string
   ): Promise<T> {
-    return new Promise<T>((resolve, reject) => {
-      const requestData: RequestData = {
-        id: requestId,
-        requestFn, // Store the function, don't execute it yet
-        resolve,
-        reject
-      }
+    const { resolve, reject, promise } = Promise.withResolvers<T>()
 
-      this.requestQueue.push(requestData)
-      this.processQueue()
-    })
-  }
+    const requestData: RequestData = {
+      id: requestId,
+      requestFn, // Store the function, don't execute it yet
+      resolve,
+      reject
+    }
+
+    this.requestQueue.push(requestData)
+    this.processQueue()
+    return promise
+  };
 
   /**
-   * Process the request queue
+   * Process the request queue, also responsible of resolving or rejecting the promise
    */
   private async processQueue (): Promise<void> {
     if (this.requestQueue.length === 0) {

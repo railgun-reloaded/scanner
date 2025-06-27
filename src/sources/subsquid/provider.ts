@@ -33,15 +33,4 @@ export class SubsquidProvider<T extends RailgunTransactionData> implements DataS
     // TODO: Implement Subsquid data fetching logic
     throw new Error('Subsquid provider not yet implemented')
   }
-
-  /**
-   * Get connection status
-   * @returns Connection status information
-   */
-  getConnectionStatus () {
-    return {
-      status: 'not_implemented',
-      message: 'Subsquid provider is not yet implemented'
-    }
-  }
 }
