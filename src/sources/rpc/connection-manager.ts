@@ -71,7 +71,7 @@ export class RPCConnectionManager {
     this.requestQueue.push(requestData)
     this.processQueue()
     return promise
-  };
+  }
 
   /**
    * Process the request queue, also responsible of resolving or rejecting the promise

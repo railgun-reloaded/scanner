@@ -13,6 +13,6 @@ tsconfig.tsbuildinfo
 tsconfig.test.tsbuildinfo
 
 .env
-coverage/*
+coverage
 *.rgblock
 *.bin.gz

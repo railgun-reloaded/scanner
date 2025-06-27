@@ -1,9 +1,9 @@
-import type { RailgunTransactionData } from '../models'
+import type { EVMBlock } from '../models'
 
 type SyncOptions = {
   startHeight: bigint;
-  endHeight: bigint;
-  liveSource?: boolean;
+  endHeight?: bigint;
+  liveSync: boolean;
   chunkSize?: bigint;
 }
 
@@ -12,7 +12,7 @@ type SyncOptions = {
  * however from the examples not all sources will be able to provide all fields,
  * eg txid, so here it’s set as `extends` to allow flexibility
  */
-interface DataSource<T extends RailgunTransactionData> {
+interface DataSource<T extends EVMBlock> {
   /**
    * The most recent block that this source can provide.
    * For a snapshot, this would be the last event saved
@@ -47,6 +47,11 @@ interface DataSource<T extends RailgunTransactionData> {
    * needs to do any async initialisation logic.
    */
   from(options: SyncOptions) : AsyncGenerator<T>;
+
+  /**
+   * Use to stop the liveProvider from syncing
+   */
+  destroy() : void
 }
 
 export type { DataSource, SyncOptions }

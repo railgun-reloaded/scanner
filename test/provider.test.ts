@@ -8,14 +8,14 @@ import { RPCProvider } from '../src/sources/rpc/provider'
 
 dotenv.config()
 
-const MOCK_RPC_URL = process.env['RPC_API_KEY']
+const MOCK_RPC_URL = process.env['RPC_API_KEY']!
 const RAILGUN_PROXY_ADDRESS = '0xFA7093CDD9EE6932B4eb2c9e1cde7CE00B1FA4b9' as `0x${string}`
 const RAILGUN_PROXY_DEPLOYMENT_BLOCK = 14737691n
-
+const RAILGUN_DEPLOYMENT_V2 = 16076750n
 // TODO: Keep track of range of pre defined set of events
 // Verify that both iterators assert same amount of events
 
-describe('Provider tests', () => {
+describe('RPCProvider', () => {
   test('Should create an iterator from a provider', async () => {
     const provider = new RPCProvider(
       MOCK_RPC_URL!,
@@ -26,7 +26,8 @@ describe('Provider tests', () => {
     const iterator = provider.from({
       startHeight: RAILGUN_PROXY_DEPLOYMENT_BLOCK,
       endHeight: RAILGUN_PROXY_DEPLOYMENT_BLOCK + 10_000n,
-      chunkSize: 499n
+      chunkSize: 499n,
+      liveSync: false
     })
 
     let iteratorCount = 0
@@ -58,14 +59,16 @@ describe('Provider tests', () => {
     const iterator1 = provider.from({
       startHeight: RAILGUN_PROXY_DEPLOYMENT_BLOCK,
       endHeight: RAILGUN_PROXY_DEPLOYMENT_BLOCK + 1000n,
-      chunkSize: 400n
-    }) // 500 
+      chunkSize: 499n,
+      liveSync: false
+    })
 
     const iterator2 = provider.from({
       startHeight: RAILGUN_PROXY_DEPLOYMENT_BLOCK + 1000n,
       endHeight: RAILGUN_PROXY_DEPLOYMENT_BLOCK + 2000n,
-      chunkSize: 400n
-    }) // 300 
+      chunkSize: 499n,
+      liveSync: false
+    })
 
     // assert count of iterator 1 and 2
 
@@ -126,7 +129,8 @@ describe('Provider tests', () => {
       iterator: provider1.from({
         startHeight: RAILGUN_PROXY_DEPLOYMENT_BLOCK,
         endHeight: RAILGUN_PROXY_DEPLOYMENT_BLOCK + 500n,
-        chunkSize: 200n
+        chunkSize: 200n,
+        liveSync: false
       })
     })
 
@@ -136,7 +140,8 @@ describe('Provider tests', () => {
       iterator: provider1.from({
         startHeight: RAILGUN_PROXY_DEPLOYMENT_BLOCK + 500n,
         endHeight: RAILGUN_PROXY_DEPLOYMENT_BLOCK + 1000n,
-        chunkSize: 200n
+        chunkSize: 200n,
+        liveSync: false
       })
     })
 
@@ -146,7 +151,8 @@ describe('Provider tests', () => {
       iterator: provider2.from({
         startHeight: RAILGUN_PROXY_DEPLOYMENT_BLOCK,
         endHeight: RAILGUN_PROXY_DEPLOYMENT_BLOCK + 300n,
-        chunkSize: 150n
+        chunkSize: 150n,
+        liveSync: false
       })
     })
 
@@ -156,7 +162,8 @@ describe('Provider tests', () => {
       iterator: provider2.from({
         startHeight: RAILGUN_PROXY_DEPLOYMENT_BLOCK + 300n,
         endHeight: RAILGUN_PROXY_DEPLOYMENT_BLOCK + 600n,
-        chunkSize: 150n
+        chunkSize: 150n,
+        liveSync: false
       })
     })
 
@@ -166,7 +173,8 @@ describe('Provider tests', () => {
       iterator: provider2.from({
         startHeight: RAILGUN_PROXY_DEPLOYMENT_BLOCK + 600n,
         endHeight: RAILGUN_PROXY_DEPLOYMENT_BLOCK + 900n,
-        chunkSize: 150n
+        chunkSize: 150n,
+        liveSync: false
       })
     })
 
@@ -176,7 +184,8 @@ describe('Provider tests', () => {
       iterator: provider3.from({
         startHeight: RAILGUN_PROXY_DEPLOYMENT_BLOCK,
         endHeight: RAILGUN_PROXY_DEPLOYMENT_BLOCK + 200n,
-        chunkSize: 100n
+        chunkSize: 100n,
+        liveSync: false
       })
     })
 
@@ -231,7 +240,8 @@ describe('Provider tests', () => {
         iterator: lowConcurrencyProvider.from({
           startHeight: RAILGUN_PROXY_DEPLOYMENT_BLOCK + BigInt(i * 100),
           endHeight: RAILGUN_PROXY_DEPLOYMENT_BLOCK + BigInt((i + 1) * 100),
-          chunkSize: 50n
+          chunkSize: 50n,
+          liveSync: false
         })
       })
     }
@@ -278,7 +288,8 @@ describe('Provider tests', () => {
         iterator: moderateProvider.from({
           startHeight: RAILGUN_PROXY_DEPLOYMENT_BLOCK + BigInt(i * 50),
           endHeight: RAILGUN_PROXY_DEPLOYMENT_BLOCK + BigInt((i + 1) * 50),
-          chunkSize: 25n
+          chunkSize: 25n,
+          liveSync: false
         })
       })
     }
@@ -325,7 +336,8 @@ describe('Provider tests', () => {
         iterator: highConcurrencyProvider.from({
           startHeight: RAILGUN_PROXY_DEPLOYMENT_BLOCK + BigInt(i * 30),
           endHeight: RAILGUN_PROXY_DEPLOYMENT_BLOCK + BigInt((i + 1) * 30),
-          chunkSize: 15n
+          chunkSize: 15n,
+          liveSync: false
         })
       })
     }
@@ -368,7 +380,8 @@ describe('Provider tests', () => {
     const edgeCaseIterator = edgeCaseProvider.from({
       startHeight: RAILGUN_PROXY_DEPLOYMENT_BLOCK,
       endHeight: RAILGUN_PROXY_DEPLOYMENT_BLOCK + 1n,
-      chunkSize: 1n
+      chunkSize: 1n,
+      liveSync: false
     })
 
     let eventCount = 0
@@ -381,4 +394,131 @@ describe('Provider tests', () => {
     }
     assert.ok(eventCount >= 0, 'Should handle very small block ranges')
   })
+
+  test('Fetch first 10,000 blocks from RPC and check for valid blocks', async () => {
+    const provider = new RPCProvider(MOCK_RPC_URL, RAILGUN_PROXY_ADDRESS)
+    const iterator = provider.from({
+      startHeight: RAILGUN_PROXY_DEPLOYMENT_BLOCK,
+      endHeight: RAILGUN_PROXY_DEPLOYMENT_BLOCK + 10_000n,
+      chunkSize: 499n,
+      liveSync: false
+    })
+    for await (const blockInfo of iterator) {
+      assert.ok(blockInfo, 'BlockInfo is invalid')
+    }
+  })
+
+  test('Fetch 10,000 blocks and check if they are sorted', async () => {
+    const provider = new RPCProvider(MOCK_RPC_URL, RAILGUN_PROXY_ADDRESS)
+    const iterator = provider.from({
+      startHeight: RAILGUN_DEPLOYMENT_V2,
+      endHeight: RAILGUN_DEPLOYMENT_V2 + 10_000n,
+      chunkSize: 499n,
+      liveSync: false
+    })
+    let lastBlockNumber = 0n
+    for await (const blockInfo of iterator) {
+      assert.ok(blockInfo.number >= lastBlockNumber, 'BlockInfo is not sorted')
+      let lastTransactionIndex = 0
+      for (const tx of blockInfo.transactions) {
+        assert.ok(lastTransactionIndex <= tx.index, 'Transactions in block are not sorted')
+        lastTransactionIndex = tx.index
+        let lastLogIndex = 0
+        for (const log of tx.logs) {
+          assert.ok(lastLogIndex <= log.index, 'Logs are not sorted')
+          lastLogIndex = log.index
+        }
+      }
+      lastBlockNumber = blockInfo.number
+    }
+  })
+
+  test('Fetch 10,000 blocks and check if block/transaction/log are valid', async () => {
+    const provider = new RPCProvider(MOCK_RPC_URL, RAILGUN_PROXY_ADDRESS)
+    const startHeight = RAILGUN_DEPLOYMENT_V2 + 10_000n
+    const iterator = provider.from({
+      startHeight,
+      endHeight: startHeight + 10_000n,
+      chunkSize: 499n,
+      liveSync: false
+    })
+    for await (const blockInfo of iterator) {
+      assert.ok(blockInfo, 'BlockInfo is invalid')
+      assert.ok(blockInfo.transactions && blockInfo.transactions.length > 0, 'TransactionInfo is invalid')
+      for (const tx of blockInfo.transactions) {
+        assert.ok(tx.logs && tx.logs.length > 0, 'LogInfo is invalid')
+      }
+    }
+  })
+
+  test('Should retrieve exact number of events from fixed set of blocks', async () => {
+    const provider = new RPCProvider(MOCK_RPC_URL, RAILGUN_PROXY_ADDRESS)
+
+    const knownBlockEnd = 14779012n
+    const knownBlockStart = 14777791n
+
+    const knownNumberOfBlocks = 4
+    const knownNumberOfLogs = 9
+
+    const knownNumberOfBlocks2 = 8
+    const knownNumberOfLogs2 = 16
+
+    const iterator = provider.from({
+      startHeight: knownBlockStart,
+      endHeight: knownBlockEnd,
+      chunkSize: 499n,
+      liveSync: false
+    })
+
+    const knownBlockEnd2 = 14777438n
+    const knownBlockStart2 = 14771383n
+
+    const iterator2 = provider.from({
+      startHeight: knownBlockStart2,
+      endHeight: knownBlockEnd2,
+      chunkSize: 499n,
+      liveSync: false
+    })
+
+    let blockCount = 0
+    let logCount = 0
+
+    for await (const _data of iterator) {
+      blockCount++
+      logCount += _data.transactions.reduce((acc, tx) => acc + tx.logs.length, 0)
+    }
+
+    let blockCount2 = 0
+    let logCount2 = 0
+    for await (const _data of iterator2) {
+      blockCount2++
+      logCount2 += _data.transactions.reduce((acc, tx) => acc + tx.logs.length, 0)
+    }
+
+    assert.ok(blockCount === knownNumberOfBlocks, 'Should retrieve exact number of blocks from fixed set of block range')
+    assert.ok(blockCount2 === knownNumberOfBlocks2, 'Should retrieve exact number of blocks from fixed set of block range')
+    assert.ok(logCount === knownNumberOfLogs, 'Should retrieve exact number of logs from fixed set of block range')
+    assert.ok(logCount2 === knownNumberOfLogs2, 'Should retrieve exact number of logs from fixed set of block range')
+  })
 })
+
+/*
+test('Listen for most recent events', async () => {
+  const provider = new RPCProvider(TEST_RPC_URL, RAILGUN_PROXY_ADDRESS)
+
+  setTimeout(() => {
+    provider.destroy()
+  }, 10_000)
+
+  const startHeight = 22792284n
+  const iterator = provider.from({
+    startHeight,
+    chunkSize: 500n,
+    liveSync: true
+  })
+
+  for await (const blockInfo of iterator) {
+    console.log(blockInfo)
+  }
+})
+*/

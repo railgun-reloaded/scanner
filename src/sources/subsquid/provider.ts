@@ -1,11 +1,11 @@
-import type { RailgunTransactionData } from '../../models'
+import type { EVMBlock } from '../../models'
 import type { DataSource, SyncOptions } from '../data-source'
 
 /**
  * Subsquid Provider for fetching data from Subsquid indexers
  * This is a placeholder for future implementation
  */
-export class SubsquidProvider<T extends RailgunTransactionData> implements DataSource<T> {
+export class SubsquidProvider<T extends EVMBlock> implements DataSource<T> {
   /** The latest height up to which this provider can get data */
   head = 0n
 
@@ -32,5 +32,13 @@ export class SubsquidProvider<T extends RailgunTransactionData> implements DataS
   async * from (_options: SyncOptions): AsyncGenerator<T> {
     // TODO: Implement Subsquid data fetching logic
     throw new Error('Subsquid provider not yet implemented')
+  }
+
+  /**
+   * Destroy the Subsquid connection
+   */
+  destroy () {
+    // TODO: Implement Subsquid connection destruction logic
+    console.log('Subsquid connection destroyed')
   }
 }
