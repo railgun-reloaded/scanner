@@ -191,7 +191,6 @@ export class RPCProvider<T extends EVMBlock> implements DataSource<T> {
       }
       this.head = batchEndHeight
       currentHeight = batchEndHeight
-      console.log('Head: ', this.head, ' Remaining: ', endHeight - this.head)
     }
 
     // if it is a live source, we should wait until new events are available
