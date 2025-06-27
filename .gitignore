@@ -10,7 +10,7 @@ test/**/*.js
 
 # Build files
 tsconfig.tsbuildinfo
-
+tsconfig.test.tsbuildinfo
 
 .env
 coverage/*
