@@ -1,5 +1,6 @@
 // eslint-disable-next-line camelcase
 import { RailgunV1, RailgunV2, RailgunV2_1 } from '@railgun-reloaded/contract-abis'
+import type { WatchEventReturnType } from 'viem'
 import { createPublicClient, decodeEventLog, http } from 'viem'
 import { mainnet } from 'viem/chains'
 
@@ -56,6 +57,12 @@ class RpcProvider<T extends EVMBlock> implements DataSource<T> {
    * List of event fragments in all the version of Railgun
    */
   eventAbis: any[]
+
+  /**
+   * A flag to indicate if it should continue syncing
+   * Is only applicable for the liveProvider
+   */
+  stopSyncing: boolean = false
 
   /**
    * Initialize a rpc provider with rpc url
@@ -182,6 +189,26 @@ class RpcProvider<T extends EVMBlock> implements DataSource<T> {
 
     if (!this.railgunProxyAddress || this.railgunProxyAddress.length === 0) { throw new Error(`Railgun Proxy Address is invalid: ${this.railgunProxyAddress}`) }
 
+    /**
+     * Initialize a listener so that it can listen to the events
+     */
+    let liveEventQueue: ViemLog[] = []
+    let unwatchEvent : WatchEventReturnType | null = null
+    if (!endHeight && options.liveSync) {
+      unwatchEvent = client.watchEvent({
+        address: this.railgunProxyAddress,
+        /**
+         * Callback to listen to live events
+         * @param logs - Event Logs
+         */
+        onLogs: (logs) => {
+          console.log('LOGS: ', logs)
+          // @TODO this is not correct
+          liveEventQueue.push(logs as unknown as ViemLog)
+        }
+      })
+    }
+
     const latestHeight = await client.getBlockNumber()
     if (!latestHeight) throw new Error('Failed to get latest height')
 
@@ -249,6 +276,34 @@ class RpcProvider<T extends EVMBlock> implements DataSource<T> {
 
     // Increment the head for the block that doesn't have data
     currentHead = minBigInt(currentHead + chunkSize, endHeight)
+
+    // if it is a live source, we should wait until new events are available
+    if (options.liveSync) {
+      console.log('Switching to live event listener ...')
+      while (!this.stopSyncing) {
+        /*
+        const evmBlockData = this.sortLogsByBlockTxEvent(liveEventQueue)
+        for (const blockData of evmBlockData) {
+          yield blockData as T
+        }
+        */
+        // if (liveEventQueue.length > 0) { console.log('LOGS', liveEventQueue) }
+        liveEventQueue = []
+        await new Promise((resolve) => setTimeout(resolve, 12))
+      }
+
+      // Stop listening for the live events
+      if (unwatchEvent) {
+        unwatchEvent()
+      }
+    }
+  }
+
+  /**
+   * Stop provider from syncing if it is
+   */
+  destroy (): void {
+    this.stopSyncing = true
   }
 }
 

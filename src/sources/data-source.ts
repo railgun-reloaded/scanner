@@ -2,8 +2,8 @@ import type { EVMBlock } from '../models'
 
 type SyncOptions = {
   startHeight: bigint;
-  endHeight: bigint;
-  liveSource?: boolean;
+  endHeight?: bigint;
+  liveSync: boolean;
   chunkSize?: bigint;
 }
 
@@ -47,6 +47,11 @@ interface DataSource<T extends EVMBlock> {
    * needs to do any async initialisation logic.
    */
   from(options: SyncOptions) : AsyncGenerator<T>;
+
+  /**
+   * Use to stop the liveProvider from syncing
+   */
+  destroy() : void
 }
 
 export type { DataSource, SyncOptions }
