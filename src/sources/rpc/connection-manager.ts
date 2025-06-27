@@ -59,19 +59,24 @@ export class RPCConnectionManager {
     requestFn: () => Promise<T>,
     requestId: string
   ): Promise<T> {
-    const { resolve, reject, promise } = Promise.withResolvers<T>()
+    let resolve: (value: T) => void
+    let reject: (reason?: any) => void
+    const promise = new Promise<T>((_resolve, _reject) => {
+      resolve = _resolve
+      reject = _reject
+    })
 
     const requestData: RequestData = {
       id: requestId,
       requestFn, // Store the function, don't execute it yet
-      resolve,
-      reject
+      resolve: resolve!,
+      reject: reject!
     }
 
     this.requestQueue.push(requestData)
     this.processQueue()
     return promise
-  };
+  }
 
   /**
    * Process the request queue, also responsible of resolving or rejecting the promise
