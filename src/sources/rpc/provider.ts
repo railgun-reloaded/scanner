@@ -198,13 +198,10 @@ export class RPCProvider<T extends EVMBlock> implements DataSource<T> {
     if (liveSync) {
       console.log('Switching to live event listener ...')
       while (!this.stopSyncing) {
-        /*
         const evmBlockData = this.sortLogsByBlockTxEvent(liveEventQueue)
         for (const blockData of evmBlockData) {
           yield blockData as T
         }
-        */
-        // if (liveEventQueue.length > 0) { console.log('LOGS', liveEventQueue) }
         liveEventQueue = []
         await new Promise((resolve) => setTimeout(resolve, 12))
       }
