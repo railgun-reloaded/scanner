@@ -21,16 +21,18 @@ enum RailgunEvents {
   EUnshieldV2_1,
   ENullifiedV2_1
 }
-
+*/
 type EVMLog = {
   index: number
   address: string
-  name: RailgunEvents
+  name: string
   log: Record<string, any>
+  // transactionHash: string
 }
-/*
+
 type RailgunTransactionData = {
   blockNumber: bigint;
+  blockHash: string;
   blockTimestamp: bigint;
   transactionIndex: number;
 
@@ -41,10 +43,7 @@ type RailgunTransactionData = {
 
   // Call traces information
   tracePath: [number]
-  input: RailgunFunctions
+  input: string
 }
-*/
 
-type RailgunTransactionData = any
-
-export type { RailgunTransactionData, /* EVMLog */ }
+export type { RailgunTransactionData, EVMLog }

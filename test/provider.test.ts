@@ -59,13 +59,13 @@ describe('Provider tests', () => {
       startHeight: RAILGUN_PROXY_DEPLOYMENT_BLOCK,
       endHeight: RAILGUN_PROXY_DEPLOYMENT_BLOCK + 1000n,
       chunkSize: 400n
-    }) // 500 
+    }) // 500
 
     const iterator2 = provider.from({
       startHeight: RAILGUN_PROXY_DEPLOYMENT_BLOCK + 1000n,
       endHeight: RAILGUN_PROXY_DEPLOYMENT_BLOCK + 2000n,
       chunkSize: 400n
-    }) // 300 
+    }) // 300
 
     // assert count of iterator 1 and 2
 
