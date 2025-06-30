@@ -4,7 +4,7 @@ import { describe, test } from 'node:test'
 
 import dotenv from 'dotenv'
 
-import { RPCProvider } from '../src/sources/rpc/provider'
+import { RPCProvider } from '../src/sources'
 
 dotenv.config()
 
