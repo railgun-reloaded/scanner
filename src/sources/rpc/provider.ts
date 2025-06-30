@@ -93,11 +93,11 @@ export class RPCProvider<T extends EVMBlock> implements DataSource<T> {
           abi: this.eventAbis,
           data,
           topics
-        }) as { name: string, args: Record<string, any> }
+        }) as { eventName: string, args: Record<string, any> }
         const evmLog: EVMLog = {
           index: logIndex,
           address,
-          name: decodedLog.name,
+          name: decodedLog.eventName,
           args: decodedLog.args
         }
         const transactionInfo = groupedBlockTxEvents[blockNumber].transactions.find((entry) => entry.hash === transactionHash)
