@@ -148,7 +148,7 @@ export class RPCProvider<T extends EVMBlock> implements DataSource<T> {
 
     let { startHeight, endHeight, chunkSize = DEFAULT_CHUNK_SIZE, liveSync = false } = options
     let currentHeight = startHeight
-    const client = this.#connectionManager.client
+    const client = this.#connectionManager.getClient()
 
     /**
      * Initialize a listener so that it can listen to the events
@@ -219,7 +219,7 @@ export class RPCProvider<T extends EVMBlock> implements DataSource<T> {
    * @returns Promise resolving to logs
    */
   private async createLogRequest (fromBlock: bigint, toBlock: bigint): Promise<any[]> {
-    const client = this.#connectionManager.client
+    const client = this.#connectionManager.getClient()
     const logs = await client.getLogs({
       address: this.#railgunProxyAddress,
       fromBlock,
@@ -232,8 +232,8 @@ export class RPCProvider<T extends EVMBlock> implements DataSource<T> {
    * Get the underlying viem client
    * @returns The viem PublicClient instance
    */
-  get client () {
-    return this.#connectionManager.client
+  getClient () {
+    return this.#connectionManager.getClient()
   }
 
   /**
