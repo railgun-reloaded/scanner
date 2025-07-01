@@ -37,9 +37,9 @@ export class RPCProvider<T extends EVMBlock> implements DataSource<T> {
   isLiveProvider = true
 
   /** RPC Connection manager instance */
-  private connectionManager: RPCConnectionManager
+  #connectionManager: RPCConnectionManager
   /** Railgun proxy contract address */
-  private railgunProxyAddress: `0x${string}`
+  #railgunProxyAddress: `0x${string}`
   /**
    * List of event fragments in all the version of Railgun
    */
@@ -62,8 +62,8 @@ export class RPCProvider<T extends EVMBlock> implements DataSource<T> {
     railgunProxyAddress: `0x${string}`,
     maxConcurrentRequests: number = 5
   ) {
-    this.connectionManager = new RPCConnectionManager(rpcURL, maxConcurrentRequests)
-    this.railgunProxyAddress = railgunProxyAddress
+    this.#connectionManager = new RPCConnectionManager(rpcURL, maxConcurrentRequests)
+    this.#railgunProxyAddress = railgunProxyAddress
     const combinedAbi = [...RailgunV1, ...RailgunV2, ...RailgunV2_1]
     // @TODO remove duplicate events
     this.eventAbis = combinedAbi.filter(item => item.type === 'event')
@@ -142,13 +142,13 @@ export class RPCProvider<T extends EVMBlock> implements DataSource<T> {
      */
     const minBigInt = (a: bigint, b: bigint) => a < b ? a : b
 
-    if (!this.railgunProxyAddress || this.railgunProxyAddress.length === 0) {
-      throw new Error(`Railgun Proxy Address is invalid: ${this.railgunProxyAddress}`)
+    if (!this.#railgunProxyAddress || this.#railgunProxyAddress.length === 0) {
+      throw new Error(`Railgun Proxy Address is invalid: ${this.#railgunProxyAddress}`)
     }
 
     let { startHeight, endHeight, chunkSize = DEFAULT_CHUNK_SIZE, liveSync = false } = options
     let currentHeight = startHeight
-    const client = this.connectionManager.getClient()
+    const client = this.#connectionManager.getClient()
 
     /**
      * Initialize a listener so that it can listen to the events
@@ -157,7 +157,7 @@ export class RPCProvider<T extends EVMBlock> implements DataSource<T> {
     let unwatchEvent : WatchEventReturnType | null = null
     if (!endHeight && liveSync) {
       unwatchEvent = client.watchEvent({
-        address: this.railgunProxyAddress,
+        address: this.#railgunProxyAddress,
         /**
          * Callback to listen to live events
          * @param logs - Event Logs
@@ -179,7 +179,7 @@ export class RPCProvider<T extends EVMBlock> implements DataSource<T> {
       const batchEndHeight = minBigInt(currentHeight + chunkSize, endHeight)
       const requestId = `iterator_${currentHeight}_${batchEndHeight}`
       // Use connection manager for log requests
-      const logs = await this.connectionManager.submitRequest(
+      const logs = await this.#connectionManager.submitRequest(
         () => this.createLogRequest(currentHeight, batchEndHeight),
         requestId
       )
@@ -219,9 +219,9 @@ export class RPCProvider<T extends EVMBlock> implements DataSource<T> {
    * @returns Promise resolving to logs
    */
   private async createLogRequest (fromBlock: bigint, toBlock: bigint): Promise<any[]> {
-    const client = this.connectionManager.getClient()
+    const client = this.#connectionManager.getClient()
     const logs = await client.getLogs({
-      address: this.railgunProxyAddress,
+      address: this.#railgunProxyAddress,
       fromBlock,
       toBlock
     })
@@ -233,7 +233,7 @@ export class RPCProvider<T extends EVMBlock> implements DataSource<T> {
    * @returns The viem PublicClient instance
    */
   getClient () {
-    return this.connectionManager.getClient()
+    return this.#connectionManager.getClient()
   }
 
   /**

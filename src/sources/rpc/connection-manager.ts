@@ -23,15 +23,15 @@ export class RPCConnectionManager {
   /**
    * The viem client instance
    */
-  private client: PublicClient
+  #client: PublicClient
   /**
    * Queue of pending requests
    */
-  private requestQueue: RequestData[] = []
+  #requestQueue: RequestData[] = []
   /**
    * Maximum concurrent requests allowed
    */
-  private maxConcurrentRequests: number
+  #maxConcurrentRequests: number
 
   /**
    * Initialize RPC connection manager
@@ -42,11 +42,11 @@ export class RPCConnectionManager {
     rpcURL: string,
     maxConcurrentRequests: number = 5
   ) {
-    this.client = createPublicClient({
+    this.#client = createPublicClient({
       chain: mainnet,
       transport: http(rpcURL)
     })
-    this.maxConcurrentRequests = maxConcurrentRequests // this is set to define batch size
+    this.#maxConcurrentRequests = maxConcurrentRequests // this is set to define batch size
   }
 
   /**
@@ -68,7 +68,7 @@ export class RPCConnectionManager {
       reject
     }
 
-    this.requestQueue.push(requestData)
+    this.#requestQueue.push(requestData)
     this.processQueue()
     return promise
   }
@@ -77,13 +77,13 @@ export class RPCConnectionManager {
    * Process the request queue, also responsible of resolving or rejecting the promise
    */
   private async processQueue (): Promise<void> {
-    if (this.requestQueue.length === 0) {
+    if (this.#requestQueue.length === 0) {
       return
     }
 
     setImmediate(async () => {
-      const batchSize = Math.min(this.maxConcurrentRequests, this.requestQueue.length)
-      const batch = this.requestQueue.splice(0, batchSize)
+      const batchSize = Math.min(this.#maxConcurrentRequests, this.#requestQueue.length)
+      const batch = this.#requestQueue.splice(0, batchSize)
 
       if (batch.length === 0) return
 
@@ -107,7 +107,7 @@ export class RPCConnectionManager {
         })
       } finally {
         // Continue processing the queue if there are more requests
-        if (this.requestQueue.length > 0) {
+        if (this.#requestQueue.length > 0) {
           this.processQueue()
         }
       }
@@ -119,6 +119,6 @@ export class RPCConnectionManager {
    * @returns The viem PublicClient instance
    */
   getClient (): PublicClient {
-    return this.client
+    return this.#client
   }
 }
