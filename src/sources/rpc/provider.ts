@@ -43,13 +43,13 @@ export class RPCProvider<T extends EVMBlock> implements DataSource<T> {
   /**
    * List of event fragments in all the version of Railgun
    */
-  eventAbis: any[]
+  #eventAbis: any[]
 
   /**
    * A flag to indicate if it should continue syncing
    * Is only applicable for the liveProvider
    */
-  stopSyncing: boolean = false
+  #stopSyncing: boolean = false
 
   /**
    * Initialize RPC provider with RPC URL and railgun proxy address
@@ -66,7 +66,7 @@ export class RPCProvider<T extends EVMBlock> implements DataSource<T> {
     this.#railgunProxyAddress = railgunProxyAddress
     const combinedAbi = [...RailgunV1, ...RailgunV2, ...RailgunV2_1]
     // @TODO remove duplicate events
-    this.eventAbis = combinedAbi.filter(item => item.type === 'event')
+    this.#eventAbis = combinedAbi.filter(item => item.type === 'event')
   }
 
   /**
@@ -90,7 +90,7 @@ export class RPCProvider<T extends EVMBlock> implements DataSource<T> {
       const { logIndex, address, transactionIndex, transactionHash, data, topics } = event
       try {
         const decodedLog = decodeEventLog({
-          abi: this.eventAbis,
+          abi: this.#eventAbis,
           data,
           topics
         }) as { eventName: string, args: Record<string, any> }
@@ -196,7 +196,7 @@ export class RPCProvider<T extends EVMBlock> implements DataSource<T> {
     // if it is a live source, we should wait until new events are available
     if (liveSync) {
       console.log('Switching to live event listener ...')
-      while (!this.stopSyncing) {
+      while (!this.#stopSyncing) {
         const evmBlockData = this.sortLogsByBlockTxEvent(liveEventQueue)
         for (const blockData of evmBlockData) {
           yield blockData as T
@@ -240,6 +240,6 @@ export class RPCProvider<T extends EVMBlock> implements DataSource<T> {
    * Stop provider from syncing if it is
    */
   destroy (): void {
-    this.stopSyncing = true
+    this.#stopSyncing = true
   }
 }
