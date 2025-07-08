@@ -118,7 +118,7 @@ export class RPCConnectionManager {
    * Get the underlying viem client
    * @returns The viem PublicClient instance
    */
-  getClient (): PublicClient {
+  get client (): PublicClient {
     return this.#client
   }
 }
