@@ -1,4 +1,4 @@
-import { JSONRPCRequest, JSONRPCResponse } from './types.js'
+// No imports needed - all types are used inline
 
 /**
  * Create a JSON-RPC request object.
