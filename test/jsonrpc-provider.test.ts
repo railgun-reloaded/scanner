@@ -208,5 +208,13 @@ describe('JSONRPCProvider', () => {
       assert.ok(totalTransactions >= 0, 'Should process transactions')
       assert.ok(totalLogs >= 0, 'Should process logs')
     })
+
+    test('Should detect WebSocket support correctly', async () => {
+      const httpProvider = new JSONRPCProvider(RPC_URL, RAILGUN_PROXY_ADDRESS, 1000, true)
+      const wsProvider = new JSONRPCProvider('ws://localhost:8546', RAILGUN_PROXY_ADDRESS, 1000, true)
+
+      assert.ok(!httpProvider.client.supportsWebSocket, 'HTTP URL should not support WebSocket')
+      assert.ok(wsProvider.client.supportsWebSocket, 'WebSocket URL should support WebSocket')
+    })
   })
 })

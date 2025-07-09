@@ -20,6 +20,19 @@ type Req = ReturnType<typeof jsonrpc>
 let i = 1
 
 /**
+ * WebSocket subscription handler
+ */
+type SubscriptionHandler = (data: any) => void
+
+/**
+ * WebSocket subscription info
+ */
+interface Subscription {
+  id: string
+  handler: SubscriptionHandler
+}
+
+/**
  * JSON-RPC client with automatic request batching based on railgun-data-sync pattern.
  * To take full advantage of batching, care must be taken around awaiting requests.
  * Normally one would be would `await` an async call to suspend execution, such that async code reads in a linear fashion.
@@ -52,6 +65,21 @@ class JSONRPCClient {
    * Enable logging for batch operations
    */
   #enableLogging: boolean
+
+  /**
+   * WebSocket connection for subscriptions
+   */
+  #ws: WebSocket | null = null
+
+  /**
+   * Active subscriptions
+   */
+  #subscriptions: Map<string, Subscription> = new Map()
+
+  /**
+   * WebSocket connection promise
+   */
+  #wsConnected: Promise<void> | null = null
 
   /**
    * Create a new RPC client.
@@ -162,6 +190,130 @@ class JSONRPCClient {
    */
   async call<T>(method: string, params?: any): Promise<T> {
     return this.request<T>(jsonrpc(method, params))
+  }
+
+  /**
+   * Check if URL supports WebSocket
+   */
+  get supportsWebSocket(): boolean {
+    return this.#url.protocol === 'ws:' || this.#url.protocol === 'wss:'
+  }
+
+  /**
+   * Connect to WebSocket if supported
+   */
+  async #connectWebSocket(): Promise<void> {
+    if (!this.supportsWebSocket) {
+      throw new Error('WebSocket not supported for this URL')
+    }
+
+    if (this.#wsConnected) {
+      return this.#wsConnected
+    }
+
+    this.#wsConnected = new Promise((resolve, reject) => {
+      const wsUrl = this.#url.toString()
+      this.#log(`[JSONRPCClient] Connecting to WebSocket: ${wsUrl}`)
+      
+      this.#ws = new WebSocket(wsUrl)
+      
+      this.#ws.onopen = () => {
+        this.#log('[JSONRPCClient] WebSocket connected')
+        resolve()
+      }
+      
+      this.#ws.onerror = (error) => {
+        this.#log(`[JSONRPCClient] WebSocket error: ${error}`)
+        reject(error)
+      }
+      
+      this.#ws.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data)
+          this.#handleWebSocketMessage(data)
+        } catch (error) {
+          this.#log(`[JSONRPCClient] Failed to parse WebSocket message: ${error}`)
+        }
+      }
+      
+      this.#ws.onclose = () => {
+        this.#log('[JSONRPCClient] WebSocket disconnected')
+        this.#ws = null
+        this.#wsConnected = null
+      }
+    })
+
+    return this.#wsConnected
+  }
+
+  /**
+   * Handle incoming WebSocket messages
+   */
+  #handleWebSocketMessage(data: any): void {
+    if (data.method === 'eth_subscription') {
+      const subscriptionId = data.params?.subscription
+      const result = data.params?.result
+      
+      if (subscriptionId && result) {
+        const subscription = this.#subscriptions.get(subscriptionId)
+        if (subscription) {
+          this.#log(`[JSONRPCClient] Received subscription data for ${subscriptionId}`)
+          subscription.handler(result)
+        }
+      }
+    }
+  }
+
+  /**
+   * Subscribe to events via WebSocket
+   * @param type - Subscription type (e.g., 'logs', 'newHeads')
+   * @param params - Subscription parameters
+   * @param handler - Event handler function
+   * @returns Subscription ID
+   */
+  async subscribe(type: string, params: any, handler: SubscriptionHandler): Promise<string> {
+    if (!this.supportsWebSocket) {
+      throw new Error('WebSocket subscriptions not supported for this URL')
+    }
+
+    await this.#connectWebSocket()
+
+    const subscriptionId = await this.call<string>('eth_subscribe', [type, params])
+    
+    this.#subscriptions.set(subscriptionId, {
+      id: subscriptionId,
+      handler
+    })
+
+    this.#log(`[JSONRPCClient] Created subscription ${subscriptionId} for ${type}`)
+    return subscriptionId
+  }
+
+  /**
+   * Unsubscribe from events
+   * @param subscriptionId - Subscription ID to unsubscribe
+   */
+  async unsubscribe(subscriptionId: string): Promise<void> {
+    if (!this.#ws || !this.#subscriptions.has(subscriptionId)) {
+      return
+    }
+
+    await this.call('eth_unsubscribe', subscriptionId)
+    this.#subscriptions.delete(subscriptionId)
+    this.#log(`[JSONRPCClient] Unsubscribed from ${subscriptionId}`)
+  }
+
+  /**
+   * Close WebSocket connection and clean up subscriptions
+   */
+  destroy(): void {
+    if (this.#ws) {
+      this.#ws.close()
+      this.#ws = null
+      this.#wsConnected = null
+    }
+    this.#subscriptions.clear()
+    this.#log('[JSONRPCClient] Client destroyed')
   }
 }
 
