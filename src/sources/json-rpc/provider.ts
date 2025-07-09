@@ -20,7 +20,6 @@ interface JsonRPCProviderLog {
 
 /**
  * JSON RPC Provider that manages connections and provides iterators for blockchain data
- * Uses the custom JSONRPCClient with railgun-data-sync style batching
  */
 export class JSONRPCProvider<T extends EVMBlock> implements DataSource<T> {
   /** The latest height up to which this provider can get data */
@@ -79,8 +78,6 @@ export class JSONRPCProvider<T extends EVMBlock> implements DataSource<T> {
       }
       const { logIndex, address, transactionIndex, transactionHash, data, topics } = event
       try {
-        // Note: For now, we'll create a simple EVMLog without decoding
-        // Event decoding would require viem or similar library
         const evmLog: EVMLog = {
           index: logIndex,
           address,
@@ -99,8 +96,8 @@ export class JSONRPCProvider<T extends EVMBlock> implements DataSource<T> {
           transactionInfo.logs.push(evmLog)
         }
       } catch {
-        // Error logging for failed event processing
-        // console.error('Failed to process log: ', topics)
+        // @@ TODO: Error handling
+        console.error('Failed to process log: ', topics)
       }
     }
     let blockInfos = Object.values(groupedBlockTxEvents)
@@ -144,11 +141,9 @@ export class JSONRPCProvider<T extends EVMBlock> implements DataSource<T> {
     endHeight = endHeight ? minBigInt(endHeight, latestHeightBigInt) : latestHeightBigInt
     if (chunkSize === 0n) throw new Error('ChunkSize cannot be zero')
 
-    // Process historical blocks
     while (currentHeight < endHeight) {
       const batchEndHeight = minBigInt(currentHeight + chunkSize, endHeight)
       const requestId = `iterator_${currentHeight}_${batchEndHeight}`
-      // Use connection manager for log requests
       const logs = await this.#connectionManager.submitRequest(
         () => this.createLogRequest(currentHeight, batchEndHeight),
         requestId
@@ -163,8 +158,6 @@ export class JSONRPCProvider<T extends EVMBlock> implements DataSource<T> {
       currentHeight = batchEndHeight
     }
 
-    // Note: Live sync is not implemented yet for JSON-RPC provider
-    // This would require implementing eth_newFilter and eth_getFilterChanges
     if (liveSync) {
       console.warn('Live sync is not yet implemented for JSONRPCProvider')
       // TODO: Use this.#stopSyncing when implementing live sync
