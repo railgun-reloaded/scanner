@@ -23,7 +23,8 @@
     "build": "tsc --build",
     "clean": "tsc --build --clean",
     "pretest": "npm run build",
-    "test": "node --test --enable-source-maps test/*.js"
+    "test": "node --test --enable-source-maps test/*.js",
+    "coverage": "c8 --reporter=text --reporter=html --exclude=test npm test"
   },
   "keywords": [
     "subsquid",
@@ -42,5 +43,8 @@
     "eslint": "^9.29.0",
     "typescript": "^5.8.3",
     "viem": "^2.31.4"
+  },
+  "devDependencies": {
+    "c8": "^10.1.3"
   }
 }
