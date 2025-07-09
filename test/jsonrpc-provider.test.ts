@@ -180,4 +180,5 @@ describe('JSONRPCProvider', () => {
       console.log(`Provider 1 processed ${results[0]} blocks, Provider 2 processed ${results[1]} blocks`)
       assert.ok(results.every(count => count >= 0), 'Both providers should complete successfully')
     })
+  })
 })
