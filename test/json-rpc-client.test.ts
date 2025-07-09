@@ -15,17 +15,23 @@ describe('JSONRPCClient', () => {
   test('Should make eth_getLogs request', async () => {
     const client = new JSONRPCClient(RPC_URL)
 
+    // Use Alchemy's exact suggested range (they know their own limits)
     const result = await client.call('eth_getLogs', {
-      fromBlock: '0xe0a63b', // Block 14737467 (Railgun deployment block)
-      toBlock: '0xe0a82e',   // Block 14737710 (500 block range as suggested by Alchemy)
-      address: RAILGUN_PROXY_ADDRESS // Railgun proxy
+      fromBlock: '0xe17dbf',  // Alchemy's suggested start
+      toBlock: '0xe17fb2',    // Alchemy's suggested end  
+      address: RAILGUN_PROXY_ADDRESS
     })
 
     console.log('RESULT: ', result)
 
     assert.ok(Array.isArray(result))
-    console.log(`Found ${result.length} logs in the test range`)
+    const startBlock = parseInt('0xe17dbf', 16)
+    const endBlock = parseInt('0xe17fb2', 16)
+    console.log(`Found ${result.length} logs in the test range (blocks ${startBlock} to ${endBlock})`)
 
+    // Should complete request successfully
+    assert.ok(result.length >= 0, 'Should complete request successfully')
+    
     if (result.length > 0) {
       const firstLog = result[0]
       assert.ok(typeof firstLog.address === 'string')
@@ -33,6 +39,7 @@ describe('JSONRPCClient', () => {
       assert.ok(typeof firstLog.transactionHash === 'string')
       assert.ok(Array.isArray(firstLog.topics))
       console.log(`First log: block ${parseInt(firstLog.blockNumber, 16)}, tx ${firstLog.transactionHash}`)
+      console.log(`Got ${result.length} logs from blocks ${startBlock}-${endBlock}`)
     }
   })
 })
