@@ -1,64 +1,47 @@
-// /**
-//  * Request interface for connection manager
-//  */
-// interface RequestData {
-//   /** Unique identifier for the request */
-//   id: string
-//   /** The function that returns a promise (not executed yet) */
-//   requestFn: () => Promise<any>
-//   /** Function to resolve the promise */
-//   resolve: (value: any) => void
-//   /** Function to reject the promise */
-//   reject: (error: any) => void
-// }
+import { JSONRPCClient } from './client'
 
-// /**
-//  * RPC Connection Manager handles JSON RPC requests
-//  */
-// export class JSONRPCConnectionManager {
-//   /**
-//    * The JSON RPC client instance
-//    */
-//   #client: any
-//   /**
-//    * Queue of pending requests
-//    */
-//   #requestQueue: RequestData[] = []
-//   /**
-//    * Maximum concurrent requests allowed
-//    */
-//   #maxConcurrentRequests: number
+/**
+ * JSON RPC Connection Manager handles JSON RPC requests using the custom JSONRPCClient
+ * This connection manager is designed to work with the railgun-data-sync style batching
+ */
+export class JSONRPCConnectionManager {
+  /**
+   * The JSON RPC client instance
+   */
+  #client: JSONRPCClient
 
-//   /**
-//    * Initialize RPC connection manager
-//    * @param rpcURL - RPC endpoint URL
-//    * @param maxConcurrentRequests - Maximum concurrent requests allowed
-//    */
-//   constructor (
-//     rpcURL: string,
-//     maxConcurrentRequests: number = 5
-//   ) {
-//     // @@ TODO
-//   }
+  /**
+   * Initialize RPC connection manager
+   * @param rpcURL - RPC endpoint URL
+   * @param maxBatchSize - Maximum batch size for JSON-RPC requests
+   * @param enableLogging - Enable logging for debugging batch operations
+   */
+  constructor (
+    rpcURL: string,
+    maxBatchSize: number = 1000,
+    enableLogging: boolean = false
+  ) {
+    this.#client = new JSONRPCClient(rpcURL, maxBatchSize, enableLogging)
+  }
 
-//   /**
-//    * Submit a new request to the connection manager
-//    * @param requestFn - Function that returns a promise
-//    * @param requestId - Unique identifier for the request
-//    * @returns Promise that will be resolved or rejected by processQueue
-//    */
-//   async submitRequest<T> (
-//     requestFn: () => Promise<T>,
-//     requestId: string
-//   ): Promise<T> {
-//     // @@ TODO
+  /**
+   * Submit a new request to the connection manager
+   * @param requestFn - Function that returns a promise
+   * @param _requestId - Unique identifier for the request (not used in this implementation)
+   * @returns Promise that will be resolved by the underlying JSON-RPC client
+   */
+  async submitRequest<T> (
+    requestFn: () => Promise<T>,
+    _requestId: string
+  ): Promise<T> {
+    return await requestFn()
+  }
 
-//   }
-
-//   /**
-//    * Process the request queue, also responsible of resolving or rejecting the promise
-//    */
-//   private async processQueue (): Promise<void> {
-//     // @@ TODO
-//   }
-// }
+  /**
+   * Get the underlying JSON-RPC client
+   * @returns The JSONRPCClient instance
+   */
+  get client () {
+    return this.#client
+  }
+}
