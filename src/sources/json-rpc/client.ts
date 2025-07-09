@@ -66,6 +66,16 @@ export class JSONRPCClient {
   }
 
   /**
+   * Log a message if logging is enabled
+   * @param message The message to log
+   */
+  #log(message: string): void {
+    if (this.#enableLogging) {
+      console.log(message)
+    }
+  }
+
+  /**
    * Send a JSON-RPC request to the server. The request may be batched with other requests if the client is already processing requests.
    * @param req JSON-RPC request object, see {@link jsonrpc}
    * @returns A promise that resolves with the result of the request, or rejects with an error if the request failed.
@@ -74,22 +84,16 @@ export class JSONRPCClient {
     const prom = Promise.withResolvers<T>()
     this.#requests.push([prom, req])
 
-    if (this.#enableLogging) {
-      console.log(`[JSONRPCClient] Queued request ${req.id}: ${req.method} (queue size: ${this.#requests.length})`)
-    }
+    this.#log(`[JSONRPCClient] Queued request ${req.id}: ${req.method} (queue size: ${this.#requests.length})`)
 
     if (this.#inflight != null) {
-      if (this.#enableLogging) {
-        console.log(`[JSONRPCClient] Request ${req.id} joining existing batch (inflight: true)`)
-      }
+      this.#log(`[JSONRPCClient] Request ${req.id} joining existing batch (inflight: true)`)
       return prom.promise
     }
 
     const self = this
 
-    if (this.#enableLogging) {
-      console.log(`[JSONRPCClient] Request ${req.id} starting new batch cycle`)
-    }
+    this.#log(`[JSONRPCClient] Request ${req.id} starting new batch cycle`)
 
     // Wait one tick so we can queue up more requests sync
     self.#inflight = Promise.resolve()
@@ -106,18 +110,14 @@ export class JSONRPCClient {
       const reqs = self.#requests.splice(0, Math.min(self.#maxBatchSize, self.#requests.length))
 
       if (reqs.length === 0) {
-        if (self.#enableLogging) {
-          console.log(`[JSONRPCClient] No more requests to process, ending batch cycle`)
-        }
+        self.#log(`[JSONRPCClient] No more requests to process, ending batch cycle`)
         self.#inflight = null
         return
       }
 
-      if (self.#enableLogging) {
-        const requestIds = reqs.map(([, r]) => r.id).join(', ')
-        const methods = reqs.map(([, r]) => r.method).join(', ')
-        console.log(`[JSONRPCClient] Sending batch of ${reqs.length} requests: [${requestIds}] methods: [${methods}]`)
-      }
+      const requestIds = reqs.map(([, r]) => r.id).join(', ')
+      const methods = reqs.map(([, r]) => r.method).join(', ')
+      self.#log(`[JSONRPCClient] Sending batch of ${reqs.length} requests: [${requestIds}] methods: [${methods}]`)
 
       const batchPayload = reqs.map(([, r]) => r)
       const inflight = self.#inflight = fetch(self.#url, {
@@ -131,33 +131,23 @@ export class JSONRPCClient {
       inflight.then(async res => {
         const data = await res.json()
 
-        if (self.#enableLogging) {
-          console.log(`[JSONRPCClient] Received batch response with ${data.length} results`)
-        }
+        self.#log(`[JSONRPCClient] Received batch response with ${data.length} results`)
 
         for (const [i, res] of data.entries()) {
           if (res.error) {
-            if (self.#enableLogging) {
-              console.log(`[JSONRPCClient] Request ${reqs[i]![1].id} failed: ${res.error.message}`)
-            }
+            self.#log(`[JSONRPCClient] Request ${reqs[i]![1].id} failed: ${res.error.message}`)
             reqs[i]![0].reject(new Error(res.error.message))
           } else {
-            if (self.#enableLogging) {
-              console.log(`[JSONRPCClient] Request ${reqs[i]![1].id} completed successfully`)
-            }
+            self.#log(`[JSONRPCClient] Request ${reqs[i]![1].id} completed successfully`)
             reqs[i]![0].resolve(res.result)
           }
         }
       }).finally(() => {
         if (self.#requests.length > 0) {
-          if (self.#enableLogging) {
-            console.log(`[JSONRPCClient] ${self.#requests.length} requests remaining, continuing batch processing`)
-          }
+          self.#log(`[JSONRPCClient] ${self.#requests.length} requests remaining, continuing batch processing`)
           _loop()
         } else {
-          if (self.#enableLogging) {
-            console.log(`[JSONRPCClient] All requests completed, ending batch cycle`)
-          }
+          self.#log(`[JSONRPCClient] All requests completed, ending batch cycle`)
           self.#inflight = null
         }
       })
