@@ -1,4 +1,4 @@
-// No imports needed - all types are used inline
+// This is a bare client implementation, different to rpc/*, we do not rely on using viem.
 
 /**
  * Create a JSON-RPC request object.
@@ -27,7 +27,7 @@ let i = 1
  * Therefore it is beneficial to think of requests in a message passing style, where requests are sent, but the
  * response is not awaited immediately, but instead processed in successive `.then` callbacks.
  */
-export class JSONRPCClient {
+class JSONRPCClient {
   /**
    * JSON-RPC URL
    */
@@ -69,7 +69,7 @@ export class JSONRPCClient {
    * Log a message if logging is enabled
    * @param message The message to log
    */
-  #log(message: string): void {
+  #log (message: string): void {
     if (this.#enableLogging) {
       console.log(message)
     }
@@ -110,7 +110,7 @@ export class JSONRPCClient {
       const reqs = self.#requests.splice(0, Math.min(self.#maxBatchSize, self.#requests.length))
 
       if (reqs.length === 0) {
-        self.#log(`[JSONRPCClient] No more requests to process, ending batch cycle`)
+        self.#log('[JSONRPCClient] No more requests to process, ending batch cycle')
         self.#inflight = null
         return
       }
@@ -147,7 +147,7 @@ export class JSONRPCClient {
           self.#log(`[JSONRPCClient] ${self.#requests.length} requests remaining, continuing batch processing`)
           _loop()
         } else {
-          self.#log(`[JSONRPCClient] All requests completed, ending batch cycle`)
+          self.#log('[JSONRPCClient] All requests completed, ending batch cycle')
           self.#inflight = null
         }
       })
@@ -165,4 +165,4 @@ export class JSONRPCClient {
   }
 }
 
-export { jsonrpc }
+export { JSONRPCClient }
