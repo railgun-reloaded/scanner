@@ -1,8 +1,7 @@
 /* eslint-disable camelcase */
 import { RailgunV1, RailgunV2, RailgunV2_1 } from '@railgun-reloaded/contract-abis'
-import type { WatchEventReturnType, PublicClient } from 'viem'
-import { decodeEventLog, createPublicClient, http } from 'viem'
-import { mainnet } from 'viem/chains'
+import type { Abi, Log, WatchEventReturnType } from 'viem'
+import { decodeEventLog } from 'viem'
 
 import type { EVMBlock, EVMLog } from '../../models'
 import type { DataSource, SyncOptions } from '../data-source'
@@ -46,7 +45,12 @@ export class RPCProvider<T extends EVMBlock> implements DataSource<T> {
   /**
    * List of event fragments in all the version of Railgun
    */
-  #eventAbis: any[]
+  #abi: Abi
+
+  /**
+   * Stores value returned by timeout when polling head
+   */
+  #headPollTimeout?: NodeJS.Timeout
 
   /**
    * A flag to indicate if it should continue syncing
@@ -65,15 +69,27 @@ export class RPCProvider<T extends EVMBlock> implements DataSource<T> {
     rpcURL: string,
     connectionManager: RPCConnectionManager
   ) {
-    this.#connectionManager = connectionManager
+    if (rpcURL.length === 0) throw new Error('RPC URL is invalid')
+    if (railgunProxyAddress.length === 0) throw new Error('Railgun Proxy Address is invalid')
+
+    this.#connectionManager = new RPCConnectionManager(rpcURL, maxConcurrentRequests)
     this.#railgunProxyAddress = railgunProxyAddress
-    this.#client = createPublicClient({
-      chain: mainnet,
-      transport: http(rpcURL)
-    })
-    const combinedAbi = [...RailgunV1, ...RailgunV2, ...RailgunV2_1]
-    // @TODO remove duplicate events
-    this.#eventAbis = combinedAbi.filter(item => item.type === 'event')
+    this.#abi = [...RailgunV1, ...RailgunV2, ...RailgunV2_1] as Abi
+
+    // Setup a timeout to poll the head continuously
+    this.#pollHead()
+  }
+
+  /**
+   * Get latest height from the RPC
+   * @returns - Latest block height
+   */
+  async #pollHead () {
+    this.head = await this.#connectionManager.client.getBlockNumber()
+    if (this.#headPollTimeout) {
+      clearTimeout(this.#headPollTimeout)
+    }
+    this.#headPollTimeout = setTimeout(this.#pollHead.bind(this), 12_000)
   }
 
   /**
@@ -97,7 +113,7 @@ export class RPCProvider<T extends EVMBlock> implements DataSource<T> {
       const { logIndex, address, transactionIndex, transactionHash, data, topics } = event
       try {
         const decodedLog = decodeEventLog({
-          abi: this.#eventAbis,
+          abi: this.#abi,
           data,
           topics
         }) as { eventName: string, args: Record<string, any> }
@@ -149,10 +165,6 @@ export class RPCProvider<T extends EVMBlock> implements DataSource<T> {
      */
     const minBigInt = (a: bigint, b: bigint) => a < b ? a : b
 
-    if (!this.#railgunProxyAddress || this.#railgunProxyAddress.length === 0) {
-      throw new Error(`Railgun Proxy Address is invalid: ${this.#railgunProxyAddress}`)
-    }
-
     let { startHeight, endHeight, chunkSize = DEFAULT_CHUNK_SIZE, liveSync = false } = options
     let currentHeight = startHeight
     const client = this.#client
@@ -179,7 +191,6 @@ export class RPCProvider<T extends EVMBlock> implements DataSource<T> {
     const latestHeight = await client.getBlockNumber()
     if (!latestHeight) throw new Error('Failed to get latest height')
     endHeight = endHeight ? minBigInt(endHeight, BigInt(latestHeight)) : BigInt(latestHeight)
-    if (chunkSize === 0n) throw new Error('ChunkSize cannot be zero')
 
     // Process historical blocks
     while (currentHeight < endHeight) {
@@ -196,7 +207,6 @@ export class RPCProvider<T extends EVMBlock> implements DataSource<T> {
           yield blockData as T
         }
       }
-      this.head = batchEndHeight
       currentHeight = batchEndHeight
     }
 
@@ -209,7 +219,7 @@ export class RPCProvider<T extends EVMBlock> implements DataSource<T> {
           yield blockData as T
         }
         liveEventQueue = []
-        await new Promise((resolve) => setTimeout(resolve, 12))
+        await new Promise((resolve) => setTimeout(resolve, 12_000))
       }
 
       // Stop listening for the live events
@@ -225,8 +235,9 @@ export class RPCProvider<T extends EVMBlock> implements DataSource<T> {
    * @param toBlock - End block number
    * @returns Promise resolving to logs
    */
-  private async createLogRequest (fromBlock: bigint, toBlock: bigint): Promise<any[]> {
-    const logs = await this.#client.getLogs({
+  private async createLogRequest (fromBlock: bigint, toBlock: bigint): Promise<Log[]> {
+    const client = this.#connectionManager.client
+    const logs = await client.getLogs({
       address: this.#railgunProxyAddress,
       fromBlock,
       toBlock
@@ -246,6 +257,7 @@ export class RPCProvider<T extends EVMBlock> implements DataSource<T> {
    * Stop provider from syncing if it is
    */
   destroy (): void {
+    clearTimeout(this.#headPollTimeout)
     this.#stopSyncing = true
   }
 }

@@ -33,16 +33,14 @@
   ],
   "dependencies": {
     "@railgun-reloaded/contract-abis": "^1.0.1",
-    "@railgun-reloaded/eslint-config": "^1.1.0",
-    "@railgun-reloaded/tsconfig": "^1.2.0",
-    "@railgun-reloaded/subsquid-client": "https://github.com/railgun-reloaded/subsquid-client.git#master",
-    "@types/node": "^24.0.3",
-    "dotenv": "^16.5.0",
-    "eslint": "^9.29.0",
-    "typescript": "^5.8.3",
     "viem": "^2.31.4"
   },
   "devDependencies": {
-    "c8": "^10.1.3"
+    "@types/node": "^24.0.3",
+    "@railgun-reloaded/eslint-config": "^1.1.0",
+    "@railgun-reloaded/tsconfig": "^1.2.0",
+    "dotenv": "^16.5.0",
+    "eslint": "^9.29.0",
+    "typescript": "^5.8.3"
   }
 }
