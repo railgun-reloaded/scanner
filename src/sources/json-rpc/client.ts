@@ -194,6 +194,7 @@ class JSONRPCClient {
 
   /**
    * Check if URL supports WebSocket
+   * @returns Valid support ws or not
    */
   get supportsWebSocket(): boolean {
     return this.#url.protocol === 'ws:' || this.#url.protocol === 'wss:'
@@ -201,41 +202,46 @@ class JSONRPCClient {
 
   /**
    * Connect to WebSocket if supported
+   * @returns Nothing. Will throw if ws is not supported. Will resolve and log if ok.
    */
   async #connectWebSocket(): Promise<void> {
     if (!this.supportsWebSocket) {
       throw new Error('WebSocket not supported for this URL')
     }
 
+    // Perhaps connection was already stablished, return that conn
     if (this.#wsConnected) {
       return this.#wsConnected
     }
 
+
     this.#wsConnected = new Promise((resolve, reject) => {
       const wsUrl = this.#url.toString()
       this.#log(`[JSONRPCClient] Connecting to WebSocket: ${wsUrl}`)
-      
+
       this.#ws = new WebSocket(wsUrl)
-      
+
+      // Connects to ws
       this.#ws.onopen = () => {
         this.#log('[JSONRPCClient] WebSocket connected')
         resolve()
       }
-      
+
       this.#ws.onerror = (error) => {
         this.#log(`[JSONRPCClient] WebSocket error: ${error}`)
         reject(error)
       }
-      
+
       this.#ws.onmessage = (event) => {
         try {
+          // Receives new message, parse data
           const data = JSON.parse(event.data)
           this.#handleWebSocketMessage(data)
         } catch (error) {
           this.#log(`[JSONRPCClient] Failed to parse WebSocket message: ${error}`)
         }
       }
-      
+
       this.#ws.onclose = () => {
         this.#log('[JSONRPCClient] WebSocket disconnected')
         this.#ws = null
@@ -250,10 +256,13 @@ class JSONRPCClient {
    * Handle incoming WebSocket messages
    */
   #handleWebSocketMessage(data: any): void {
+    // Supported method from json rpc atm
+    console.log('handleWebSocketMessage: ', data)
     if (data.method === 'eth_subscription') {
+
       const subscriptionId = data.params?.subscription
       const result = data.params?.result
-      
+
       if (subscriptionId && result) {
         const subscription = this.#subscriptions.get(subscriptionId)
         if (subscription) {
@@ -288,7 +297,7 @@ class JSONRPCClient {
       method: 'eth_subscribe',
       params: [type, params]
     }
-    
+
     return new Promise((resolve, reject) => {
       const timeout = setTimeout(() => {
         reject(new Error('Subscription request timeout'))
@@ -300,18 +309,18 @@ class JSONRPCClient {
           if (response.id === subscriptionRequest.id) {
             this.#ws!.removeEventListener('message', onMessage)
             clearTimeout(timeout)
-            
+
             if (response.error) {
               reject(new Error(response.error.message))
               return
             }
-            
+
             const subscriptionId = response.result
             this.#subscriptions.set(subscriptionId, {
               id: subscriptionId,
               handler
             })
-            
+
             this.#log(`[JSONRPCClient] Created subscription ${subscriptionId} for ${type}`)
             resolve(subscriptionId)
           }
