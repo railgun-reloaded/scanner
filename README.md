@@ -1,10 +1,10 @@
-# `FAFO-SCANNER`
+# `Railgun-SCANNER`
 
 > Event scanner for Railgun. It currently only use RPC to scan the events.
 
 ## Example Usage
 ```ts
-    import { RPCProvider } from 'fafo-scanner'
+    import { RPCProvider } from '@railgun-reloaded/scanner'
 
     // Create a new provider
     const provider = new RPCProvider(
@@ -95,5 +95,5 @@ const iterator2 = provider.from({
 
 ## Install
 ```sh
-npm install fafo-scanner
+npm install @railgun-reloaded/scanner
 ```
