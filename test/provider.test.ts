@@ -406,21 +406,20 @@ describe('RPCProvider', () => {
     edgeCaseProvider.destroy()
   })
 
-  /*
   test('Should continously update the head', async () => {
-    const provider = new RPCProvider('https://eth.llamarpc.com', RAILGUN_PROXY_ADDRESS)
+    const provider = new RPCProvider(MOCK_RPC_URL, RAILGUN_PROXY_ADDRESS)
     const lastHead = provider.head
 
     // Wait until the next block is available
     await new Promise((resolve) => {
-      setTimeout(resolve, 13_000)
+      setTimeout(resolve, 12_000)
     })
-
     const newHead = provider.head
+
+    await provider.destroy()
     assert.notEqual(lastHead, newHead)
-    provider.destroy()
   })
-  */
+
   test('Fetch first 10,000 blocks from RPC and check for valid blocks', async () => {
     const provider = new RPCProvider(MOCK_RPC_URL, RAILGUN_PROXY_ADDRESS)
     const iterator = provider.from({

@@ -83,7 +83,11 @@ export class RPCProvider<T extends EVMBlock> implements DataSource<T> {
    * @returns - Latest block height
    */
   async #pollHead () {
-    this.head = await this.#connectionManager.client.getBlockNumber()
+    try {
+      this.head = await this.#connectionManager.client.getBlockNumber()
+    } catch (err) {
+      console.log(err)
+    }
     if (this.#headPollTimeout) {
       clearTimeout(this.#headPollTimeout)
     }
@@ -254,7 +258,7 @@ export class RPCProvider<T extends EVMBlock> implements DataSource<T> {
   /**
    * Stop provider from syncing if it is
    */
-  destroy (): void {
+  destroy () {
     clearTimeout(this.#headPollTimeout)
     this.#stopSyncing = true
   }
