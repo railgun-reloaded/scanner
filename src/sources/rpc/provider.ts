@@ -9,18 +9,8 @@ import type { DataSource, SyncOptions } from '../data-source'
 import { RPCConnectionManager } from './connection-manager'
 
 const DEFAULT_CHUNK_SIZE = 500n
-
-interface ViemLog {
-  address: string;
-  blockHash: string;
-  blockNumber: string;
-  blockTimestamp: string;
-  data: `0x${string}`;
-  logIndex: number;
-  removed: boolean;
-  topics: [];
-  transactionHash: string;
-  transactionIndex: number;
+type AsyncIterableDisposable<T, TReturn = any, TVal = any> = AsyncIterable<T, TReturn, TVal> & {
+  destroy: () => void
 }
 
 /**
@@ -30,16 +20,15 @@ export class RPCProvider<T extends EVMBlock> implements DataSource<T> {
   /** The latest height up to which this provider can get data */
   head = 0n
 
-  /** Name of datasource */
-  name = 'RPCProvider'
-
   /** Flag to indicate if the data-source can provide live data or not */
   isLiveProvider = true
 
   /** RPC Connection manager instance */
   #connectionManager: RPCConnectionManager
+
   /** Railgun proxy contract address */
   #railgunProxyAddress: `0x${string}`
+
   /**
    * List of event fragments in all the version of Railgun
    */
@@ -51,10 +40,9 @@ export class RPCProvider<T extends EVMBlock> implements DataSource<T> {
   #headPollTimeout?: NodeJS.Timeout
 
   /**
-   * A flag to indicate if it should continue syncing
-   * Is only applicable for the liveProvider
+   * An iterator to iterate over the live rpc events
    */
-  #stopSyncing: boolean = false
+  #liveEventIterator: AsyncIterableDisposable<EVMBlock | undefined> | null = null
 
   /**
    * Initialize RPC provider with RPC URL and railgun proxy address
@@ -161,12 +149,15 @@ export class RPCProvider<T extends EVMBlock> implements DataSource<T> {
   }
 
   /**
+   * https://github.com/apollographql/graphql-subscriptions/blob/master/src/pubsub-async-iterable-iterator.ts
    * Create iterator for polling live event
    * @param client - Viem Client
-   * @yields - EvmBlock
+   * @returns - AyncIterator for EvmBlock
    */
-  async * #pollLiveEvent (client: PublicClient) {
-    let liveEventQueue: ViemLog[] = []
+  #pollLiveEvent (client: PublicClient) {
+    let pushQueue = new Array<EVMBlock>()
+    const pullQueue = new Array<(input: { value: EVMBlock | undefined, done: boolean }) => void>()
+    let syncing = true
 
     // Conditional variable
     const unwatchEvent = client.watchEvent({
@@ -176,22 +167,89 @@ export class RPCProvider<T extends EVMBlock> implements DataSource<T> {
        * @param logs - Event Logs
        */
       onLogs: (logs) => {
-        liveEventQueue.push(logs as unknown as ViemLog)
+        pushValue(this.#bucketLogs(logs))
       }
     })
 
-    while (!this.#stopSyncing) {
-      const evmBlockData = this.#bucketLogs(liveEventQueue)
-      for (const blockData of evmBlockData) {
-        yield blockData as T
+    /**
+     * Push value to buffer or directly to iterator
+     * @param blocks - EVM BlockData
+     */
+    const pushValue = (blocks: EVMBlock[]) => {
+      for (let i = 0; i < blocks.length; ++i) {
+        if (pullQueue.length !== 0) {
+          pullQueue.shift()!({ value: blocks[i]!, done: false })
+        } else {
+          pushQueue.push(...blocks)
+        }
       }
-      liveEventQueue = []
-      await new Promise((resolve) => setTimeout(resolve, 12_000))
     }
 
-    // Stop listening for the live events
-    if (unwatchEvent) {
+    /**
+     * Get value from buffer or queue
+     * @returns - EVMBlock
+     */
+    const pullValue = () : Promise<{ value: EVMBlock | undefined, done: boolean }> => {
+      return new Promise(resolve => {
+        if (pushQueue.length !== 0) {
+          resolve({ value: pushQueue.shift()!, done: false })
+        } else {
+          pullQueue.push(resolve)
+        }
+      })
+    }
+
+    /**
+     * Cleanup callback and queue
+     */
+    const cleanup = () => {
+      syncing = false
+      pullQueue.forEach(resolve => resolve({ value: undefined, done: true }))
+      pushQueue = []
       unwatchEvent()
+    }
+
+    return {
+      /**
+       * Destroy the iterator
+       */
+      destroy () {
+        cleanup()
+      },
+      /**
+       * Return asyncIterator
+       * @returns - AsyncIterator for EvmBlock
+       */
+      [Symbol.asyncIterator] () {
+        return {
+          /**
+           * Should return next value for iterator
+           * @returns - EVMBlock
+           */
+          next () : Promise<{ value: EVMBlock | undefined, done: boolean }> {
+            return syncing ? pullValue() : this.return()
+          },
+
+          /**
+           * Should cleanup resources
+           * @returns - Promise that resolves to undefined, which should signal close
+           */
+          return () : Promise<{ value: typeof undefined, done: boolean }> {
+            cleanup()
+            return Promise.resolve({ value: undefined, done: true })
+          },
+          /**
+           * Should handle error
+           * @param err - Error Object
+           * @returns - Rejected promise
+           */
+          throw (err: Error) {
+            cleanup()
+            return Promise.reject(err)
+          },
+
+        }
+      },
     }
   }
 
@@ -215,9 +273,8 @@ export class RPCProvider<T extends EVMBlock> implements DataSource<T> {
     const client = this.#connectionManager.client
 
     // Create an iterator to poll live event
-    let liveEventIterator : AsyncGenerator<EVMBlock> | null = null
     if (!endHeight && liveSync) {
-      liveEventIterator = this.#pollLiveEvent(client)
+      this.#liveEventIterator = this.#pollLiveEvent(client)
     }
 
     const latestHeight = await client.getBlockNumber()
@@ -243,8 +300,8 @@ export class RPCProvider<T extends EVMBlock> implements DataSource<T> {
     }
 
     // if it is a live source, we should wait until new events are available
-    if (liveSync && liveEventIterator) {
-      for await (const blockData of liveEventIterator) {
+    if (liveSync && this.#liveEventIterator) {
+      for await (const blockData of this.#liveEventIterator) {
         yield blockData as T
       }
     }
@@ -279,6 +336,6 @@ export class RPCProvider<T extends EVMBlock> implements DataSource<T> {
    */
   destroy () {
     clearTimeout(this.#headPollTimeout)
-    this.#stopSyncing = true
+    this.#liveEventIterator?.destroy()
   }
 }
