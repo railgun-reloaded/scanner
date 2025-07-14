@@ -101,10 +101,12 @@ export class RPCProvider<T extends EVMBlock> implements DataSource<T> {
    * @param logs - Array of raw log objects
    * @returns Array of EVMBlock objects grouped and sorted
    */
-  sortLogsByBlockTxEvent (logs: Array<any>) : Array<EVMBlock> {
+  bucketLogs (logs: Array<any>) : Array<EVMBlock> {
     const groupedBlockTxEvents : Record<string, EVMBlock> = {}
     for (const event of logs) {
       const { blockNumber, blockHash, blockTimestamp } = event
+
+      // Add block information
       if (!groupedBlockTxEvents[blockNumber]) {
         groupedBlockTxEvents[blockNumber] = {
           number: BigInt(blockNumber),
@@ -114,6 +116,7 @@ export class RPCProvider<T extends EVMBlock> implements DataSource<T> {
           internalTransaction: []
         }
       }
+
       const { logIndex, address, transactionIndex, transactionHash, data, topics } = event
       try {
         const decodedLog = decodeEventLog({
@@ -121,12 +124,15 @@ export class RPCProvider<T extends EVMBlock> implements DataSource<T> {
           data,
           topics
         }) as { eventName: string, args: Record<string, any> }
+
+        // Create event info
         const evmLog: EVMLog = {
           index: logIndex,
           address,
           name: decodedLog.eventName,
           args: decodedLog.args
         }
+
         const transactionInfo = groupedBlockTxEvents[blockNumber].transactions.find((entry) => entry.hash === transactionHash)
         if (!transactionInfo) {
           groupedBlockTxEvents[blockNumber].transactions.push({
@@ -139,11 +145,12 @@ export class RPCProvider<T extends EVMBlock> implements DataSource<T> {
           transactionInfo.logs.push(evmLog)
         }
       } catch {
-        // Error logging for failed event decoding
-        // console.error('Failed to decode log: ', topics)
+        // These are proxy event which we have ignored for now
       }
     }
-    let blockInfos = Object.values(groupedBlockTxEvents)
+
+    const blockInfos = Object.values(groupedBlockTxEvents)
+    /*
     blockInfos = blockInfos.sort((a, b) => Number(a.number - b.number))
     for (const block of blockInfos) {
       block.transactions = block.transactions.sort((a, b) => a.index - b.index)
@@ -151,6 +158,7 @@ export class RPCProvider<T extends EVMBlock> implements DataSource<T> {
         tx.logs = tx.logs.sort((a, b) => a.index - b.index)
       }
     }
+    */
     return blockInfos.filter(block => block.transactions.length !== 0)
   }
 
@@ -206,7 +214,7 @@ export class RPCProvider<T extends EVMBlock> implements DataSource<T> {
         requestId
       )
       if (logs && logs.length > 0) {
-        const evmBlockData = this.sortLogsByBlockTxEvent(logs)
+        const evmBlockData = this.bucketLogs(logs)
         for (const blockData of evmBlockData) {
           yield blockData as T
         }
@@ -218,7 +226,7 @@ export class RPCProvider<T extends EVMBlock> implements DataSource<T> {
     if (liveSync) {
       console.log('Switching to live event listener ...')
       while (!this.#stopSyncing) {
-        const evmBlockData = this.sortLogsByBlockTxEvent(liveEventQueue)
+        const evmBlockData = this.bucketLogs(liveEventQueue)
         for (const blockData of evmBlockData) {
           yield blockData as T
         }
