@@ -532,4 +532,30 @@ describe('RPCProvider', () => {
     assert.ok(logCount2 === knownNumberOfLogs2, 'Should retrieve exact number of logs from fixed set of block range')
     provider.destroy()
   })
+
+  test('Should stop listening to live event when provider is destroyed', async () => {
+    const provider = new RPCProvider(MOCK_RPC_URL, RAILGUN_PROXY_ADDRESS)
+
+    // Provider need to setup poller to get latest head which takes some time
+    const latestHeight = await new Promise<bigint>((resolve) => {
+      setTimeout(() => {
+        resolve(provider.head)
+      }, 5000)
+    })
+
+    setTimeout(() => {
+      provider.destroy()
+    }, 5000)
+
+    const iterator = provider.from({
+      startHeight: latestHeight,
+      chunkSize: 500n,
+      liveSync: true
+    })
+
+    for await (const blockInfo of iterator) {
+      console.log(blockInfo)
+    }
+    assert.ok(true)
+  })
 })
