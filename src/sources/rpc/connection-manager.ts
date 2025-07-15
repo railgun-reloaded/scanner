@@ -1,5 +1,3 @@
-// No imports needed for viem since connection manager no longer creates clients
-
 /**
  * Request interface for connection manager
  */
