@@ -18,9 +18,10 @@ const RAILGUN_DEPLOYMENT_V2 = 16076750n
 
 describe('RPCProvider', () => {
   test('Should create an iterator from a provider', async () => {
-    const connectionManager = new RPCConnectionManager(MOCK_RPC_URL!, 3)
+    const connectionManager = new RPCConnectionManager(3)
     const provider = new RPCProvider(
       RAILGUN_PROXY_ADDRESS,
+      MOCK_RPC_URL!,
       connectionManager
     )
 
@@ -46,9 +47,10 @@ describe('RPCProvider', () => {
   })
 
   test('Should handle two iterators under the same provider', async () => {
-    const connectionManager = new RPCConnectionManager(MOCK_RPC_URL!, 3)
+    const connectionManager = new RPCConnectionManager(3)
     const provider = new RPCProvider(
       RAILGUN_PROXY_ADDRESS,
+      MOCK_RPC_URL!,
       connectionManager
     )
 
@@ -98,21 +100,24 @@ describe('RPCProvider', () => {
   })
 
   test('Should handle multiple providers and multiple iterators concurrently', async () => {
-    const connectionManager1 = new RPCConnectionManager(MOCK_RPC_URL!, 2)
+    const connectionManager1 = new RPCConnectionManager(2)
     const provider1 = new RPCProvider(
       RAILGUN_PROXY_ADDRESS,
+      MOCK_RPC_URL!,
       connectionManager1
     )
 
-    const connectionManager2 = new RPCConnectionManager(MOCK_RPC_URL!, 3)
+    const connectionManager2 = new RPCConnectionManager(3)
     const provider2 = new RPCProvider(
       RAILGUN_PROXY_ADDRESS,
+      MOCK_RPC_URL!,
       connectionManager2
     )
 
-    const connectionManager3 = new RPCConnectionManager(MOCK_RPC_URL!, 1)
+    const connectionManager3 = new RPCConnectionManager(1)
     const provider3 = new RPCProvider(
       RAILGUN_PROXY_ADDRESS,
+      MOCK_RPC_URL!,
       connectionManager3
     )
 
@@ -207,9 +212,10 @@ describe('RPCProvider', () => {
   })
 
   test('Should handle low concurrency provider with rate limiting', async () => {
-    const connectionManager = new RPCConnectionManager(MOCK_RPC_URL!, 1)
+    const connectionManager = new RPCConnectionManager(1)
     const lowConcurrencyProvider = new RPCProvider(
       RAILGUN_PROXY_ADDRESS,
+      MOCK_RPC_URL!,
       connectionManager
     )
 
@@ -258,9 +264,10 @@ describe('RPCProvider', () => {
   })
 
   test('Should handle moderate concurrency provider', async () => {
-    const connectionManager = new RPCConnectionManager(MOCK_RPC_URL!, 2)
+    const connectionManager = new RPCConnectionManager(2)
     const moderateProvider = new RPCProvider(
       RAILGUN_PROXY_ADDRESS,
+      MOCK_RPC_URL!,
       connectionManager
     )
 
@@ -309,9 +316,10 @@ describe('RPCProvider', () => {
   })
 
   test('Should handle high concurrency provider', async () => {
-    const connectionManager = new RPCConnectionManager(MOCK_RPC_URL!, 5)
+    const connectionManager = new RPCConnectionManager(5)
     const highConcurrencyProvider = new RPCProvider(
       RAILGUN_PROXY_ADDRESS,
+      MOCK_RPC_URL!,
       connectionManager
     )
 
@@ -360,9 +368,10 @@ describe('RPCProvider', () => {
   })
 
   test('Should handle edge case with very small block ranges', async () => {
-    const connectionManager = new RPCConnectionManager(MOCK_RPC_URL!, 1)
+    const connectionManager = new RPCConnectionManager(1)
     const edgeCaseProvider = new RPCProvider(
       RAILGUN_PROXY_ADDRESS,
+      MOCK_RPC_URL!,
       connectionManager
     )
 
@@ -387,8 +396,8 @@ describe('RPCProvider', () => {
   })
 
   test('Fetch first 10,000 blocks from RPC and check for valid blocks', async () => {
-    const connectionManager = new RPCConnectionManager(MOCK_RPC_URL!)
-    const provider = new RPCProvider(RAILGUN_PROXY_ADDRESS, connectionManager)
+    const connectionManager = new RPCConnectionManager()
+    const provider = new RPCProvider(RAILGUN_PROXY_ADDRESS, MOCK_RPC_URL!, connectionManager)
     const iterator = provider.from({
       startHeight: RAILGUN_PROXY_DEPLOYMENT_BLOCK,
       endHeight: RAILGUN_PROXY_DEPLOYMENT_BLOCK + 10_000n,
@@ -401,8 +410,8 @@ describe('RPCProvider', () => {
   })
 
   test('Fetch 10,000 blocks and check if they are sorted', async () => {
-    const connectionManager = new RPCConnectionManager(MOCK_RPC_URL!)
-    const provider = new RPCProvider(RAILGUN_PROXY_ADDRESS, connectionManager)
+    const connectionManager = new RPCConnectionManager()
+    const provider = new RPCProvider(RAILGUN_PROXY_ADDRESS, MOCK_RPC_URL!, connectionManager)
     const iterator = provider.from({
       startHeight: RAILGUN_DEPLOYMENT_V2,
       endHeight: RAILGUN_DEPLOYMENT_V2 + 10_000n,
@@ -424,8 +433,8 @@ describe('RPCProvider', () => {
   })
 
   test('Fetch 10,000 blocks and check if block/transaction/log are valid', async () => {
-    const connectionManager = new RPCConnectionManager(MOCK_RPC_URL!)
-    const provider = new RPCProvider(RAILGUN_PROXY_ADDRESS, connectionManager)
+    const connectionManager = new RPCConnectionManager()
+    const provider = new RPCProvider(RAILGUN_PROXY_ADDRESS, MOCK_RPC_URL!, connectionManager)
     const startHeight = RAILGUN_DEPLOYMENT_V2 + 10_000n
     const iterator = provider.from({
       startHeight,
@@ -442,8 +451,8 @@ describe('RPCProvider', () => {
   })
 
   test('Should retrieve exact number of events from fixed set of blocks', async () => {
-    const connectionManager = new RPCConnectionManager(MOCK_RPC_URL!)
-    const provider = new RPCProvider(RAILGUN_PROXY_ADDRESS, connectionManager)
+    const connectionManager = new RPCConnectionManager()
+    const provider = new RPCProvider(RAILGUN_PROXY_ADDRESS, MOCK_RPC_URL!, connectionManager)
 
     const knownBlockEnd = 14779012n
     const knownBlockStart = 14777791n

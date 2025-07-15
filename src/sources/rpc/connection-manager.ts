@@ -1,6 +1,4 @@
-import type { PublicClient } from 'viem'
-import { createPublicClient, http } from 'viem'
-import { mainnet } from 'viem/chains'
+// No imports needed for viem since connection manager no longer creates clients
 
 /**
  * Request interface for connection manager
@@ -17,13 +15,10 @@ interface RequestData {
 }
 
 /**
- * RPC Connection Manager handles RPC requests with rate limiting and queuing
+ * RPC Connection Manager handles request batching and queuing
+ * Providers pass their own request functions which have access to their clients
  */
 export class RPCConnectionManager {
-  /**
-   * The viem client instance
-   */
-  #client: PublicClient
   /**
    * Queue of pending requests
    */
@@ -35,17 +30,11 @@ export class RPCConnectionManager {
 
   /**
    * Initialize RPC connection manager
-   * @param rpcURL - RPC endpoint URL
    * @param maxConcurrentRequests - Maximum concurrent requests allowed
    */
   constructor (
-    rpcURL: string,
     maxConcurrentRequests: number = 5
   ) {
-    this.#client = createPublicClient({
-      chain: mainnet,
-      transport: http(rpcURL)
-    })
     this.#maxConcurrentRequests = maxConcurrentRequests
   }
 
@@ -114,12 +103,5 @@ export class RPCConnectionManager {
     })
   }
 
-  /**
-   * Get the underlying viem client
-   * @returns The viem PublicClient instance
-   */
-  get client (): PublicClient {
-    return this.#client
-  }
 }
 
