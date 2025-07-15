@@ -6,7 +6,7 @@ import { decodeEventLog } from 'viem'
 import type { EVMBlock, EVMLog } from '../../models'
 import type { DataSource, SyncOptions } from '../data-source'
 
-import { RPCConnectionManager } from './connection-manager'
+import type { RPCConnectionManager } from './connection-manager'
 
 const DEFAULT_CHUNK_SIZE = 500n
 
@@ -52,17 +52,15 @@ export class RPCProvider<T extends EVMBlock> implements DataSource<T> {
   #stopSyncing: boolean = false
 
   /**
-   * Initialize RPC provider with RPC URL and railgun proxy address
-   * @param rpcURL - RPC endpoint URL
+   * Initialize RPC provider with connection manager and railgun proxy address
    * @param railgunProxyAddress - Railgun proxy contract address
-   * @param maxConcurrentRequests - Maximum concurrent requests allowed
+   * @param connectionManager - Connection manager instance
    */
   constructor (
-    rpcURL: string,
     railgunProxyAddress: `0x${string}`,
-    maxConcurrentRequests: number = 5
+    connectionManager: RPCConnectionManager
   ) {
-    this.#connectionManager = new RPCConnectionManager(rpcURL, maxConcurrentRequests)
+    this.#connectionManager = connectionManager
     this.#railgunProxyAddress = railgunProxyAddress
     const combinedAbi = [...RailgunV1, ...RailgunV2, ...RailgunV2_1]
     // @TODO remove duplicate events

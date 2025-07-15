@@ -46,7 +46,7 @@ export class RPCConnectionManager {
       chain: mainnet,
       transport: http(rpcURL)
     })
-    this.#maxConcurrentRequests = maxConcurrentRequests // this is set to define batch size
+    this.#maxConcurrentRequests = maxConcurrentRequests
   }
 
   /**
@@ -122,3 +122,4 @@ export class RPCConnectionManager {
     return this.#client
   }
 }
+
