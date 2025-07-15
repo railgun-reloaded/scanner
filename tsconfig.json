@@ -1,4 +1,3 @@
 {
-  "extends": ["@railgun-reloaded/tsconfig/tsconfig"],
-  "include": ["src/**/*", "test/**/*"]
+  "extends": ["@railgun-reloaded/tsconfig/tsconfig"]
 }
