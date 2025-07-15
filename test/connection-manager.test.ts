@@ -21,11 +21,8 @@ describe('Multi-Provider Connection Manager', () => {
       assert.ok(provider1 instanceof RPCProvider)
       assert.ok(provider2 instanceof RPCProvider)
 
-      // Both providers should have their own clients
       assert.ok(provider1.client)
       assert.ok(provider2.client)
-
-      // Providers should have different clients (different RPC URLs)
       assert.notStrictEqual(provider1.client, provider2.client)
     })
 
@@ -44,7 +41,6 @@ describe('Multi-Provider Connection Manager', () => {
         return { provider: 'ankr', blockNumber }
       }
 
-      // Submit requests from both providers through the same connection manager
       const [result1, result2] = await Promise.all([
         connectionManager.submitRequest(alchemyRequest, 'alchemy-request'),
         connectionManager.submitRequest(ankrRequest, 'ankr-request')
