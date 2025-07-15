@@ -42,7 +42,7 @@ export class RPCProvider<T extends EVMBlock> implements DataSource<T> {
   /**
    * An iterator to iterate over the live rpc events
    */
-  #liveEventIterator: AsyncIterableDisposable<EVMBlock | undefined> | null = null
+  #liveEventIterators: Array<AsyncIterableDisposable<EVMBlock | undefined>> = []
 
   /**
    * Initialize RPC provider with RPC URL and railgun proxy address
@@ -273,8 +273,10 @@ export class RPCProvider<T extends EVMBlock> implements DataSource<T> {
     const client = this.#connectionManager.client
 
     // Create an iterator to poll live event
+    let liveEventIterator: AsyncIterableDisposable<EVMBlock | undefined> | null = null
     if (!endHeight && liveSync) {
-      this.#liveEventIterator = this.#pollLiveEvent(client)
+      liveEventIterator = this.#pollLiveEvent(client)
+      this.#liveEventIterators.push(liveEventIterator)
     }
 
     const latestHeight = await client.getBlockNumber()
@@ -300,8 +302,8 @@ export class RPCProvider<T extends EVMBlock> implements DataSource<T> {
     }
 
     // if it is a live source, we should wait until new events are available
-    if (liveSync && this.#liveEventIterator) {
-      for await (const blockData of this.#liveEventIterator) {
+    if (liveSync && liveEventIterator) {
+      for await (const blockData of liveEventIterator) {
         yield blockData as T
       }
     }
@@ -336,6 +338,8 @@ export class RPCProvider<T extends EVMBlock> implements DataSource<T> {
    */
   destroy () {
     clearTimeout(this.#headPollTimeout)
-    this.#liveEventIterator?.destroy()
+    for (const iterator of this.#liveEventIterators) {
+      iterator.destroy()
+    }
   }
 }
