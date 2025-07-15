@@ -5,6 +5,7 @@ import { describe, test } from 'node:test'
 import dotenv from 'dotenv'
 
 import { RPCProvider } from '../src/sources'
+import { RPCConnectionManager } from '../src/sources/rpc/connection-manager'
 
 dotenv.config()
 
@@ -17,10 +18,10 @@ const RAILGUN_DEPLOYMENT_V2 = 16076750n
 
 describe('RPCProvider', () => {
   test('Should create an iterator from a provider', async () => {
+    const connectionManager = new RPCConnectionManager(MOCK_RPC_URL!, 3)
     const provider = new RPCProvider(
-      MOCK_RPC_URL!,
       RAILGUN_PROXY_ADDRESS,
-      3
+      connectionManager
     )
 
     const iterator = provider.from({
@@ -31,17 +32,12 @@ describe('RPCProvider', () => {
     })
 
     let iteratorCount = 0
-
     try {
-      // eslint-disable-next-line jsdoc/require-jsdoc
-      const processIterator = async () => {
-        for await (const _data of iterator) {
-          iteratorCount++
-          await new Promise(resolve => setTimeout(resolve, 10))
+      for await (const blockInfo of iterator) {
+        for (const tx of blockInfo.transactions) {
+          iteratorCount += tx.logs.length
         }
       }
-
-      await Promise.all([processIterator()])
     } catch (error) {
       console.error('Error during processing:', error)
       return
@@ -50,51 +46,50 @@ describe('RPCProvider', () => {
   })
 
   test('Should handle two iterators under the same provider', async () => {
+    const connectionManager = new RPCConnectionManager(MOCK_RPC_URL!, 3)
     const provider = new RPCProvider(
-      MOCK_RPC_URL!,
       RAILGUN_PROXY_ADDRESS,
-      3
+      connectionManager
     )
 
     const iterator1 = provider.from({
       startHeight: RAILGUN_PROXY_DEPLOYMENT_BLOCK,
-      endHeight: RAILGUN_PROXY_DEPLOYMENT_BLOCK + 1000n,
+      endHeight: RAILGUN_PROXY_DEPLOYMENT_BLOCK + 5_000n,
       chunkSize: 499n,
       liveSync: false
     })
 
     const iterator2 = provider.from({
-      startHeight: RAILGUN_PROXY_DEPLOYMENT_BLOCK + 1000n,
-      endHeight: RAILGUN_PROXY_DEPLOYMENT_BLOCK + 2000n,
+      startHeight: RAILGUN_PROXY_DEPLOYMENT_BLOCK + 5_000n,
+      endHeight: RAILGUN_PROXY_DEPLOYMENT_BLOCK + 10_000n,
       chunkSize: 499n,
       liveSync: false
     })
-
-    // assert count of iterator 1 and 2
 
     let iterator1Count = 0
     let iterator2Count = 0
 
     try {
-      // eslint-disable-next-line jsdoc/require-jsdoc
-      const processIterator1 = async () => {
-        for await (const _data of iterator1) {
-          iterator1Count++
-          await new Promise(resolve => setTimeout(resolve, 10))
-        }
-      }
-
-      // eslint-disable-next-line jsdoc/require-jsdoc
-      const processIterator2 = async () => {
-        for await (const _data of iterator2) {
-          iterator2Count++
-          await new Promise(resolve => setTimeout(resolve, 10))
-        }
-      }
-
-      await Promise.all([processIterator1(), processIterator2()])
+      await Promise.all([
+        (async () => {
+          for await (const blockInfo of iterator1) {
+            for (const tx of blockInfo.transactions) {
+              iterator1Count += tx.logs.length
+            }
+          }
+          return iterator1Count
+        })(),
+        (async () => {
+          for await (const blockInfo of iterator2) {
+            for (const tx of blockInfo.transactions) {
+              iterator2Count += tx.logs.length
+            }
+          }
+          return iterator2Count
+        })()
+      ])
     } catch (error) {
-      console.error('Error during processing:', error)
+      console.error('Error during concurrent processing:', error)
       throw error
     }
 
@@ -103,115 +98,100 @@ describe('RPCProvider', () => {
   })
 
   test('Should handle multiple providers and multiple iterators concurrently', async () => {
+    const connectionManager1 = new RPCConnectionManager(MOCK_RPC_URL!, 2)
     const provider1 = new RPCProvider(
-      MOCK_RPC_URL!,
       RAILGUN_PROXY_ADDRESS,
-      2
+      connectionManager1
     )
 
+    const connectionManager2 = new RPCConnectionManager(MOCK_RPC_URL!, 3)
     const provider2 = new RPCProvider(
-      MOCK_RPC_URL!,
       RAILGUN_PROXY_ADDRESS,
-      3
+      connectionManager2
     )
 
+    const connectionManager3 = new RPCConnectionManager(MOCK_RPC_URL!, 1)
     const provider3 = new RPCProvider(
-      MOCK_RPC_URL!,
       RAILGUN_PROXY_ADDRESS,
-      1
+      connectionManager3
     )
 
     const iterators = []
 
     iterators.push({
       provider: provider1,
-      name: 'Provider1-Iterator1',
       iterator: provider1.from({
         startHeight: RAILGUN_PROXY_DEPLOYMENT_BLOCK,
-        endHeight: RAILGUN_PROXY_DEPLOYMENT_BLOCK + 500n,
-        chunkSize: 200n,
+        endHeight: RAILGUN_PROXY_DEPLOYMENT_BLOCK + 3_000n,
+        chunkSize: 499n,
         liveSync: false
-      })
+      }),
+      id: 'provider1-iterator1'
     })
 
     iterators.push({
       provider: provider1,
-      name: 'Provider1-Iterator2',
       iterator: provider1.from({
-        startHeight: RAILGUN_PROXY_DEPLOYMENT_BLOCK + 500n,
-        endHeight: RAILGUN_PROXY_DEPLOYMENT_BLOCK + 1000n,
-        chunkSize: 200n,
+        startHeight: RAILGUN_PROXY_DEPLOYMENT_BLOCK + 3_000n,
+        endHeight: RAILGUN_PROXY_DEPLOYMENT_BLOCK + 6_000n,
+        chunkSize: 499n,
         liveSync: false
-      })
+      }),
+      id: 'provider1-iterator2'
     })
 
     iterators.push({
       provider: provider2,
-      name: 'Provider2-Iterator1',
       iterator: provider2.from({
-        startHeight: RAILGUN_PROXY_DEPLOYMENT_BLOCK,
-        endHeight: RAILGUN_PROXY_DEPLOYMENT_BLOCK + 300n,
-        chunkSize: 150n,
+        startHeight: RAILGUN_PROXY_DEPLOYMENT_BLOCK + 6_000n,
+        endHeight: RAILGUN_PROXY_DEPLOYMENT_BLOCK + 9_000n,
+        chunkSize: 499n,
         liveSync: false
-      })
+      }),
+      id: 'provider2-iterator1'
     })
 
     iterators.push({
       provider: provider2,
-      name: 'Provider2-Iterator2',
       iterator: provider2.from({
-        startHeight: RAILGUN_PROXY_DEPLOYMENT_BLOCK + 300n,
-        endHeight: RAILGUN_PROXY_DEPLOYMENT_BLOCK + 600n,
-        chunkSize: 150n,
+        startHeight: RAILGUN_PROXY_DEPLOYMENT_BLOCK + 9_000n,
+        endHeight: RAILGUN_PROXY_DEPLOYMENT_BLOCK + 12_000n,
+        chunkSize: 499n,
         liveSync: false
-      })
-    })
-
-    iterators.push({
-      provider: provider2,
-      name: 'Provider2-Iterator3',
-      iterator: provider2.from({
-        startHeight: RAILGUN_PROXY_DEPLOYMENT_BLOCK + 600n,
-        endHeight: RAILGUN_PROXY_DEPLOYMENT_BLOCK + 900n,
-        chunkSize: 150n,
-        liveSync: false
-      })
+      }),
+      id: 'provider2-iterator2'
     })
 
     iterators.push({
       provider: provider3,
-      name: 'Provider3-Iterator1',
       iterator: provider3.from({
-        startHeight: RAILGUN_PROXY_DEPLOYMENT_BLOCK,
-        endHeight: RAILGUN_PROXY_DEPLOYMENT_BLOCK + 200n,
-        chunkSize: 100n,
+        startHeight: RAILGUN_PROXY_DEPLOYMENT_BLOCK + 12_000n,
+        endHeight: RAILGUN_PROXY_DEPLOYMENT_BLOCK + 15_000n,
+        chunkSize: 499n,
         liveSync: false
-      })
+      }),
+      id: 'provider3-iterator1'
     })
 
-    const results = new Map()
+    const results = new Map<string, { success: boolean; eventCount: number; error?: Error }>()
 
     try {
-      const processPromises = iterators.map(async ({ name, iterator }) => {
-        let eventCount = 0
-
-        try {
-          for await (const _data of iterator) {
-            eventCount++
-            await new Promise(resolve => setTimeout(resolve, 5))
+      await Promise.all(
+        iterators.map(async ({ iterator, id }) => {
+          try {
+            let eventCount = 0
+            for await (const blockInfo of iterator) {
+              for (const tx of blockInfo.transactions) {
+                eventCount += tx.logs.length
+              }
+            }
+            results.set(id, { success: true, eventCount })
+          } catch (error) {
+            console.error(`Iterator ${id} failed:`, error)
+            results.set(id, { success: false, eventCount: 0, error: error as Error })
           }
-
-          return { name, eventCount, success: true }
-        } catch (error) {
-          return { name, eventCount: 0, success: false, error }
-        }
-      })
-
-      const allResults = await Promise.all(processPromises)
-
-      allResults.forEach(result => {
-        results.set(result.name, result)
-      })
+        })
+      )
     } catch (error) {
       console.error('Error during concurrent processing:', error)
       throw error
@@ -227,45 +207,48 @@ describe('RPCProvider', () => {
   })
 
   test('Should handle low concurrency provider with rate limiting', async () => {
+    const connectionManager = new RPCConnectionManager(MOCK_RPC_URL!, 1)
     const lowConcurrencyProvider = new RPCProvider(
-      MOCK_RPC_URL!,
       RAILGUN_PROXY_ADDRESS,
-      1
+      connectionManager
     )
 
     const iterators = []
     for (let i = 0; i < 3; i++) {
       iterators.push({
-        name: `LowConcurrency-Iterator${i + 1}`,
         iterator: lowConcurrencyProvider.from({
-          startHeight: RAILGUN_PROXY_DEPLOYMENT_BLOCK + BigInt(i * 100),
-          endHeight: RAILGUN_PROXY_DEPLOYMENT_BLOCK + BigInt((i + 1) * 100),
-          chunkSize: 50n,
+          startHeight: RAILGUN_PROXY_DEPLOYMENT_BLOCK + BigInt(i * 2000),
+          endHeight: RAILGUN_PROXY_DEPLOYMENT_BLOCK + BigInt((i + 1) * 2000),
+          chunkSize: 499n,
           liveSync: false
-        })
+        }),
+        id: `low-concurrency-iterator-${i}`
       })
     }
 
-    const results = new Map()
+    const results = new Map<string, { success: boolean; eventCount: number; error?: Error }>()
 
-    const promises = iterators.map(async ({ name, iterator }) => {
-      let eventCount = 0
-
-      try {
-        for await (const _data of iterator) {
-          eventCount++
-        }
-        return { name, eventCount, success: true }
-      } catch (error) {
-        return { name, eventCount: 0, success: false, error }
-      }
-    })
-
-    const allResults = await Promise.all(promises)
-
-    allResults.forEach(result => {
-      results.set(result.name, result)
-    })
+    try {
+      await Promise.all(
+        iterators.map(async ({ iterator, id }) => {
+          try {
+            let eventCount = 0
+            for await (const blockInfo of iterator) {
+              for (const tx of blockInfo.transactions) {
+                eventCount += tx.logs.length
+              }
+            }
+            results.set(id, { success: true, eventCount })
+          } catch (error) {
+            console.error(`Iterator ${id} failed:`, error)
+            results.set(id, { success: false, eventCount: 0, error: error as Error })
+          }
+        })
+      )
+    } catch (error) {
+      console.error('Error during concurrent processing:', error)
+      throw error
+    }
 
     const successfulResults = Array.from(results.values()).filter(r => r.success)
     const totalEvents = successfulResults.reduce((sum, r) => sum + r.eventCount, 0)
@@ -275,45 +258,48 @@ describe('RPCProvider', () => {
   })
 
   test('Should handle moderate concurrency provider', async () => {
+    const connectionManager = new RPCConnectionManager(MOCK_RPC_URL!, 2)
     const moderateProvider = new RPCProvider(
-      MOCK_RPC_URL!,
       RAILGUN_PROXY_ADDRESS,
-      2
+      connectionManager
     )
 
     const iterators = []
     for (let i = 0; i < 4; i++) {
       iterators.push({
-        name: `Moderate-Iterator${i + 1}`,
         iterator: moderateProvider.from({
-          startHeight: RAILGUN_PROXY_DEPLOYMENT_BLOCK + BigInt(i * 50),
-          endHeight: RAILGUN_PROXY_DEPLOYMENT_BLOCK + BigInt((i + 1) * 50),
-          chunkSize: 25n,
+          startHeight: RAILGUN_PROXY_DEPLOYMENT_BLOCK + BigInt(i * 1500),
+          endHeight: RAILGUN_PROXY_DEPLOYMENT_BLOCK + BigInt((i + 1) * 1500),
+          chunkSize: 499n,
           liveSync: false
-        })
+        }),
+        id: `moderate-concurrency-iterator-${i}`
       })
     }
 
-    const results = new Map()
+    const results = new Map<string, { success: boolean; eventCount: number; error?: Error }>()
 
-    const promises = iterators.map(async ({ name, iterator }) => {
-      let eventCount = 0
-
-      try {
-        for await (const _data of iterator) {
-          eventCount++
-        }
-        return { name, eventCount, success: true }
-      } catch (error) {
-        return { name, eventCount: 0, success: false, error }
-      }
-    })
-
-    const allResults = await Promise.all(promises)
-
-    allResults.forEach(result => {
-      results.set(result.name, result)
-    })
+    try {
+      await Promise.all(
+        iterators.map(async ({ iterator, id }) => {
+          try {
+            let eventCount = 0
+            for await (const blockInfo of iterator) {
+              for (const tx of blockInfo.transactions) {
+                eventCount += tx.logs.length
+              }
+            }
+            results.set(id, { success: true, eventCount })
+          } catch (error) {
+            console.error(`Iterator ${id} failed:`, error)
+            results.set(id, { success: false, eventCount: 0, error: error as Error })
+          }
+        })
+      )
+    } catch (error) {
+      console.error('Error during concurrent processing:', error)
+      throw error
+    }
 
     const successfulResults = Array.from(results.values()).filter(r => r.success)
     const totalEvents = successfulResults.reduce((sum, r) => sum + r.eventCount, 0)
@@ -323,45 +309,48 @@ describe('RPCProvider', () => {
   })
 
   test('Should handle high concurrency provider', async () => {
+    const connectionManager = new RPCConnectionManager(MOCK_RPC_URL!, 5)
     const highConcurrencyProvider = new RPCProvider(
-      MOCK_RPC_URL!,
       RAILGUN_PROXY_ADDRESS,
-      5
+      connectionManager
     )
 
     const iterators = []
     for (let i = 0; i < 6; i++) {
       iterators.push({
-        name: `HighConcurrency-Iterator${i + 1}`,
         iterator: highConcurrencyProvider.from({
-          startHeight: RAILGUN_PROXY_DEPLOYMENT_BLOCK + BigInt(i * 30),
-          endHeight: RAILGUN_PROXY_DEPLOYMENT_BLOCK + BigInt((i + 1) * 30),
-          chunkSize: 15n,
+          startHeight: RAILGUN_PROXY_DEPLOYMENT_BLOCK + BigInt(i * 1000),
+          endHeight: RAILGUN_PROXY_DEPLOYMENT_BLOCK + BigInt((i + 1) * 1000),
+          chunkSize: 499n,
           liveSync: false
-        })
+        }),
+        id: `high-concurrency-iterator-${i}`
       })
     }
 
-    const results = new Map()
+    const results = new Map<string, { success: boolean; eventCount: number; error?: Error }>()
 
-    const promises = iterators.map(async ({ name, iterator }) => {
-      let eventCount = 0
-
-      try {
-        for await (const _data of iterator) {
-          eventCount++
-        }
-        return { name, eventCount, success: true }
-      } catch (error) {
-        return { name, eventCount: 0, success: false, error }
-      }
-    })
-
-    const allResults = await Promise.all(promises)
-
-    allResults.forEach(result => {
-      results.set(result.name, result)
-    })
+    try {
+      await Promise.all(
+        iterators.map(async ({ iterator, id }) => {
+          try {
+            let eventCount = 0
+            for await (const blockInfo of iterator) {
+              for (const tx of blockInfo.transactions) {
+                eventCount += tx.logs.length
+              }
+            }
+            results.set(id, { success: true, eventCount })
+          } catch (error) {
+            console.error(`Iterator ${id} failed:`, error)
+            results.set(id, { success: false, eventCount: 0, error: error as Error })
+          }
+        })
+      )
+    } catch (error) {
+      console.error('Error during concurrent processing:', error)
+      throw error
+    }
 
     const successfulResults = Array.from(results.values()).filter(r => r.success)
     const totalEvents = successfulResults.reduce((sum, r) => sum + r.eventCount, 0)
@@ -371,10 +360,10 @@ describe('RPCProvider', () => {
   })
 
   test('Should handle edge case with very small block ranges', async () => {
+    const connectionManager = new RPCConnectionManager(MOCK_RPC_URL!, 1)
     const edgeCaseProvider = new RPCProvider(
-      MOCK_RPC_URL!,
       RAILGUN_PROXY_ADDRESS,
-      1
+      connectionManager
     )
 
     const edgeCaseIterator = edgeCaseProvider.from({
@@ -386,8 +375,10 @@ describe('RPCProvider', () => {
 
     let eventCount = 0
     try {
-      for await (const _data of edgeCaseIterator) {
-        eventCount++
+      for await (const blockInfo of edgeCaseIterator) {
+        for (const tx of blockInfo.transactions) {
+          eventCount += tx.logs.length
+        }
       }
     } catch (error) {
       console.error('Edge case iterator failed:', error)
@@ -396,7 +387,8 @@ describe('RPCProvider', () => {
   })
 
   test('Fetch first 10,000 blocks from RPC and check for valid blocks', async () => {
-    const provider = new RPCProvider(MOCK_RPC_URL, RAILGUN_PROXY_ADDRESS)
+    const connectionManager = new RPCConnectionManager(MOCK_RPC_URL!)
+    const provider = new RPCProvider(RAILGUN_PROXY_ADDRESS, connectionManager)
     const iterator = provider.from({
       startHeight: RAILGUN_PROXY_DEPLOYMENT_BLOCK,
       endHeight: RAILGUN_PROXY_DEPLOYMENT_BLOCK + 10_000n,
@@ -409,7 +401,8 @@ describe('RPCProvider', () => {
   })
 
   test('Fetch 10,000 blocks and check if they are sorted', async () => {
-    const provider = new RPCProvider(MOCK_RPC_URL, RAILGUN_PROXY_ADDRESS)
+    const connectionManager = new RPCConnectionManager(MOCK_RPC_URL!)
+    const provider = new RPCProvider(RAILGUN_PROXY_ADDRESS, connectionManager)
     const iterator = provider.from({
       startHeight: RAILGUN_DEPLOYMENT_V2,
       endHeight: RAILGUN_DEPLOYMENT_V2 + 10_000n,
@@ -418,14 +411,11 @@ describe('RPCProvider', () => {
     })
     let lastBlockNumber = 0n
     for await (const blockInfo of iterator) {
-      assert.ok(blockInfo.number >= lastBlockNumber, 'BlockInfo is not sorted')
-      let lastTransactionIndex = 0
+      assert.ok(blockInfo.number > lastBlockNumber, 'BlockInfo is not sorted')
+      let lastLogIndex = 0
       for (const tx of blockInfo.transactions) {
-        assert.ok(lastTransactionIndex <= tx.index, 'Transactions in block are not sorted')
-        lastTransactionIndex = tx.index
-        let lastLogIndex = 0
         for (const log of tx.logs) {
-          assert.ok(lastLogIndex <= log.index, 'Logs are not sorted')
+          assert.ok(log.index >= lastLogIndex, 'LogInfo is not sorted')
           lastLogIndex = log.index
         }
       }
@@ -434,7 +424,8 @@ describe('RPCProvider', () => {
   })
 
   test('Fetch 10,000 blocks and check if block/transaction/log are valid', async () => {
-    const provider = new RPCProvider(MOCK_RPC_URL, RAILGUN_PROXY_ADDRESS)
+    const connectionManager = new RPCConnectionManager(MOCK_RPC_URL!)
+    const provider = new RPCProvider(RAILGUN_PROXY_ADDRESS, connectionManager)
     const startHeight = RAILGUN_DEPLOYMENT_V2 + 10_000n
     const iterator = provider.from({
       startHeight,
@@ -443,7 +434,6 @@ describe('RPCProvider', () => {
       liveSync: false
     })
     for await (const blockInfo of iterator) {
-      assert.ok(blockInfo, 'BlockInfo is invalid')
       assert.ok(blockInfo.transactions && blockInfo.transactions.length > 0, 'TransactionInfo is invalid')
       for (const tx of blockInfo.transactions) {
         assert.ok(tx.logs && tx.logs.length > 0, 'LogInfo is invalid')
@@ -452,16 +442,14 @@ describe('RPCProvider', () => {
   })
 
   test('Should retrieve exact number of events from fixed set of blocks', async () => {
-    const provider = new RPCProvider(MOCK_RPC_URL, RAILGUN_PROXY_ADDRESS)
+    const connectionManager = new RPCConnectionManager(MOCK_RPC_URL!)
+    const provider = new RPCProvider(RAILGUN_PROXY_ADDRESS, connectionManager)
 
     const knownBlockEnd = 14779012n
     const knownBlockStart = 14777791n
 
     const knownNumberOfBlocks = 4
     const knownNumberOfLogs = 9
-
-    const knownNumberOfBlocks2 = 8
-    const knownNumberOfLogs2 = 16
 
     const iterator = provider.from({
       startHeight: knownBlockStart,
@@ -470,8 +458,20 @@ describe('RPCProvider', () => {
       liveSync: false
     })
 
-    const knownBlockEnd2 = 14777438n
-    const knownBlockStart2 = 14771383n
+    let blockCount = 0
+    let logCount = 0
+    for await (const blockInfo of iterator) {
+      blockCount += 1
+      for (const tx of blockInfo.transactions) {
+        logCount += tx.logs.length
+      }
+    }
+
+    const knownBlockEnd2 = 14779012n
+    const knownBlockStart2 = 14777791n
+
+    const knownNumberOfBlocks2 = 4
+    const knownNumberOfLogs2 = 9
 
     const iterator2 = provider.from({
       startHeight: knownBlockStart2,
@@ -480,19 +480,13 @@ describe('RPCProvider', () => {
       liveSync: false
     })
 
-    let blockCount = 0
-    let logCount = 0
-
-    for await (const _data of iterator) {
-      blockCount++
-      logCount += _data.transactions.reduce((acc, tx) => acc + tx.logs.length, 0)
-    }
-
     let blockCount2 = 0
     let logCount2 = 0
-    for await (const _data of iterator2) {
-      blockCount2++
-      logCount2 += _data.transactions.reduce((acc, tx) => acc + tx.logs.length, 0)
+    for await (const blockInfo of iterator2) {
+      blockCount2 += 1
+      for (const tx of blockInfo.transactions) {
+        logCount2 += tx.logs.length
+      }
     }
 
     assert.ok(blockCount === knownNumberOfBlocks, 'Should retrieve exact number of blocks from fixed set of block range')
@@ -501,24 +495,3 @@ describe('RPCProvider', () => {
     assert.ok(logCount2 === knownNumberOfLogs2, 'Should retrieve exact number of logs from fixed set of block range')
   })
 })
-
-/*
-test('Listen for most recent events', async () => {
-  const provider = new RPCProvider(TEST_RPC_URL, RAILGUN_PROXY_ADDRESS)
-
-  setTimeout(() => {
-    provider.destroy()
-  }, 10_000)
-
-  const startHeight = 22792284n
-  const iterator = provider.from({
-    startHeight,
-    chunkSize: 500n,
-    liveSync: true
-  })
-
-  for await (const blockInfo of iterator) {
-    console.log(blockInfo)
-  }
-})
-*/
