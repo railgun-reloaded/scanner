@@ -1,7 +1,8 @@
 /* eslint-disable camelcase */
 import { RailgunV1, RailgunV2, RailgunV2_1 } from '@railgun-reloaded/contract-abis'
-import type { WatchEventReturnType } from 'viem'
-import { decodeEventLog } from 'viem'
+import type { WatchEventReturnType, PublicClient } from 'viem'
+import { decodeEventLog, createPublicClient, http } from 'viem'
+import { mainnet } from 'viem/chains'
 
 import type { EVMBlock, EVMLog } from '../../models'
 import type { DataSource, SyncOptions } from '../data-source'
@@ -40,6 +41,8 @@ export class RPCProvider<T extends EVMBlock> implements DataSource<T> {
   #connectionManager: RPCConnectionManager
   /** Railgun proxy contract address */
   #railgunProxyAddress: `0x${string}`
+  /** The viem client instance for this provider */
+  #client: PublicClient
   /**
    * List of event fragments in all the version of Railgun
    */
@@ -52,16 +55,22 @@ export class RPCProvider<T extends EVMBlock> implements DataSource<T> {
   #stopSyncing: boolean = false
 
   /**
-   * Initialize RPC provider with connection manager and railgun proxy address
+   * Initialize RPC provider with its own RPC URL and connection manager
    * @param railgunProxyAddress - Railgun proxy contract address
+   * @param rpcURL - RPC endpoint URL for this provider
    * @param connectionManager - Connection manager instance
    */
   constructor (
     railgunProxyAddress: `0x${string}`,
+    rpcURL: string,
     connectionManager: RPCConnectionManager
   ) {
     this.#connectionManager = connectionManager
     this.#railgunProxyAddress = railgunProxyAddress
+    this.#client = createPublicClient({
+      chain: mainnet,
+      transport: http(rpcURL)
+    })
     const combinedAbi = [...RailgunV1, ...RailgunV2, ...RailgunV2_1]
     // @TODO remove duplicate events
     this.#eventAbis = combinedAbi.filter(item => item.type === 'event')
@@ -146,7 +155,7 @@ export class RPCProvider<T extends EVMBlock> implements DataSource<T> {
 
     let { startHeight, endHeight, chunkSize = DEFAULT_CHUNK_SIZE, liveSync = false } = options
     let currentHeight = startHeight
-    const client = this.#connectionManager.client
+    const client = this.#client
 
     /**
      * Initialize a listener so that it can listen to the events
@@ -217,8 +226,7 @@ export class RPCProvider<T extends EVMBlock> implements DataSource<T> {
    * @returns Promise resolving to logs
    */
   private async createLogRequest (fromBlock: bigint, toBlock: bigint): Promise<any[]> {
-    const client = this.#connectionManager.client
-    const logs = await client.getLogs({
+    const logs = await this.#client.getLogs({
       address: this.#railgunProxyAddress,
       fromBlock,
       toBlock
@@ -231,7 +239,7 @@ export class RPCProvider<T extends EVMBlock> implements DataSource<T> {
    * @returns The viem PublicClient instance
    */
   get client () {
-    return this.#connectionManager.client
+    return this.#client
   }
 
   /**
