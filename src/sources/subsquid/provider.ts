@@ -45,7 +45,7 @@ export class SubsquidProvider<T extends EVMBlock> implements DataSource<T> {
   /**
    * Field used to store the timeout which can be cleared later
    */
-  #pollHeadTimeout: NodeJS.Timeout | null = null
+  #headPollTimeout: NodeJS.Timeout | null = null
 
   /**
    * Initialize Subsquid provider
@@ -63,11 +63,15 @@ export class SubsquidProvider<T extends EVMBlock> implements DataSource<T> {
    * Poll squid for latest height
    */
   async #pollHead () {
-    this.head = await this.#getBlockHeight()
-    if (this.#pollHeadTimeout) {
-      clearTimeout(this.#pollHeadTimeout)
+    try {
+      this.head = await this.#getBlockHeight()
+    } catch (err) {
+      console.log(err)
     }
-    this.#pollHeadTimeout = setTimeout(this.#pollHead, SQUID_HEIGHT_POLL_INTERVAL)
+    if (this.#headPollTimeout) {
+      clearTimeout(this.#headPollTimeout)
+    }
+    this.#headPollTimeout = setTimeout(this.#pollHead.bind(this), SQUID_HEIGHT_POLL_INTERVAL)
   }
 
   /**
@@ -136,8 +140,8 @@ export class SubsquidProvider<T extends EVMBlock> implements DataSource<T> {
    * Destroy the Subsquid connection
    */
   destroy () {
-    if (this.#pollHeadTimeout) {
-      clearTimeout(this.#pollHeadTimeout)
+    if (this.#headPollTimeout) {
+      clearTimeout(this.#headPollTimeout)
     }
   }
 }
