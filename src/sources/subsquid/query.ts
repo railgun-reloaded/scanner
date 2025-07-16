@@ -52,13 +52,14 @@ const autoPaginateBlockQuery = async<T>(client: SubsquidClient, startBlock: bigi
   let offset = 0
   while (hasNextPage) {
     const query = getEvmBlockQuery(startBlock, offset)
+    // @TODO replace this with  client.query
     const data = await client.request({ query })
-    // @ts-ignore
+    // @ts-ignore - Types are not available for now
     const { pageInfo, edges } = data.evmBlocksConnection
     hasNextPage = pageInfo.hasNextPage
     offset = pageInfo.endCursor
 
-    // @ts-ignore
+    // @ts-ignore - Types are not available for now
     const entries = edges.map(e => e.node) as T[]
     if (endBlock) {
       const lastEntry = entries.length - 1
