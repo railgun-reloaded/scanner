@@ -40,7 +40,8 @@ export class RPCProvider<T extends EVMBlock> implements DataSource<T> {
   #headPollTimeout?: NodeJS.Timeout
 
   /**
-   * An iterator to iterate over the live rpc events
+   * An array of iterator to iterate over the live rpc events
+   * Used to kill all the liveSync when the provider is destroyed
    */
   #liveEventIterators: Array<AsyncIterableDisposable<EVMBlock | undefined>> = []
 
@@ -150,7 +151,7 @@ export class RPCProvider<T extends EVMBlock> implements DataSource<T> {
 
   /**
    * https://github.com/apollographql/graphql-subscriptions/blob/master/src/pubsub-async-iterable-iterator.ts
-   * Create iterator for polling live event
+   * Create iterator for polling live event from callback
    * @param client - Viem Client
    * @returns - AyncIterator for EvmBlock
    */
