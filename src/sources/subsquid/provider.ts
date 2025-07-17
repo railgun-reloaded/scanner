@@ -9,9 +9,6 @@ export class SubsquidProvider<T extends EVMBlock> implements DataSource<T> {
   /** The latest height up to which this provider can get data */
   head = 0n
 
-  /** Name of datasource */
-  name = 'SubsquidProvider'
-
   /** Flag to indicate if the data-source can provide live data or not */
   isLiveProvider = false
 
