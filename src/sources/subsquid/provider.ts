@@ -5,7 +5,7 @@ import type { DataSource, SyncOptions } from '../data-source'
 
 import { autoPaginateBlockQuery } from './query'
 
-// Poll squid height every two minute
+// Poll squid height every two minutes
 const SQUID_HEIGHT_POLL_INTERVAL = 120_000
 
 type SubsquidEvmBlock = {
