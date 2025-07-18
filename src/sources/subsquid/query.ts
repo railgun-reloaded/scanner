@@ -63,9 +63,11 @@ const autoPaginateBlockQuery = async<T>(client: SubsquidClient, startBlock: bigi
     const entries = edges.map(e => e.node) as T[]
     if (endBlock) {
       const lastEntry = entries.length - 1
-      if (edges[lastEntry]!.number > endBlock) {
+      const lastFetchedBlock = BigInt(edges[lastEntry].node.number)
+      if (lastFetchedBlock > endBlock) {
         // Only push data upto last block number
-        results.push(...entries.filter((n: any) => n.number < endBlock) as T[])
+        results.push(...entries.filter((n: any) => n.number <= endBlock) as T[])
+        break
       } else {
         results.push(...entries)
       }
