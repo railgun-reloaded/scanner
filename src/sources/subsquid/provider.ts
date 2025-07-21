@@ -5,9 +5,6 @@ import type { DataSource, SyncOptions } from '../data-source'
 
 import { autoPaginateBlockQuery } from './query'
 
-// Poll squid height every two minutes
-const SQUID_HEIGHT_POLL_INTERVAL = 120_000
-
 type SubsquidEvmBlock = {
   number: string;
   hash: string;
@@ -43,11 +40,6 @@ export class SubsquidProvider<T extends EVMBlock> implements DataSource<T> {
   #client: SubsquidClient
 
   /**
-   * Field used to store the timeout which can be cleared later
-   */
-  #headPollTimeout: NodeJS.Timeout | null = null
-
-  /**
    * Initialize Subsquid provider
    * @param endpoint - Subsquid endpoint URL
    */
@@ -55,23 +47,7 @@ export class SubsquidProvider<T extends EVMBlock> implements DataSource<T> {
     this.#client = new SubsquidClient({
       customSubsquidUrl: endpoint
     })
-
-    this.#pollHead()
-  }
-
-  /**
-   * Poll squid for latest height
-   */
-  async #pollHead () {
-    try {
-      this.head = await this.#getBlockHeight()
-    } catch (err) {
-      console.log(err)
-    }
-    if (this.#headPollTimeout) {
-      clearTimeout(this.#headPollTimeout)
-    }
-    this.#headPollTimeout = setTimeout(this.#pollHead.bind(this), SQUID_HEIGHT_POLL_INTERVAL)
+    this.#getBlockHeight().then(height => { this.head = height })
   }
 
   /**
@@ -140,8 +116,5 @@ export class SubsquidProvider<T extends EVMBlock> implements DataSource<T> {
    * Destroy the Subsquid connection
    */
   destroy () {
-    if (this.#headPollTimeout) {
-      clearTimeout(this.#headPollTimeout)
-    }
   }
 }
