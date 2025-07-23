@@ -77,6 +77,13 @@ export class SubsquidProvider<T extends EVMBlock> implements DataSource<T> {
     }
 
     const result = await autoPaginateBlockQuery<SubsquidEvmBlock>(this.#client, _options.startHeight, _options.endHeight)
+    /**
+     * Check if input is number or not
+     * Casting string to number gives NaN
+     * @param v - Input to the function
+     * @returns - true is the input is number
+     */
+    const isNumberString = (v: any) => typeof v === 'string' && /^[+-]?\d+$/.test(v.trim())
 
     /**
      * Convert subsquid data to standard format
@@ -98,7 +105,8 @@ export class SubsquidProvider<T extends EVMBlock> implements DataSource<T> {
               name: log.name,
               address: log.address,
               args: {
-                ...JSON.parse(log.args as unknown as string)
+                // Handle the parsing of bigint string to bigint
+                ...JSON.parse(log.args as unknown as string, (_, v) => isNumberString(v) ? BigInt(v) : v)
               }
             }
           ))
