@@ -112,7 +112,6 @@ export class RPCProvider<T extends EVMBlock> implements DataSource<T> {
           topics
         }) as { eventName: string, args: Record<string, any> }
 
-        // Create event info
         const evmLog: EVMLog = {
           index: logIndex,
           address,
