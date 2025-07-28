@@ -17,11 +17,11 @@ const getEvmBlockQuery = (fromBlock: bigint, offset: number, limit = 10_000) => 
                 hash: id
                 number
                 timestamp
-                transactions {
+                transactions (orderBy: index_ASC) {
                   from
                   hash
                   index
-                  logs {
+                  logs (orderBy: index_ASC) {
                     address
                     args
                     id
