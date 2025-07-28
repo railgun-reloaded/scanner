@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import assert from 'node:assert'
 import { describe, test } from 'node:test'
 
@@ -12,10 +13,11 @@ const MOCK_RPC_URL = process.env['RPC_API_KEY']!
 const MOCK_SQUID_URL = process.env['SQUID_ENDPOINT']!
 const RAILGUN_PROXY_ADDRESS = '0xFA7093CDD9EE6932B4eb2c9e1cde7CE00B1FA4b9' as `0x${string}`
 const RAILGUN_PROXY_DEPLOYMENT_BLOCK = 14737691n
-// const RAILGUN_DEPLOYMENT_V2 = 16076750n
+const RAILGUN_DEPLOYMENT_V2 = 16076750n
+
 // TODO: Keep track of range of pre defined set of events
 // Verify that both iterators assert same amount of events
-/*
+
 describe('RPCProvider', () => {
   test('Should create an iterator from a provider', async () => {
     const provider = new RPCProvider(
@@ -520,14 +522,11 @@ describe('RPCProvider', () => {
   for await (const blockInfo of iterator) {
     console.log(blockInfo)
   }
+  })
+  */
 })
-*/
-/*
-})
-*/
 
 describe('GraphProvider', () => {
-  /*
   test('Should create an iterator from a provider', async () => {
     const provider = new SubsquidProvider(
       MOCK_SQUID_URL
@@ -659,12 +658,11 @@ describe('GraphProvider', () => {
     assert.ok(logCount === knownNumberOfLogs, 'Should retrieve exact number of logs from fixed set of block range')
     assert.ok(logCount2 === knownNumberOfLogs2, 'Should retrieve exact number of logs from fixed set of block range')
   })
-  */
+
   test('Should fetch same data as RPC Provider [V1]', async () => {
     const startHeight = RAILGUN_PROXY_DEPLOYMENT_BLOCK + 10_000n
-    const endHeight = RAILGUN_PROXY_DEPLOYMENT_BLOCK + 20_000n
+    const endHeight = startHeight + 10_000n
 
-    // Create RPC Provider/Iterator
     const rpcProvider = new RPCProvider(MOCK_RPC_URL, RAILGUN_PROXY_ADDRESS)
     const rpcIterator = rpcProvider.from({
       startHeight,
@@ -678,7 +676,6 @@ describe('GraphProvider', () => {
       rpcBlockData.push(blockInfo)
     }
 
-    // Create GraphProvider/Iterator
     const graphProvider = new SubsquidProvider(MOCK_SQUID_URL)
     const graphIterator = graphProvider.from({
       startHeight,
@@ -691,6 +688,38 @@ describe('GraphProvider', () => {
     for await (const blockInfo of graphIterator) {
       graphBlockData.push(blockInfo)
     }
-    assert.deepStrictEqual(rpcBlockData, graphBlockData)
+    assert.deepEqual(rpcBlockData, graphBlockData)
+  })
+
+  test('Should fetch same data as RPC Provider [V2]', async () => {
+    const startHeight = RAILGUN_DEPLOYMENT_V2
+    const endHeight = startHeight + 10_000n
+
+    const rpcProvider = new RPCProvider(MOCK_RPC_URL, RAILGUN_PROXY_ADDRESS)
+    const rpcIterator = rpcProvider.from({
+      startHeight,
+      endHeight,
+      chunkSize: 499n,
+      liveSync: false
+    })
+
+    const rpcBlockData = []
+    for await (const blockInfo of rpcIterator) {
+      rpcBlockData.push(blockInfo)
+    }
+
+    const graphProvider = new SubsquidProvider(MOCK_SQUID_URL)
+    const graphIterator = graphProvider.from({
+      startHeight,
+      endHeight,
+      chunkSize: 499n,
+      liveSync: false
+    })
+
+    const graphBlockData = []
+    for await (const blockInfo of graphIterator) {
+      graphBlockData.push(blockInfo)
+    }
+    assert.deepEqual(rpcBlockData, graphBlockData)
   })
 })

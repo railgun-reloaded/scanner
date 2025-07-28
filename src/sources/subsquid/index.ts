@@ -1,0 +1,1 @@
+export { SubsquidProvider } from './provider'
