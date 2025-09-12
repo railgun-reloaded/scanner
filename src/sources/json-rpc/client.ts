@@ -7,12 +7,17 @@
  * @returns JSON-RPC request object
  */
 function jsonrpc (method: string, params: any) {
-  return {
+  const request: any = {
     jsonrpc: '2.0',
     id: i++,
-    method,
-    params: [params]
+    method
   }
+  
+  if (params !== undefined) {
+    request.params = Array.isArray(params) ? params : [params]
+  }
+  
+  return request
 }
 
 type Req = ReturnType<typeof jsonrpc>
