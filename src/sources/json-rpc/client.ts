@@ -278,52 +278,15 @@ class JSONRPCClient {
 
     await this.#connectWebSocket()
 
-    if (!this.#ws) {
-      throw new Error('WebSocket connection not available')
-    }
-
-    const subscriptionRequest = {
-      jsonrpc: '2.0',
-      id: i++,
-      method: 'eth_subscribe',
-      params: [type, params]
-    }
+    const subscriptionId = await this.call<string>('eth_subscribe', [type, params])
     
-    return new Promise((resolve, reject) => {
-      const timeout = setTimeout(() => {
-        reject(new Error('Subscription request timeout'))
-      }, 10000)
-
-      const onMessage = (event: MessageEvent) => {
-        try {
-          const response = JSON.parse(event.data)
-          if (response.id === subscriptionRequest.id) {
-            this.#ws!.removeEventListener('message', onMessage)
-            clearTimeout(timeout)
-            
-            if (response.error) {
-              reject(new Error(response.error.message))
-              return
-            }
-            
-            const subscriptionId = response.result
-            this.#subscriptions.set(subscriptionId, {
-              id: subscriptionId,
-              handler
-            })
-            
-            this.#log(`[JSONRPCClient] Created subscription ${subscriptionId} for ${type}`)
-            resolve(subscriptionId)
-          }
-        } catch (error) {
-          // Ignore parsing errors for other messages
-        }
-      }
-
-      this.#ws!.addEventListener('message', onMessage)
-      this.#ws!.send(JSON.stringify(subscriptionRequest))
-      this.#log(`[JSONRPCClient] Sent subscription request ${subscriptionRequest.id} for ${type}`)
+    this.#subscriptions.set(subscriptionId, {
+      id: subscriptionId,
+      handler
     })
+
+    this.#log(`[JSONRPCClient] Created subscription ${subscriptionId} for ${type}`)
+    return subscriptionId
   }
 
   /**
@@ -335,13 +298,7 @@ class JSONRPCClient {
       return
     }
 
-    const unsubscribeRequest = {
-      jsonrpc: '2.0',
-      id: i++,
-      method: 'eth_unsubscribe',
-      params: [subscriptionId]
-    }
-    this.#ws.send(JSON.stringify(unsubscribeRequest))
+    await this.call('eth_unsubscribe', subscriptionId)
     this.#subscriptions.delete(subscriptionId)
     this.#log(`[JSONRPCClient] Unsubscribed from ${subscriptionId}`)
   }

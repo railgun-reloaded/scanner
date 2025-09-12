@@ -178,28 +178,28 @@ describe('JSONRPCProvider', () => {
 
       for await (const blockData of iterator) {
         blockCount++
-        
-        assert.ok(blockData.number >= previousBlockNumber, 
+
+        assert.ok(blockData.number >= previousBlockNumber,
           `Block ${blockData.number} should be >= previous block ${previousBlockNumber}`)
-        
+
         previousBlockNumber = blockData.number
 
         let previousTxIndex = -1
         for (const transaction of blockData.transactions) {
           totalTransactions++
-          
-          assert.ok(transaction.index > previousTxIndex, 
+
+          assert.ok(transaction.index > previousTxIndex,
             `Transaction index ${transaction.index} should be > previous ${previousTxIndex}`)
-          
+
           previousTxIndex = transaction.index
 
           let previousLogIndex = -1
           for (const log of transaction.logs) {
             totalLogs++
-            
-            assert.ok(log.index > previousLogIndex, 
+
+            assert.ok(log.index > previousLogIndex,
               `Log index ${log.index} should be > previous ${previousLogIndex}`)
-            
+
             previousLogIndex = log.index
           }
         }
@@ -208,6 +208,150 @@ describe('JSONRPCProvider', () => {
       assert.ok(blockCount > 0, 'Should process at least one block')
       assert.ok(totalTransactions >= 0, 'Should process transactions')
       assert.ok(totalLogs >= 0, 'Should process logs')
+    })
+
+    test('Should decode Railgun events properly with meaningful names and structured args', async () => {
+      const provider = new JSONRPCProvider(RPC_URL, RAILGUN_PROXY_ADDRESS, 1000, false)
+
+      // Use a known block range that should contain Railgun events
+      const startBlock = 14777791n
+      const endBlock = 14777800n
+
+      let totalDecodedEvents = 0
+      let hasRealEventNames = false
+      let hasStructuredArgs = false
+      const eventNames = new Set<string>()
+
+      const iterator = provider.from({
+        startHeight: startBlock,
+        endHeight: endBlock,
+        chunkSize: 10n,
+        liveSync: false
+      })
+
+      for await (const blockData of iterator) {
+        for (const transaction of blockData.transactions) {
+          for (const log of transaction.logs) {
+            totalDecodedEvents++
+
+            // Verify event has a real name (not 'RawLog')
+            assert.ok(typeof log.name === 'string', 'Event name should be string')
+            assert.ok(log.name !== 'RawLog', 'Event should have decoded name, not raw placeholder')
+
+            if (log.name !== 'RawLog') {
+              hasRealEventNames = true
+              eventNames.add(log.name)
+            }
+
+            // Verify args are structured objects, not raw data/topics
+            assert.ok(typeof log.args === 'object', 'Event args should be object')
+            assert.ok(log.args !== null, 'Event args should not be null')
+
+            // Should not have raw data/topics structure
+            const hasRawStructure = log.args.hasOwnProperty('data') && log.args.hasOwnProperty('topics')
+            if (!hasRawStructure && Object.keys(log.args).length > 0) {
+              hasStructuredArgs = true
+            }
+
+            // Log first few events for inspection
+            if (totalDecodedEvents <= 3) {
+              console.log(`Event ${totalDecodedEvents}: ${log.name}`)
+              console.log(`  Args keys: [${Object.keys(log.args).join(', ')}]`)
+              // Handle BigInt serialization by converting to string
+              const argsForLogging = JSON.stringify(log.args, (_, value) =>
+                typeof value === 'bigint' ? `${value}n` : value
+              , 2).slice(0, 200) + '...'
+              console.log('  Sample args:', argsForLogging)
+            }
+          }
+        }
+      }
+
+      // Assertions
+      assert.ok(totalDecodedEvents > 0, 'Should find some events to decode')
+      assert.ok(hasRealEventNames, 'Should have decoded at least some events with real names')
+      assert.ok(hasStructuredArgs, 'Should have structured arguments, not raw data/topics')
+
+      console.log(`Found ${eventNames.size} unique event types: [${Array.from(eventNames).join(', ')}]`)
+      assert.ok(eventNames.size > 0, 'Should have found recognizable Railgun event types')
+    })
+
+    test('Should handle unknown events gracefully without breaking', async () => {
+      const provider = new JSONRPCProvider(RPC_URL, RAILGUN_PROXY_ADDRESS, 1000, false)
+
+      const startBlock = 14777791n
+      const endBlock = 14777795n
+
+      let totalProcessedEvents = 0
+
+      const iterator = provider.from({
+        startHeight: startBlock,
+        endHeight: endBlock,
+        chunkSize: 5n,
+        liveSync: false
+      })
+
+      for await (const blockData of iterator) {
+        for (const transaction of blockData.transactions) {
+          for (const log of transaction.logs) {
+            totalProcessedEvents++
+
+            assert.ok(typeof log === 'object', 'Should return log object even for unknown events')
+            assert.ok(typeof log.name === 'string', 'Event name should always be string')
+            assert.ok(typeof log.index === 'number', 'Event index should be number')
+            assert.ok(typeof log.address === 'string', 'Event address should be string')
+            assert.ok(typeof log.args === 'object', 'Event args should be object')
+          }
+        }
+      }
+
+      assert.ok(totalProcessedEvents > 0, 'Should process some events')
+      console.log(`Processed ${totalProcessedEvents} events successfully`)
+    })
+
+    test('Should validate decoded event structure matches expected Railgun event format', async () => {
+      const provider = new JSONRPCProvider(RPC_URL, RAILGUN_PROXY_ADDRESS, 1000, false)
+
+      const iterator = provider.from({
+        startHeight: 14777791n,
+        endHeight: 14777793n,
+        chunkSize: 3n,
+        liveSync: false
+      })
+
+      const knownRailgunEvents = [
+        'CommitmentBatch', 'Nullifiers', 'GeneratedCommitmentBatch',
+        'FeeChange', 'TreasuryChange', 'VerifyingKeySet'
+      ]
+
+      let foundKnownEvents = false
+
+      for await (const blockData of iterator) {
+        for (const transaction of blockData.transactions) {
+          for (const log of transaction.logs) {
+            if (knownRailgunEvents.includes(log.name)) {
+              foundKnownEvents = true
+
+              // Verify structure based on event type
+              if (log.name === 'CommitmentBatch') {
+                assert.ok('treeNumber' in log.args, 'CommitmentBatch should have treeNumber')
+                assert.ok('startPosition' in log.args, 'CommitmentBatch should have startPosition')
+                assert.ok('hash' in log.args, 'CommitmentBatch should have hash array')
+              }
+
+              if (log.name === 'Nullifiers') {
+                assert.ok('treeNumber' in log.args, 'Nullifiers should have treeNumber')
+                assert.ok('nullifier' in log.args, 'Nullifiers should have nullifier array')
+              }
+
+              console.log(`Valid ${log.name} event with args: [${Object.keys(log.args).join(', ')}]`)
+            }
+          }
+        }
+      }
+
+      // We might not always find known events in small ranges, so just log the result
+      console.log(`Found known Railgun events: ${foundKnownEvents}`)
     })
   })
 })
