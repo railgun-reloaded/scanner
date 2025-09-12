@@ -1,3 +1,6 @@
+import { RailgunV1, RailgunV2, RailgunV2_1 } from '@railgun-reloaded/contract-abis'
+import { decodeEventLog } from 'viem'
+
 import type { EVMBlock, EVMLog } from '../../models'
 import type { DataSource, SyncOptions } from '../data-source'
 
@@ -35,6 +38,10 @@ export class JSONRPCProvider<T extends EVMBlock> implements DataSource<T> {
   #connectionManager: JSONRPCConnectionManager
   /** Railgun proxy contract address */
   #railgunProxyAddress: `0x${string}`
+  /**
+   * List of event fragments in all the version of Railgun
+   */
+  #eventAbis: any[]
 
   /**
    * Stop syncing flag for future live sync implementation
@@ -56,6 +63,9 @@ export class JSONRPCProvider<T extends EVMBlock> implements DataSource<T> {
   ) {
     this.#connectionManager = new JSONRPCConnectionManager(rpcURL, maxBatchSize, enableLogging)
     this.#railgunProxyAddress = railgunProxyAddress
+    const combinedAbi = [...RailgunV1, ...RailgunV2, ...RailgunV2_1]
+    // @TODO remove duplicate events
+    this.#eventAbis = combinedAbi.filter(item => item.type === 'event')
   }
 
   /**
@@ -78,26 +88,31 @@ export class JSONRPCProvider<T extends EVMBlock> implements DataSource<T> {
       }
       const { logIndex, address, transactionIndex, transactionHash, data, topics } = event
       try {
+        const decodedLog = decodeEventLog({
+          abi: this.#eventAbis,
+          data,
+          topics: topics as [] | [`0x${string}`, ...`0x${string}`[]]
+        }) as { eventName: string, args: Record<string, any> }
         const evmLog: EVMLog = {
-          index: logIndex,
+          index: parseInt(logIndex as string, 16),
           address,
-          name: 'RawLog', // TODO: Implement proper event decoding
-          args: { data, topics }
+          name: decodedLog.eventName,
+          args: decodedLog.args
         }
         const transactionInfo = groupedBlockTxEvents[blockNumber].transactions.find((entry) => entry.hash === transactionHash)
         if (!transactionInfo) {
           groupedBlockTxEvents[blockNumber].transactions.push({
             from: address,
             hash: transactionHash,
-            index: transactionIndex,
+            index: parseInt(transactionIndex as string, 16),
             logs: [evmLog]
           })
         } else {
           transactionInfo.logs.push(evmLog)
         }
       } catch {
-        // @@ TODO: Error handling
-        console.error('Failed to process log: ', topics)
+        // Error logging for failed event decoding
+        // console.error('Failed to decode log: ', topics)
       }
     }
     let blockInfos = Object.values(groupedBlockTxEvents)
