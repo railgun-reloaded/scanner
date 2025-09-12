@@ -1,1 +1,1 @@
-export { RPCProvider } from './sources'
+export { RPCProvider, JSONRPCProvider } from './sources'
