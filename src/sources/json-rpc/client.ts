@@ -108,7 +108,7 @@ class JSONRPCClient {
    * @param req JSON-RPC request object, see {@link jsonrpc}
    * @returns A promise that resolves with the result of the request, or rejects with an error if the request failed.
    */
-  async request<T = any>(req: Req): Promise<T> {
+  async #request<T = any>(req: Req): Promise<T> {
     const prom = Promise.withResolvers<T>()
     this.#requests.push([prom, req])
 
@@ -189,7 +189,7 @@ class JSONRPCClient {
    * @returns Promise resolving to the method result
    */
   async call<T>(method: string, params?: any): Promise<T> {
-    return this.request<T>(jsonrpc(method, params))
+    return this.#request<T>(jsonrpc(method, params))
   }
 
   /**
