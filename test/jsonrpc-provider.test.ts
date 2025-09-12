@@ -49,7 +49,7 @@ describe('JSONRPCProvider', () => {
 
       const result = await client.call('eth_getLogs', {
         fromBlock: '0xe17dbf',
-        toBlock: '0xe17fb2',
+        toBlock: '0xe17dc8',
         address: RAILGUN_PROXY_ADDRESS
       })
 
