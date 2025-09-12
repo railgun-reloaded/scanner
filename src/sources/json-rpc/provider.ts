@@ -105,7 +105,7 @@ export class JSONRPCProvider<T extends EVMBlock> implements DataSource<T> {
           topics: topics as [] | [`0x${string}`, ...`0x${string}`[]]
         }) as { eventName: string, args: Record<string, any> }
         const evmLog: EVMLog = {
-          index: typeof logIndex === 'string' ? parseInt(logIndex, 16) : logIndex,
+          index: parseInt(logIndex as string, 16),
           address,
           name: decodedLog.eventName,
           args: decodedLog.args
@@ -115,7 +115,7 @@ export class JSONRPCProvider<T extends EVMBlock> implements DataSource<T> {
           groupedBlockTxEvents[blockNumber].transactions.push({
             from: address,
             hash: transactionHash,
-            index: typeof transactionIndex === 'string' ? parseInt(transactionIndex, 16) : transactionIndex,
+            index: parseInt(transactionIndex as string, 16),
             logs: [evmLog]
           })
         } else {
