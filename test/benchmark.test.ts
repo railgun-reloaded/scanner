@@ -5,7 +5,7 @@ import { performance } from 'perf_hooks'
 import dotenv from 'dotenv'
 
 import { JSONRPCClient, JSONRPCProvider } from '../src/sources/json-rpc/index.js'
-import { RPCProvider } from '../src/sources/rpc/index.js'
+import { RPCConnectionManager, RPCProvider } from '../src/sources/rpc/index.js'
 
 dotenv.config()
 
@@ -56,15 +56,16 @@ describe('Performance Benchmarks', () => {
 
   test('Provider speed comparison', async () => {
     console.log('Running provider comparison...')
-    
+
     const startBlock = 14777791n
     const endBlock = 14777801n
     const chunkSize = 5n
 
-    const jsonrpcProvider = new JSONRPCProvider(RPC_URL, RAILGUN_PROXY_ADDRESS)
+    const jsonrpcProvider = new JSONRPCProvider(RAILGUN_PROXY_ADDRESS, RPC_URL)
     const jsonrpcResult = await measureProvider(jsonrpcProvider, startBlock, endBlock, chunkSize)
 
-    const rpcProvider = new RPCProvider(RPC_URL, RAILGUN_PROXY_ADDRESS, 5)
+    const connectionManager = new RPCConnectionManager(5)
+    const rpcProvider = new RPCProvider(RAILGUN_PROXY_ADDRESS, RPC_URL, connectionManager)
     const rpcResult = await measureProvider(rpcProvider, startBlock, endBlock, chunkSize)
 
     console.log(`JSONRPCProvider: ${jsonrpcResult.duration.toFixed(3)}s (${jsonrpcResult.throughput.toFixed(2)} blocks/sec)`)
@@ -85,7 +86,7 @@ describe('Performance Benchmarks', () => {
     const endBlock = 14777795n
     const chunkSize = 2n
 
-    const jsonrpcProvider = new JSONRPCProvider(RPC_URL, RAILGUN_PROXY_ADDRESS)
+    const jsonrpcProvider = new JSONRPCProvider(RAILGUN_PROXY_ADDRESS, RPC_URL)
     const jsonrpcEventTypes = new Set<string>()
 
     const jsonrpcIterator = jsonrpcProvider.from({
@@ -103,7 +104,8 @@ describe('Performance Benchmarks', () => {
       }
     }
 
-    const rpcProvider = new RPCProvider(RPC_URL, RAILGUN_PROXY_ADDRESS)
+    const connectionManager = new RPCConnectionManager(3)
+    const rpcProvider = new RPCProvider(RAILGUN_PROXY_ADDRESS, RPC_URL, connectionManager)
     const rpcEventTypes = new Set<string>()
 
     const rpcIterator = rpcProvider.from({
@@ -141,7 +143,7 @@ describe('Performance Benchmarks', () => {
     const results: Array<{batchSize: number, duration: number}> = []
 
     for (const batchSize of batchSizes) {
-      const provider = new JSONRPCProvider(RPC_URL, RAILGUN_PROXY_ADDRESS, batchSize)
+      const provider = new JSONRPCProvider(RAILGUN_PROXY_ADDRESS, RPC_URL, batchSize)
       const result = await measureProvider(provider, startBlock, endBlock, chunkSize)
       results.push({ batchSize, duration: result.duration })
       console.log(`Batch size ${batchSize}: ${result.duration.toFixed(3)}s`)
@@ -155,7 +157,7 @@ describe('Performance Benchmarks', () => {
 
   test('JSONRPC client batching effectiveness', async () => {
     console.log('Testing JSONRPC client batching...')
-    
+
     const client = new JSONRPCClient(RPC_URL, 1000, true)
 
     const promises = [
