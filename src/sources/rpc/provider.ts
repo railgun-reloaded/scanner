@@ -1,26 +1,17 @@
 /* eslint-disable camelcase */
 import { RailgunV1, RailgunV2, RailgunV2_1 } from '@railgun-reloaded/contract-abis'
-import type { WatchEventReturnType } from 'viem'
-import { decodeEventLog } from 'viem'
+import type { Abi, PublicClient } from 'viem'
+import { createPublicClient, decodeEventLog, http } from 'viem'
+import { mainnet } from 'viem/chains'
 
 import type { EVMBlock, EVMLog } from '../../models'
 import type { DataSource, SyncOptions } from '../data-source'
 
-import { RPCConnectionManager } from './connection-manager'
+import type { RPCConnectionManager } from './connection-manager'
 
 const DEFAULT_CHUNK_SIZE = 500n
-
-interface ViemLog {
-  address: string;
-  blockHash: string;
-  blockNumber: string;
-  blockTimestamp: string;
-  data: `0x${string}`;
-  logIndex: number;
-  removed: boolean;
-  topics: [];
-  transactionHash: string;
-  transactionIndex: number;
+type AsyncIterableDisposable<T, TReturn = any, TVal = any> = AsyncIterable<T, TReturn, TVal> & {
+  destroy: () => void
 }
 
 /**
@@ -30,43 +21,71 @@ export class RPCProvider<T extends EVMBlock> implements DataSource<T> {
   /** The latest height up to which this provider can get data */
   head = 0n
 
-  /** Name of datasource */
-  name = 'RPCProvider'
-
   /** Flag to indicate if the data-source can provide live data or not */
   isLiveProvider = true
 
   /** RPC Connection manager instance */
   #connectionManager: RPCConnectionManager
+
   /** Railgun proxy contract address */
   #railgunProxyAddress: `0x${string}`
+
+  /** The viem client instance for this provider */
+  #client: PublicClient
   /**
    * List of event fragments in all the version of Railgun
    */
-  #eventAbis: any[]
+  #abi: Abi
 
   /**
-   * A flag to indicate if it should continue syncing
-   * Is only applicable for the liveProvider
+   * Stores value returned by timeout when polling head
    */
-  #stopSyncing: boolean = false
+  #headPollTimeout?: NodeJS.Timeout
 
   /**
-   * Initialize RPC provider with RPC URL and railgun proxy address
-   * @param rpcURL - RPC endpoint URL
+   * An array of iterator to iterate over the live rpc events
+   * Used to kill all the liveSync when the provider is destroyed
+   */
+  #liveEventIterators: Array<AsyncIterableDisposable<EVMBlock | undefined>> = []
+
+  /**
+   * Initialize RPC provider with its own RPC URL and connection manager
    * @param railgunProxyAddress - Railgun proxy contract address
-   * @param maxConcurrentRequests - Maximum concurrent requests allowed
+   * @param rpcURL - RPC endpoint URL for this provider
+   * @param connectionManager - Connection manager instance
    */
   constructor (
-    rpcURL: string,
     railgunProxyAddress: `0x${string}`,
-    maxConcurrentRequests: number = 5
+    rpcURL: string,
+    connectionManager: RPCConnectionManager
   ) {
-    this.#connectionManager = new RPCConnectionManager(rpcURL, maxConcurrentRequests)
+    if (rpcURL.length === 0) throw new Error('RPC URL is invalid')
+    if (railgunProxyAddress.length === 0) throw new Error('Railgun Proxy Address is invalid')
+
+    this.#connectionManager = connectionManager
     this.#railgunProxyAddress = railgunProxyAddress
-    const combinedAbi = [...RailgunV1, ...RailgunV2, ...RailgunV2_1]
-    // @TODO remove duplicate events
-    this.#eventAbis = combinedAbi.filter(item => item.type === 'event')
+    this.#abi = [...RailgunV1, ...RailgunV2, ...RailgunV2_1] as Abi
+    this.#client = createPublicClient({
+      chain: mainnet,
+      transport: http(rpcURL)
+    })
+    this.#pollHead()
+  }
+
+  /**
+   * Get latest height from the RPC
+   * @returns - Latest block height
+   */
+  async #pollHead () {
+    try {
+      this.head = await this.#client.getBlockNumber()
+    } catch (err) {
+      console.log(err)
+    }
+    if (this.#headPollTimeout) {
+      clearTimeout(this.#headPollTimeout)
+    }
+    this.#headPollTimeout = setTimeout(this.#pollHead.bind(this), 12_000)
   }
 
   /**
@@ -74,10 +93,12 @@ export class RPCProvider<T extends EVMBlock> implements DataSource<T> {
    * @param logs - Array of raw log objects
    * @returns Array of EVMBlock objects grouped and sorted
    */
-  sortLogsByBlockTxEvent (logs: Array<any>) : Array<EVMBlock> {
+  #bucketLogs (logs: Array<any>) : Array<EVMBlock> {
     const groupedBlockTxEvents : Record<string, EVMBlock> = {}
     for (const event of logs) {
       const { blockNumber, blockHash, blockTimestamp } = event
+
+      // Add block information
       if (!groupedBlockTxEvents[blockNumber]) {
         groupedBlockTxEvents[blockNumber] = {
           number: BigInt(blockNumber),
@@ -87,19 +108,22 @@ export class RPCProvider<T extends EVMBlock> implements DataSource<T> {
           internalTransaction: []
         }
       }
+
       const { logIndex, address, transactionIndex, transactionHash, data, topics } = event
       try {
         const decodedLog = decodeEventLog({
-          abi: this.#eventAbis,
+          abi: this.#abi,
           data,
           topics
         }) as { eventName: string, args: Record<string, any> }
+
         const evmLog: EVMLog = {
           index: logIndex,
           address,
           name: decodedLog.eventName,
           args: decodedLog.args
         }
+
         const transactionInfo = groupedBlockTxEvents[blockNumber].transactions.find((entry) => entry.hash === transactionHash)
         if (!transactionInfo) {
           groupedBlockTxEvents[blockNumber].transactions.push({
@@ -112,11 +136,13 @@ export class RPCProvider<T extends EVMBlock> implements DataSource<T> {
           transactionInfo.logs.push(evmLog)
         }
       } catch {
-        // Error logging for failed event decoding
-        // console.error('Failed to decode log: ', topics)
+        // These are proxy event which we have ignored for now
       }
     }
-    let blockInfos = Object.values(groupedBlockTxEvents)
+
+    const blockInfos = Object.values(groupedBlockTxEvents)
+    return blockInfos.filter(block => block.transactions.length !== 0)
+    /*
     blockInfos = blockInfos.sort((a, b) => Number(a.number - b.number))
     for (const block of blockInfos) {
       block.transactions = block.transactions.sort((a, b) => a.index - b.index)
@@ -124,7 +150,112 @@ export class RPCProvider<T extends EVMBlock> implements DataSource<T> {
         tx.logs = tx.logs.sort((a, b) => a.index - b.index)
       }
     }
-    return blockInfos.filter(block => block.transactions.length !== 0)
+    */
+  }
+
+  /**
+   * https://github.com/apollographql/graphql-subscriptions/blob/master/src/pubsub-async-iterable-iterator.ts
+   * Create iterator for polling live event from callback
+   * @param client - Viem Client
+   * @returns - AyncIterator for EvmBlock
+   */
+  #pollLiveEvent (client: PublicClient) {
+    let pushQueue = new Array<EVMBlock>()
+    const pullQueue = new Array<(input: { value: EVMBlock | undefined, done: boolean }) => void>()
+    let syncing = true
+
+    // Conditional variable
+    const unwatchEvent = client.watchEvent({
+      address: this.#railgunProxyAddress,
+      /**
+       * Callback to listen to live events
+       * @param logs - Event Logs
+       */
+      onLogs: (logs) => {
+        pushValue(this.#bucketLogs(logs))
+      }
+    })
+
+    /**
+     * Push value to buffer or directly to iterator
+     * @param blocks - EVM BlockData
+     */
+    const pushValue = (blocks: EVMBlock[]) => {
+      for (let i = 0; i < blocks.length; ++i) {
+        if (pullQueue.length !== 0) {
+          pullQueue.shift()!({ value: blocks[i]!, done: false })
+        } else {
+          pushQueue.push(...blocks)
+        }
+      }
+    }
+
+    /**
+     * Get value from buffer or queue
+     * @returns - EVMBlock
+     */
+    const pullValue = () : Promise<{ value: EVMBlock | undefined, done: boolean }> => {
+      return new Promise(resolve => {
+        if (pushQueue.length !== 0) {
+          resolve({ value: pushQueue.shift()!, done: false })
+        } else {
+          pullQueue.push(resolve)
+        }
+      })
+    }
+
+    /**
+     * Cleanup callback and queue
+     */
+    const cleanup = () => {
+      syncing = false
+      pullQueue.forEach(resolve => resolve({ value: undefined, done: true }))
+      pushQueue = []
+      unwatchEvent()
+    }
+
+    return {
+      /**
+       * Destroy the iterator
+       */
+      destroy () {
+        cleanup()
+      },
+      /**
+       * Return asyncIterator
+       * @returns - AsyncIterator for EvmBlock
+       */
+      [Symbol.asyncIterator] () {
+        return {
+          /**
+           * Should return next value for iterator
+           * @returns - EVMBlock
+           */
+          next () : Promise<{ value: EVMBlock | undefined, done: boolean }> {
+            return syncing ? pullValue() : this.return()
+          },
+
+          /**
+           * Should cleanup resources
+           * @returns - Promise that resolves to undefined, which should signal close
+           */
+          return () : Promise<{ value: typeof undefined, done: boolean }> {
+            cleanup()
+            return Promise.resolve({ value: undefined, done: true })
+          },
+          /**
+           * Should handle error
+           * @param err - Error Object
+           * @returns - Rejected promise
+           */
+          throw (err: Error) {
+            cleanup()
+            return Promise.reject(err)
+          },
+
+        }
+      },
+    }
   }
 
   /**
@@ -142,37 +273,20 @@ export class RPCProvider<T extends EVMBlock> implements DataSource<T> {
      */
     const minBigInt = (a: bigint, b: bigint) => a < b ? a : b
 
-    if (!this.#railgunProxyAddress || this.#railgunProxyAddress.length === 0) {
-      throw new Error(`Railgun Proxy Address is invalid: ${this.#railgunProxyAddress}`)
-    }
-
     let { startHeight, endHeight, chunkSize = DEFAULT_CHUNK_SIZE, liveSync = false } = options
     let currentHeight = startHeight
-    const client = this.#connectionManager.client
+    const client = this.#client
 
-    /**
-     * Initialize a listener so that it can listen to the events
-     */
-    let liveEventQueue: ViemLog[] = []
-    let unwatchEvent : WatchEventReturnType | null = null
+    // Create an iterator to poll live event
+    let liveEventIterator: AsyncIterableDisposable<EVMBlock | undefined> | null = null
     if (!endHeight && liveSync) {
-      unwatchEvent = client.watchEvent({
-        address: this.#railgunProxyAddress,
-        /**
-         * Callback to listen to live events
-         * @param logs - Event Logs
-         */
-        onLogs: (logs) => {
-          // @TODO this is not correct
-          liveEventQueue.push(logs as unknown as ViemLog)
-        }
-      })
+      liveEventIterator = this.#pollLiveEvent(client)
+      this.#liveEventIterators.push(liveEventIterator)
     }
 
     const latestHeight = await client.getBlockNumber()
     if (!latestHeight) throw new Error('Failed to get latest height')
     endHeight = endHeight ? minBigInt(endHeight, BigInt(latestHeight)) : BigInt(latestHeight)
-    if (chunkSize === 0n) throw new Error('ChunkSize cannot be zero')
 
     // Process historical blocks
     while (currentHeight < endHeight) {
@@ -180,34 +294,22 @@ export class RPCProvider<T extends EVMBlock> implements DataSource<T> {
       const requestId = `iterator_${currentHeight}_${batchEndHeight}`
       // Use connection manager for log requests
       const logs = await this.#connectionManager.submitRequest(
-        () => this.createLogRequest(currentHeight, batchEndHeight),
+        () => this.#createLogRequest(currentHeight, batchEndHeight),
         requestId
       )
       if (logs && logs.length > 0) {
-        const evmBlockData = this.sortLogsByBlockTxEvent(logs)
+        const evmBlockData = this.#bucketLogs(logs)
         for (const blockData of evmBlockData) {
           yield blockData as T
         }
       }
-      this.head = batchEndHeight
       currentHeight = batchEndHeight
     }
 
     // if it is a live source, we should wait until new events are available
-    if (liveSync) {
-      console.log('Switching to live event listener ...')
-      while (!this.#stopSyncing) {
-        const evmBlockData = this.sortLogsByBlockTxEvent(liveEventQueue)
-        for (const blockData of evmBlockData) {
-          yield blockData as T
-        }
-        liveEventQueue = []
-        await new Promise((resolve) => setTimeout(resolve, 12))
-      }
-
-      // Stop listening for the live events
-      if (unwatchEvent) {
-        unwatchEvent()
+    if (liveSync && liveEventIterator) {
+      for await (const blockData of liveEventIterator) {
+        yield blockData as T
       }
     }
   }
@@ -218,9 +320,8 @@ export class RPCProvider<T extends EVMBlock> implements DataSource<T> {
    * @param toBlock - End block number
    * @returns Promise resolving to logs
    */
-  private async createLogRequest (fromBlock: bigint, toBlock: bigint): Promise<any[]> {
-    const client = this.#connectionManager.client
-    const logs = await client.getLogs({
+  async #createLogRequest (fromBlock: bigint, toBlock: bigint): Promise<any[]> {
+    const logs = await this.#client.getLogs({
       address: this.#railgunProxyAddress,
       fromBlock,
       toBlock
@@ -233,13 +334,16 @@ export class RPCProvider<T extends EVMBlock> implements DataSource<T> {
    * @returns The viem PublicClient instance
    */
   get client () {
-    return this.#connectionManager.client
+    return this.#client
   }
 
   /**
    * Stop provider from syncing if it is
    */
-  destroy (): void {
-    this.#stopSyncing = true
+  destroy () {
+    clearTimeout(this.#headPollTimeout)
+    for (const iterator of this.#liveEventIterators) {
+      iterator.destroy()
+    }
   }
 }

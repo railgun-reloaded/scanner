@@ -1,1 +1,1 @@
-export { RPCProvider, SubsquidProvider } from './sources'
+export { RPCProvider, JSONRPCProvider, SubsquidProvider } from './sources'

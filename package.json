@@ -21,7 +21,8 @@
     "build": "tsc --build",
     "clean": "tsc --build --clean",
     "pretest": "npm run build",
-    "test": "node --test --enable-source-maps test/*.js"
+    "test": "node --test --enable-source-maps test/*.js",
+    "coverage": "c8 --reporter=text --reporter=html --exclude=test npm test"
   },
   "keywords": [
     "subsquid",
@@ -33,6 +34,9 @@
   ],
   "dependencies": {
     "@railgun-reloaded/contract-abis": "^1.0.1",
+    "viem": "^2.31.4"
+  },
+  "devDependencies": {
     "@railgun-reloaded/eslint-config": "^1.1.0",
     "@railgun-reloaded/tsconfig": "^1.2.0",
     "@railgun-reloaded/subsquid-client": "https://github.com/railgun-reloaded/subsquid-client.git#master",
@@ -40,6 +44,7 @@
     "dotenv": "^16.5.0",
     "eslint": "^9.29.0",
     "typescript": "^5.8.3",
-    "viem": "^2.31.4"
+    "viem": "^2.31.4",
+    "c8": "^10.1.3"
   }
 }
