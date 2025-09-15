@@ -1,12 +1,13 @@
 /* eslint-disable camelcase */
 import { RailgunV1, RailgunV2, RailgunV2_1 } from '@railgun-reloaded/contract-abis'
-import type { Abi, Log, PublicClient } from 'viem'
-import { decodeEventLog } from 'viem'
+import type { Abi, PublicClient } from 'viem'
+import { createPublicClient, decodeEventLog, http } from 'viem'
+import { mainnet } from 'viem/chains'
 
 import type { EVMBlock, EVMLog } from '../../models'
 import type { DataSource, SyncOptions } from '../data-source'
 
-import { RPCConnectionManager } from './connection-manager'
+import type { RPCConnectionManager } from './connection-manager'
 
 const DEFAULT_CHUNK_SIZE = 500n
 type AsyncIterableDisposable<T, TReturn = any, TVal = any> = AsyncIterable<T, TReturn, TVal> & {
@@ -29,6 +30,8 @@ export class RPCProvider<T extends EVMBlock> implements DataSource<T> {
   /** Railgun proxy contract address */
   #railgunProxyAddress: `0x${string}`
 
+  /** The viem client instance for this provider */
+  #client: PublicClient
   /**
    * List of event fragments in all the version of Railgun
    */
@@ -46,24 +49,26 @@ export class RPCProvider<T extends EVMBlock> implements DataSource<T> {
   #liveEventIterators: Array<AsyncIterableDisposable<EVMBlock | undefined>> = []
 
   /**
-   * Initialize RPC provider with RPC URL and railgun proxy address
-   * @param rpcURL - RPC endpoint URL
+   * Initialize RPC provider with its own RPC URL and connection manager
    * @param railgunProxyAddress - Railgun proxy contract address
-   * @param maxConcurrentRequests - Maximum concurrent requests allowed
+   * @param rpcURL - RPC endpoint URL for this provider
+   * @param connectionManager - Connection manager instance
    */
   constructor (
-    rpcURL: string,
     railgunProxyAddress: `0x${string}`,
-    maxConcurrentRequests: number = 5
+    rpcURL: string,
+    connectionManager: RPCConnectionManager
   ) {
     if (rpcURL.length === 0) throw new Error('RPC URL is invalid')
     if (railgunProxyAddress.length === 0) throw new Error('Railgun Proxy Address is invalid')
 
-    this.#connectionManager = new RPCConnectionManager(rpcURL, maxConcurrentRequests)
+    this.#connectionManager = connectionManager
     this.#railgunProxyAddress = railgunProxyAddress
     this.#abi = [...RailgunV1, ...RailgunV2, ...RailgunV2_1] as Abi
-
-    // Setup a timeout to poll the head continuously
+    this.#client = createPublicClient({
+      chain: mainnet,
+      transport: http(rpcURL)
+    })
     this.#pollHead()
   }
 
@@ -73,7 +78,7 @@ export class RPCProvider<T extends EVMBlock> implements DataSource<T> {
    */
   async #pollHead () {
     try {
-      this.head = await this.#connectionManager.client.getBlockNumber()
+      this.head = await this.#client.getBlockNumber()
     } catch (err) {
       console.log(err)
     }
@@ -270,7 +275,7 @@ export class RPCProvider<T extends EVMBlock> implements DataSource<T> {
 
     let { startHeight, endHeight, chunkSize = DEFAULT_CHUNK_SIZE, liveSync = false } = options
     let currentHeight = startHeight
-    const client = this.#connectionManager.client
+    const client = this.#client
 
     // Create an iterator to poll live event
     let liveEventIterator: AsyncIterableDisposable<EVMBlock | undefined> | null = null
@@ -315,9 +320,8 @@ export class RPCProvider<T extends EVMBlock> implements DataSource<T> {
    * @param toBlock - End block number
    * @returns Promise resolving to logs
    */
-  async #createLogRequest (fromBlock: bigint, toBlock: bigint): Promise<Log[]> {
-    const client = this.#connectionManager.client
-    const logs = await client.getLogs({
+  async #createLogRequest (fromBlock: bigint, toBlock: bigint): Promise<any[]> {
+    const logs = await this.#client.getLogs({
       address: this.#railgunProxyAddress,
       fromBlock,
       toBlock
@@ -330,7 +334,7 @@ export class RPCProvider<T extends EVMBlock> implements DataSource<T> {
    * @returns The viem PublicClient instance
    */
   get client () {
-    return this.#connectionManager.client
+    return this.#client
   }
 
   /**
