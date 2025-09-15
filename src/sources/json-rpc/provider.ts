@@ -57,8 +57,8 @@ export class JSONRPCProvider<T extends EVMBlock> implements DataSource<T> {
    * @param enableLogging - Enable logging for debugging batch operations
    */
   constructor (
-    rpcURL: string,
     railgunProxyAddress: `0x${string}`,
+    rpcURL: string,
     maxBatchSize: number = 1000,
     enableLogging: boolean = false
   ) {

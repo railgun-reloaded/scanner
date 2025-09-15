@@ -69,7 +69,7 @@ describe('Performance Benchmarks', () => {
     const endBlock = 14777801n
     const chunkSize = 5n
 
-    const jsonrpcProvider = new JSONRPCProvider(RPC_URL, RAILGUN_PROXY_ADDRESS)
+    const jsonrpcProvider = new JSONRPCProvider(RAILGUN_PROXY_ADDRESS, RPC_URL)
     const jsonrpcResult = await measureProvider(jsonrpcProvider, startBlock, endBlock, chunkSize)
 
     const connectionManager = new RPCConnectionManager(5)
@@ -94,7 +94,7 @@ describe('Performance Benchmarks', () => {
     const endBlock = 14777795n
     const chunkSize = 2n
 
-    const jsonrpcProvider = new JSONRPCProvider(RPC_URL, RAILGUN_PROXY_ADDRESS)
+    const jsonrpcProvider = new JSONRPCProvider(RAILGUN_PROXY_ADDRESS, RPC_URL)
     const jsonrpcEventTypes = new Set<string>()
 
     const jsonrpcIterator = jsonrpcProvider.from({
@@ -151,7 +151,7 @@ describe('Performance Benchmarks', () => {
     const results: Array<{ batchSize: number, duration: number }> = []
 
     for (const batchSize of batchSizes) {
-      const provider = new JSONRPCProvider(RPC_URL, RAILGUN_PROXY_ADDRESS, batchSize)
+      const provider = new JSONRPCProvider(RAILGUN_PROXY_ADDRESS, RPC_URL, batchSize)
       const result = await measureProvider(provider, startBlock, endBlock, chunkSize)
       results.push({ batchSize, duration: result.duration })
       console.log(`Batch size ${batchSize}: ${result.duration.toFixed(3)}s`)
