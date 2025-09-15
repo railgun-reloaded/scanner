@@ -1,6 +1,8 @@
-import { describe, it } from 'node:test'
 import assert from 'node:assert'
+import { describe, it } from 'node:test'
+
 import dotenv from 'dotenv'
+
 import { RPCConnectionManager } from '../src/sources/rpc/connection-manager.js'
 import { RPCProvider } from '../src/sources/rpc/provider.js'
 
@@ -31,11 +33,19 @@ describe('Multi-Provider Connection Manager', () => {
       const provider1 = new RPCProvider(testRailgunAddress, alchemyRpcUrl, connectionManager)
       const provider2 = new RPCProvider(testRailgunAddress, ankrRpcUrl, connectionManager)
 
+      /**
+       * Create an alchemy request
+       * @returns Response data of JSON RPC Requeest
+       */
       const alchemyRequest = async () => {
         const blockNumber = await provider1.client.getBlockNumber()
         return { provider: 'alchemy', blockNumber }
       }
 
+      /**
+       * Create an ankr request
+       * @returns Response data of JSON RPC Requeest
+       */
       const ankrRequest = async () => {
         const blockNumber = await provider2.client.getBlockNumber()
         return { provider: 'ankr', blockNumber }

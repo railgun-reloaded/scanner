@@ -14,14 +14,22 @@ const RAILGUN_PROXY_ADDRESS = '0xFA7093CDD9EE6932B4eb2c9e1cde7CE00B1FA4b9'
 describe('Performance Benchmarks', () => {
   const RPC_URL = process.env['RPC_API_KEY']!
 
-  async function measureProvider(
+  /**
+   * Function to profile the Provider
+   * @param provider - Provider
+   * @param startBlock - Starting block height
+   * @param endBlock - Ending block height
+   * @param chunkSize - Chunk size
+   * @returns - Stats of the benchmark
+   */
+  async function measureProvider (
     provider: JSONRPCProvider<any> | RPCProvider<any>,
     startBlock: bigint,
     endBlock: bigint,
     chunkSize: bigint
   ) {
     const startTime = performance.now()
-    
+
     let totalBlocks = 0
     let totalTransactions = 0
     let totalLogs = 0
@@ -36,7 +44,7 @@ describe('Performance Benchmarks', () => {
     for await (const blockData of iterator) {
       totalBlocks++
       totalTransactions += blockData.transactions.length
-      
+
       for (const transaction of blockData.transactions) {
         totalLogs += transaction.logs.length
       }
@@ -81,7 +89,7 @@ describe('Performance Benchmarks', () => {
 
   test('Event decoding verification', async () => {
     console.log('Verifying event decoding...')
-    
+
     const startBlock = 14777791n
     const endBlock = 14777795n
     const chunkSize = 2n
@@ -104,7 +112,7 @@ describe('Performance Benchmarks', () => {
       }
     }
 
-    const connectionManager = new RPCConnectionManager(3)
+    const connectionManager = new RPCConnectionManager(1)
     const rpcProvider = new RPCProvider(RAILGUN_PROXY_ADDRESS, RPC_URL, connectionManager)
     const rpcEventTypes = new Set<string>()
 
@@ -134,13 +142,13 @@ describe('Performance Benchmarks', () => {
 
   test('Batch size performance', async () => {
     console.log('Testing batch size performance...')
-    
+
     const startBlock = 14777791n
     const endBlock = 14777801n
     const chunkSize = 5n
     const batchSizes = [1, 10, 100, 1000]
 
-    const results: Array<{batchSize: number, duration: number}> = []
+    const results: Array<{ batchSize: number, duration: number }> = []
 
     for (const batchSize of batchSizes) {
       const provider = new JSONRPCProvider(RAILGUN_PROXY_ADDRESS, RPC_URL, batchSize)
@@ -181,13 +189,13 @@ describe('Performance Benchmarks', () => {
     assert.ok(typeof results[0] === 'string', 'Block number should be string')
     assert.ok(Array.isArray(results[1]), 'Logs should be array')
     assert.ok(Array.isArray(results[2]), 'Logs should be array')
-    
+
     console.log('JSONRPC client batching test completed')
   })
 
   test('Network efficiency comparison', async () => {
     console.log('Testing network efficiency...')
-    
+
     const client = new JSONRPCClient(RPC_URL, 1000, true)
 
     const start = Date.now()
@@ -203,7 +211,7 @@ describe('Performance Benchmarks', () => {
 
     assert.ok(batchedResults.length === 4, 'All requests should complete')
     assert.ok(batchedResults.every(r => r === batchedResults[0]), 'All should return same block number')
-    
+
     console.log('Network efficiency test completed')
   })
 })

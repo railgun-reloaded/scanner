@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import assert from 'node:assert'
 import { describe, test } from 'node:test'
 
@@ -44,6 +43,7 @@ describe('RPCProvider', () => {
       return
     }
     assert.ok(iteratorCount > 0, 'Iterator from provider should yield events')
+    provider.destroy()
   })
 
   test('Should handle two iterators under the same provider', async () => {
@@ -97,6 +97,7 @@ describe('RPCProvider', () => {
 
     assert.ok(iterator1Count >= 0, 'Iterator1 should process events (may be 0 if no events in range)')
     assert.ok(iterator2Count >= 0, 'Iterator2 should process events (may be 0 if no events in range)')
+    provider.destroy()
   })
 
   test('Should handle multiple providers and multiple iterators concurrently', async () => {
@@ -209,6 +210,9 @@ describe('RPCProvider', () => {
       `All ${iterators.length} iterators should complete successfully, but ${successfulResults.length} succeeded`)
 
     assert.ok(totalEvents >= 0, 'Should process events from concurrent iterators')
+    provider1.destroy()
+    provider2.destroy()
+    provider3.destroy()
   })
 
   test('Should handle low concurrency provider with rate limiting', async () => {
@@ -261,6 +265,8 @@ describe('RPCProvider', () => {
 
     assert.ok(successfulResults.length === iterators.length, 'All iterators should complete successfully')
     assert.ok(totalEvents >= 0, 'Should process events from all iterators')
+
+    lowConcurrencyProvider.destroy()
   })
 
   test('Should handle moderate concurrency provider', async () => {
@@ -313,6 +319,7 @@ describe('RPCProvider', () => {
 
     assert.ok(successfulResults.length === iterators.length, 'All iterators should complete successfully')
     assert.ok(totalEvents >= 0, 'Should process events from all iterators')
+    moderateProvider.destroy()
   })
 
   test('Should handle high concurrency provider', async () => {
@@ -365,6 +372,8 @@ describe('RPCProvider', () => {
 
     assert.ok(successfulResults.length === iterators.length, 'All iterators should complete successfully')
     assert.ok(totalEvents >= 0, 'Should process events from all iterators')
+
+    highConcurrencyProvider.destroy()
   })
 
   test('Should handle edge case with very small block ranges', async () => {
@@ -393,6 +402,22 @@ describe('RPCProvider', () => {
       console.error('Edge case iterator failed:', error)
     }
     assert.ok(eventCount >= 0, 'Should handle very small block ranges')
+    edgeCaseProvider.destroy()
+  })
+
+  test('Should continously update the head', async () => {
+    const connectionManager = new RPCConnectionManager(1)
+    const provider = new RPCProvider(RAILGUN_PROXY_ADDRESS, MOCK_RPC_URL, connectionManager)
+    const lastHead = provider.head
+
+    // Wait until the next block is available
+    await new Promise((resolve) => {
+      setTimeout(resolve, 12_000)
+    })
+    const newHead = provider.head
+
+    await provider.destroy()
+    assert.notEqual(lastHead, newHead)
   })
 
   test('Fetch first 10,000 blocks from RPC and check for valid blocks', async () => {
@@ -407,6 +432,7 @@ describe('RPCProvider', () => {
     for await (const blockInfo of iterator) {
       assert.ok(blockInfo, 'BlockInfo is invalid')
     }
+    provider.destroy()
   })
 
   test('Fetch 10,000 blocks and check if they are sorted', async () => {
@@ -430,6 +456,7 @@ describe('RPCProvider', () => {
       }
       lastBlockNumber = blockInfo.number
     }
+    provider.destroy()
   })
 
   test('Fetch 10,000 blocks and check if block/transaction/log are valid', async () => {
@@ -448,6 +475,7 @@ describe('RPCProvider', () => {
         assert.ok(tx.logs && tx.logs.length > 0, 'LogInfo is invalid')
       }
     }
+    provider.destroy()
   })
 
   test('Should retrieve exact number of events from fixed set of blocks', async () => {
@@ -502,5 +530,33 @@ describe('RPCProvider', () => {
     assert.ok(blockCount2 === knownNumberOfBlocks2, 'Should retrieve exact number of blocks from fixed set of block range')
     assert.ok(logCount === knownNumberOfLogs, 'Should retrieve exact number of logs from fixed set of block range')
     assert.ok(logCount2 === knownNumberOfLogs2, 'Should retrieve exact number of logs from fixed set of block range')
+    provider.destroy()
+  })
+
+  test('Should stop listening to live event when provider is destroyed', async () => {
+    const connectionManager = new RPCConnectionManager()
+    const provider = new RPCProvider(RAILGUN_PROXY_ADDRESS, MOCK_RPC_URL, connectionManager)
+
+    // Provider need to setup poller to get latest head which takes some time
+    const latestHeight = await new Promise<bigint>((resolve) => {
+      setTimeout(() => {
+        resolve(provider.head)
+      }, 5000)
+    })
+
+    setTimeout(() => {
+      provider.destroy()
+    }, 5000)
+
+    const iterator = provider.from({
+      startHeight: latestHeight,
+      chunkSize: 500n,
+      liveSync: true
+    })
+
+    for await (const blockInfo of iterator) {
+      console.log(blockInfo)
+    }
+    assert.ok(true)
   })
 })
