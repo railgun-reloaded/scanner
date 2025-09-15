@@ -69,6 +69,17 @@ export class JSONRPCProvider<T extends EVMBlock> implements DataSource<T> {
   }
 
   /**
+   * Log message if logging is enabled
+   * @param message - Message to log
+   */
+  #log(message: string): void {
+    if (this.#connectionManager.client) {
+      // Access the client's logging through the connection manager
+      console.log(`[JSONRPCProvider] ${message}`)
+    }
+  }
+
+  /**
    * Groups and sorts logs by block, transaction, and log index, yielding EVMBlock objects.
    * @param logs - Array of raw log objects
    * @returns Array of EVMBlock objects grouped and sorted
@@ -149,14 +160,21 @@ export class JSONRPCProvider<T extends EVMBlock> implements DataSource<T> {
     let currentHeight = startHeight
     const client = this.#connectionManager.client
 
-    // Get latest block height
-    const latestHeight = await client.call<string>('eth_blockNumber')
-    if (!latestHeight) throw new Error('Failed to get latest height')
-    const latestHeightBigInt = BigInt(latestHeight)
-    endHeight = endHeight ? minBigInt(endHeight, latestHeightBigInt) : latestHeightBigInt
+    // For WebSocket live sync, skip historical data and go straight to live mode
+    if (liveSync && client.supportsWebSocket && !endHeight) {
+      this.#log('WebSocket live sync mode - skipping historical data')
+    } else {
+      // Get latest block height for historical sync
+      const latestHeight = await client.call<string>('eth_blockNumber')
+      if (!latestHeight) throw new Error('Failed to get latest height')
+      const latestHeightBigInt = BigInt(latestHeight)
+      endHeight = endHeight ? minBigInt(endHeight, latestHeightBigInt) : latestHeightBigInt
+    }
+    
     if (chunkSize === 0n) throw new Error('ChunkSize cannot be zero')
 
-    while (currentHeight < endHeight) {
+    // Process historical blocks if not in WebSocket-only live sync mode
+    while (endHeight && currentHeight < endHeight) {
       const batchEndHeight = minBigInt(currentHeight + chunkSize, endHeight)
       const requestId = `iterator_${currentHeight}_${batchEndHeight}`
       const logs = await this.#connectionManager.submitRequest(
@@ -174,8 +192,32 @@ export class JSONRPCProvider<T extends EVMBlock> implements DataSource<T> {
     }
 
     if (liveSync) {
-      console.warn('Live sync is not yet implemented for JSONRPCProvider')
-      // TODO: Use this.#stopSyncing when implementing live sync
+      const client = this.#connectionManager.client
+      
+      if (client.supportsWebSocket) {
+        this.#log('Starting WebSocket live sync')
+        
+        const liveEventQueue: JsonRPCProviderLog[] = []
+        
+        await client.subscribe('logs', {
+          address: this.#railgunProxyAddress
+        }, (logData: JsonRPCProviderLog) => {
+          liveEventQueue.push(logData)
+        })
+        
+        while (!this.#stopSyncing) {
+          if (liveEventQueue.length > 0) {
+            const currentLogs = liveEventQueue.splice(0)
+            const evmBlockData = this.sortLogsByBlockTxEvent(currentLogs)
+            for (const blockData of evmBlockData) {
+              yield blockData as T
+            }
+          }
+          await new Promise(resolve => setTimeout(resolve, 100))
+        }
+      } else {
+        console.warn('WebSocket not supported for this URL, live sync not available')
+      }
     }
   }
 
@@ -208,6 +250,7 @@ export class JSONRPCProvider<T extends EVMBlock> implements DataSource<T> {
    */
   destroy (): void {
     this.#stopSyncing = true
+    this.#connectionManager.client.destroy()
   }
 
   /**
