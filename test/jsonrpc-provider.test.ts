@@ -114,8 +114,8 @@ describe('JSONRPCProvider', () => {
   describe('JSONRPCProvider', () => {
     test('Should create provider and retrieve blockchain data', async () => {
       const provider = new JSONRPCProvider(
-        RPC_URL,
         RAILGUN_PROXY_ADDRESS,
+        RPC_URL,
         1000,
         true
       )
@@ -149,8 +149,8 @@ describe('JSONRPCProvider', () => {
     })
 
     test('Should demonstrate concurrent provider usage with batching', async () => {
-      const provider1 = new JSONRPCProvider(RPC_URL, RAILGUN_PROXY_ADDRESS, 1000, true)
-      const provider2 = new JSONRPCProvider(RPC_URL, RAILGUN_PROXY_ADDRESS, 1000, true)
+      const provider1 = new JSONRPCProvider(RAILGUN_PROXY_ADDRESS, RPC_URL, 1000, true)
+      const provider2 = new JSONRPCProvider(RAILGUN_PROXY_ADDRESS, RPC_URL, 1000, true)
 
       const promises = [
         (async () => {
@@ -186,7 +186,7 @@ describe('JSONRPCProvider', () => {
     })
 
     test('Should properly sort blocks, transactions, and logs', async () => {
-      const provider = new JSONRPCProvider(RPC_URL, RAILGUN_PROXY_ADDRESS, 1000, false)
+      const provider = new JSONRPCProvider(RAILGUN_PROXY_ADDRESS, RPC_URL, 1000, false)
 
       const startBlock = 14777791n
       const endBlock = 14777800n
@@ -238,7 +238,7 @@ describe('JSONRPCProvider', () => {
     })
 
     test('Should decode Railgun events properly with meaningful names and structured args', async () => {
-      const provider = new JSONRPCProvider(RPC_URL, RAILGUN_PROXY_ADDRESS, 1000, false)
+      const provider = new JSONRPCProvider(RAILGUN_PROXY_ADDRESS, RPC_URL, 1000, false)
 
       // Use a known block range that should contain Railgun events
       const startBlock = 14777791n
@@ -304,7 +304,7 @@ describe('JSONRPCProvider', () => {
     })
 
     test('Should handle unknown events gracefully without breaking', async () => {
-      const provider = new JSONRPCProvider(RPC_URL, RAILGUN_PROXY_ADDRESS, 1000, false)
+      const provider = new JSONRPCProvider(RAILGUN_PROXY_ADDRESS, RPC_URL,1000, false)
 
       const startBlock = 14777791n
       const endBlock = 14777795n
@@ -337,7 +337,7 @@ describe('JSONRPCProvider', () => {
     })
 
     test('Should validate decoded event structure matches expected Railgun event format', async () => {
-      const provider = new JSONRPCProvider(RPC_URL, RAILGUN_PROXY_ADDRESS, 1000, false)
+      const provider = new JSONRPCProvider(RAILGUN_PROXY_ADDRESS, RPC_URL, 1000, false)
 
       const iterator = provider.from({
         startHeight: 14777791n,
@@ -437,7 +437,7 @@ describe('JSONRPCProvider', () => {
         return
       }
 
-      const provider = new JSONRPCProvider(WS_URL, RAILGUN_PROXY_ADDRESS, 1000, true)
+      const provider = new JSONRPCProvider(RAILGUN_PROXY_ADDRESS, RPC_URL, 1000, true)
       assert.ok(provider.client.supportsWebSocket, 'Should detect WebSocket support for wss:// URL')
 
       let eventCount = 0
