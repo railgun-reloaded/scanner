@@ -1,3 +1,4 @@
+/* eslint-disable camelcase */
 import { RailgunV1, RailgunV2, RailgunV2_1 } from '@railgun-reloaded/contract-abis'
 import { decodeEventLog } from 'viem'
 

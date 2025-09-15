@@ -12,11 +12,11 @@ function jsonrpc (method: string, params: any) {
     id: i++,
     method
   }
-  
+
   if (params !== undefined) {
     request.params = Array.isArray(params) ? params : [params]
   }
-  
+
   return request
 }
 

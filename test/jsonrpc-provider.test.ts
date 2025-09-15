@@ -161,6 +161,7 @@ describe('JSONRPCProvider', () => {
             chunkSize: 2n,
             liveSync: false
           })
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
           for await (const _blockData of iterator1) {
             count++
           }
@@ -174,6 +175,7 @@ describe('JSONRPCProvider', () => {
             chunkSize: 2n,
             liveSync: false
           })
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
           for await (const _blockData of iterator2) {
             count++
           }
@@ -275,7 +277,7 @@ describe('JSONRPCProvider', () => {
             assert.ok(log.args !== null, 'Event args should not be null')
 
             // Should not have raw data/topics structure
-            const hasRawStructure = log.args.hasOwnProperty('data') && log.args.hasOwnProperty('topics')
+            const hasRawStructure = log.args['data'] && log.args['topics']
             if (!hasRawStructure && Object.keys(log.args).length > 0) {
               hasStructuredArgs = true
             }

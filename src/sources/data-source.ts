@@ -23,11 +23,6 @@ interface DataSource<T extends EVMBlock> {
   head: bigint;
 
   /**
-   * Name of datasource
-   */
-  name: string;
-
-  /**
    * Is the source still ingesting data, ie can you expect it to update?
    * For a snapshot this would always be false
    * For subsquid and RPC this would be true as long as it could reasonably
