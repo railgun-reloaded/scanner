@@ -4,8 +4,8 @@ import { performance } from 'perf_hooks'
 
 import dotenv from 'dotenv'
 
-import { JSONRPCClient, JSONRPCProvider } from '../src/sources/json-rpc/index.js'
-import { RPCConnectionManager, RPCProvider } from '../src/sources/rpc/index.js'
+import { JSONRPCClient, JSONRPCProvider } from '../src/sources/json-rpc'
+import { RPCConnectionManager, RPCProvider } from '../src/sources/rpc'
 
 dotenv.config()
 
