@@ -1,8 +1,8 @@
 import { describe, it } from 'node:test'
 import assert from 'node:assert'
 import dotenv from 'dotenv'
-import { RPCConnectionManager } from '../src/sources/rpc/connection-manager.js'
-import { RPCProvider } from '../src/sources/rpc/provider.js'
+
+import { RPCConnectionManager, RPCProvider } from '../src/sources/rpc'
 
 dotenv.config()
 

@@ -3,7 +3,7 @@ import { describe, test } from 'node:test'
 
 import dotenv from 'dotenv'
 
-import { JSONRPCClient, JSONRPCProvider } from '../src/sources/json-rpc/index.js'
+import { JSONRPCClient, JSONRPCProvider } from '../src/sources/json-rpc'
 
 dotenv.config()
 
