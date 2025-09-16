@@ -17,7 +17,7 @@
   "scripts": {
     "lint": "eslint",
     "lint:fix": "eslint --fix",
-    "prebuild": "find . -name '*.js' -not -path './node_modules/*' -not -name 'eslint.config.js' -delete",
+    "prebuild": "find . -name '*.js' -o -name '*.tsbuildinfo' -not -path './node_modules/*' -not -name 'eslint.config.js' -delete",
     "build": "tsc --build",
     "clean": "tsc --build --clean",
     "pretest": "npm run build",
@@ -37,9 +37,10 @@
     "viem": "^2.31.4"
   },
   "devDependencies": {
-    "@types/node": "^24.0.3",
     "@railgun-reloaded/eslint-config": "^1.1.0",
     "@railgun-reloaded/tsconfig": "^1.2.0",
+    "@railgun-reloaded/subsquid-client": "https://github.com/railgun-reloaded/subsquid-client.git#master",
+    "@types/node": "^24.0.3",
     "dotenv": "^16.5.0",
     "eslint": "^9.29.0",
     "typescript": "^5.8.3",

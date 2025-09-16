@@ -12,6 +12,7 @@ const MOCK_RPC_URL = process.env['RPC_API_KEY']!
 const RAILGUN_PROXY_ADDRESS = '0xFA7093CDD9EE6932B4eb2c9e1cde7CE00B1FA4b9' as `0x${string}`
 const RAILGUN_PROXY_DEPLOYMENT_BLOCK = 14737691n
 const RAILGUN_DEPLOYMENT_V2 = 16076750n
+
 // TODO: Keep track of range of pre defined set of events
 // Verify that both iterators assert same amount of events
 

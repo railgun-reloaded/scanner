@@ -51,8 +51,8 @@ export class JSONRPCProvider<T extends EVMBlock> implements DataSource<T> {
 
   /**
    * Initialize JSON RPC provider with RPC URL and railgun proxy address
-   * @param rpcURL - RPC endpoint URL
    * @param railgunProxyAddress - Railgun proxy contract address
+   * @param rpcURL - RPC endpoint URL
    * @param maxBatchSize - Maximum batch size for JSON-RPC requests
    * @param enableLogging - Enable logging for debugging batch operations
    */
@@ -73,7 +73,7 @@ export class JSONRPCProvider<T extends EVMBlock> implements DataSource<T> {
    * Log message if logging is enabled
    * @param message - Message to log
    */
-  #log(message: string): void {
+  #log (message: string): void {
     if (this.#connectionManager.client) {
       // Access the client's logging through the connection manager
       console.log(`[JSONRPCProvider] ${message}`)
@@ -171,7 +171,7 @@ export class JSONRPCProvider<T extends EVMBlock> implements DataSource<T> {
       const latestHeightBigInt = BigInt(latestHeight)
       endHeight = endHeight ? minBigInt(endHeight, latestHeightBigInt) : latestHeightBigInt
     }
-    
+
     if (chunkSize === 0n) throw new Error('ChunkSize cannot be zero')
 
     // Process historical blocks if not in WebSocket-only live sync mode
@@ -194,18 +194,18 @@ export class JSONRPCProvider<T extends EVMBlock> implements DataSource<T> {
 
     if (liveSync) {
       const client = this.#connectionManager.client
-      
+
       if (client.supportsWebSocket) {
         this.#log('Starting WebSocket live sync')
-        
+
         const liveEventQueue: JsonRPCProviderLog[] = []
-        
+
         await client.subscribe('logs', {
           address: this.#railgunProxyAddress
         }, (logData: JsonRPCProviderLog) => {
           liveEventQueue.push(logData)
         })
-        
+
         while (!this.#stopSyncing) {
           if (liveEventQueue.length > 0) {
             const currentLogs = liveEventQueue.splice(0)
