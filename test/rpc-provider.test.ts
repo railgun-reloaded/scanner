@@ -16,7 +16,7 @@ const RAILGUN_DEPLOYMENT_V2 = 16076750n
 // TODO: Keep track of range of pre defined set of events
 // Verify that both iterators assert same amount of events
 
-describe('RPCProvider', () => {
+describe('RPCProvider[Ethereum]', () => {
   test('Should create an iterator from a provider', async () => {
     const connectionManager = new RPCConnectionManager(3)
     const provider = new RPCProvider(

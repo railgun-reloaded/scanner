@@ -201,7 +201,7 @@ class JSONRPCClient {
    * Check if URL supports WebSocket
    * @returns Valid support ws or not
    */
-  get supportsWebSocket(): boolean {
+  get supportsWebSocket (): boolean {
     return this.#url.protocol === 'ws:' || this.#url.protocol === 'wss:'
   }
 
@@ -209,7 +209,7 @@ class JSONRPCClient {
    * Connect to WebSocket if supported
    * @returns Nothing. Will throw if ws is not supported. Will resolve and log if ok.
    */
-  async #connectWebSocket(): Promise<void> {
+  async #connectWebSocket (): Promise<void> {
     if (!this.supportsWebSocket) {
       throw new Error('WebSocket not supported for this URL')
     }
@@ -219,7 +219,6 @@ class JSONRPCClient {
       return this.#wsConnected
     }
 
-
     this.#wsConnected = new Promise((resolve, reject) => {
       const wsUrl = this.#url.toString()
       this.#log(`[JSONRPCClient] Connecting to WebSocket: ${wsUrl}`)
@@ -227,16 +226,27 @@ class JSONRPCClient {
       this.#ws = new WebSocket(wsUrl)
 
       // Connects to ws
+      /**
+       * Websocket open callback
+       */
       this.#ws.onopen = () => {
         this.#log('[JSONRPCClient] WebSocket connected')
         resolve()
       }
 
+      /**
+       * Websocket error callback
+       * @param error - Error description
+       */
       this.#ws.onerror = (error) => {
         this.#log(`[JSONRPCClient] WebSocket error: ${error}`)
         reject(error)
       }
 
+      /**
+       * Websocket event callback
+       * @param event - Event data
+       */
       this.#ws.onmessage = (event) => {
         try {
           // Receives new message, parse data
@@ -247,6 +257,9 @@ class JSONRPCClient {
         }
       }
 
+      /**
+       * Websocket close callback
+       */
       this.#ws.onclose = () => {
         this.#log('[JSONRPCClient] WebSocket disconnected')
         this.#ws = null
@@ -259,12 +272,12 @@ class JSONRPCClient {
 
   /**
    * Handle incoming WebSocket messages
+   * @param data - JSONRPC Data
    */
-  #handleWebSocketMessage(data: any): void {
+  #handleWebSocketMessage (data: any): void {
     // Supported method from json rpc atm
     console.log('handleWebSocketMessage: ', data)
     if (data.method === 'eth_subscription') {
-
       const subscriptionId = data.params?.subscription
       const result = data.params?.result
 
@@ -285,7 +298,7 @@ class JSONRPCClient {
    * @param handler - Event handler function
    * @returns Subscription ID
    */
-  async subscribe(type: string, params: any, handler: SubscriptionHandler): Promise<string> {
+  async subscribe (type: string, params: any, handler: SubscriptionHandler): Promise<string> {
     if (!this.supportsWebSocket) {
       throw new Error('WebSocket subscriptions not supported for this URL')
     }
@@ -308,6 +321,10 @@ class JSONRPCClient {
         reject(new Error('Subscription request timeout'))
       }, 10000)
 
+      /**
+       * Websocket mssage handler
+       * @param event - MessageEvent
+       */
       const onMessage = (event: MessageEvent) => {
         try {
           const response = JSON.parse(event.data)
@@ -344,7 +361,7 @@ class JSONRPCClient {
    * Unsubscribe from events
    * @param subscriptionId - Subscription ID to unsubscribe
    */
-  async unsubscribe(subscriptionId: string): Promise<void> {
+  async unsubscribe (subscriptionId: string): Promise<void> {
     if (!this.#ws || !this.#subscriptions.has(subscriptionId)) {
       return
     }
@@ -363,7 +380,7 @@ class JSONRPCClient {
   /**
    * Close WebSocket connection and clean up subscriptions
    */
-  destroy(): void {
+  destroy (): void {
     if (this.#ws) {
       this.#ws.close()
       this.#ws = null
