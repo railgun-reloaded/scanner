@@ -18,9 +18,6 @@ type AsyncIterableDisposable<T, TReturn = any, TVal = any> = AsyncIterable<T, TR
  * RPC Provider that manages connections and provides iterators for blockchain data
  */
 export class RPCProvider<T extends EVMBlock> implements DataSource<T> {
-  /** The latest height up to which this provider can get data */
-  head = 0n
-
   /** Flag to indicate if the data-source can provide live data or not */
   isLiveProvider = true
 
@@ -36,11 +33,6 @@ export class RPCProvider<T extends EVMBlock> implements DataSource<T> {
    * List of event fragments in all the version of Railgun
    */
   #abi: Abi
-
-  /**
-   * Stores value returned by timeout when polling head
-   */
-  #headPollTimeout?: NodeJS.Timeout
 
   /**
    * An array of iterator to iterate over the live rpc events
@@ -69,23 +61,14 @@ export class RPCProvider<T extends EVMBlock> implements DataSource<T> {
       chain: mainnet,
       transport: http(rpcURL)
     })
-    this.#pollHead()
   }
 
   /**
    * Get latest height from the RPC
    * @returns - Latest block height
    */
-  async #pollHead () {
-    try {
-      this.head = await this.#client.getBlockNumber()
-    } catch (err) {
-      console.log(err)
-    }
-    if (this.#headPollTimeout) {
-      clearTimeout(this.#headPollTimeout)
-    }
-    this.#headPollTimeout = setTimeout(this.#pollHead.bind(this), 12_000)
+  head () {
+    return this.#client.getBlockNumber()
   }
 
   /**
@@ -341,7 +324,6 @@ export class RPCProvider<T extends EVMBlock> implements DataSource<T> {
    * Stop provider from syncing if it is
    */
   destroy () {
-    clearTimeout(this.#headPollTimeout)
     for (const iterator of this.#liveEventIterators) {
       iterator.destroy()
     }

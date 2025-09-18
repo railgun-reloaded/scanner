@@ -27,9 +27,6 @@ type SubsquidEvmBlock = {
  * This is a placeholder for future implementation
  */
 export class SubsquidProvider<T extends EVMBlock> implements DataSource<T> {
-  /** The latest height up to which this provider can get data */
-  head = 0n
-
   /** Flag to indicate if the data-source can provide live data or not */
   isLiveProvider = false
 
@@ -44,7 +41,16 @@ export class SubsquidProvider<T extends EVMBlock> implements DataSource<T> {
     this.#client = new SubsquidClient({
       customSubsquidUrl: endpoint
     })
-    this.#getBlockHeight().then(height => { this.head = height })
+  }
+
+  /**
+   * Get the current head of subsquid, this is not necessarily the
+   * block upto which iterator can provide data because this value changes
+   * every time new blocks are indexed in the subsquid
+   * @returns - Latest height of the subsquid
+   */
+  head () {
+    return this.#getBlockHeight()
   }
 
   /**
