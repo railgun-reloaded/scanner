@@ -407,16 +407,17 @@ describe('RPCProvider[Ethereum]', () => {
   })
 
   test('Should continously update the head', async () => {
-    const provider = new RPCProvider(MOCK_RPC_URL, RAILGUN_PROXY_ADDRESS)
-    const lastHead = provider.head
+    const connectionManager = new RPCConnectionManager(1)
+    const provider = new RPCProvider(RAILGUN_PROXY_ADDRESS, MOCK_RPC_URL, connectionManager)
+    const lastHead = await provider.head()
 
     // Wait until the next block is available
     await new Promise((resolve) => {
       setTimeout(resolve, 12_000)
     })
-    const newHead = provider.head
+    const newHead = await provider.head()
 
-    await provider.destroy()
+    provider.destroy()
     assert.notEqual(lastHead, newHead)
   })
 
@@ -537,12 +538,7 @@ describe('RPCProvider[Ethereum]', () => {
     const provider = new RPCProvider(MOCK_RPC_URL, RAILGUN_PROXY_ADDRESS)
 
     // Provider need to setup poller to get latest head which takes some time
-    const latestHeight = await new Promise<bigint>((resolve) => {
-      setTimeout(() => {
-        resolve(provider.head)
-      }, 5000)
-    })
-
+    const latestHeight = await provider.head()
     setTimeout(() => {
       provider.destroy()
     }, 5000)

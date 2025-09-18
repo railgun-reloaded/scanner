@@ -110,6 +110,17 @@ describe('JSONRPCProvider[ETHEREUM]', () => {
   })
 
   describe('JSONRPCProvider', () => {
+    test('Should create provider and fetch head', async () => {
+      const provider = new JSONRPCProvider(
+        RAILGUN_PROXY_ADDRESS,
+        RPC_URL,
+        1000,
+        true
+      )
+      const head = await provider.head()
+      assert.ok(head)
+    })
+
     test('Should create provider and retrieve blockchain data', async () => {
       const provider = new JSONRPCProvider(
         RAILGUN_PROXY_ADDRESS,
