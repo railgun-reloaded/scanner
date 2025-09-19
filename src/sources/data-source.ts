@@ -2,9 +2,10 @@ import type { EVMBlock } from '../models'
 
 type SyncOptions = {
   startHeight: bigint;
-  endHeight?: bigint;
+  endHeight?: bigint | undefined;
   liveSync: boolean;
-  chunkSize?: bigint;
+  // Only applicable for RPC based providers
+  chunkSize?: bigint | undefined;
 }
 
 /**
