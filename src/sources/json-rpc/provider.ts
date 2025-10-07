@@ -172,19 +172,17 @@ export class JSONRPCProvider<T extends EVMBlock> implements DataSource<T> {
 
     // For WebSocket live sync, skip historical data and go straight to live mode
     if (liveSync && client.supportsWebSocket && !endHeight) {
-      this.#log('WebSocket live sync mode - skipping historical data')
-    } else {
-      // Get latest block height for historical sync
-      const latestHeight = await client.call<string>('eth_blockNumber')
-      if (!latestHeight) throw new Error('Failed to get latest height')
-      const latestHeightBigInt = BigInt(latestHeight)
-      endHeight = endHeight ? minBigInt(endHeight, latestHeightBigInt) : latestHeightBigInt
+      throw new Error('WebSocket live sync mode - skipping historical data')
     }
+    // Get latest block height for historical sync
+    const latestHeight = await client.call<string>('eth_blockNumber')
+    if (!latestHeight) throw new Error('Failed to get latest height')
+    const latestHeightBigInt = BigInt(latestHeight)
+    endHeight = endHeight ? minBigInt(endHeight, latestHeightBigInt) : latestHeightBigInt
 
     if (chunkSize === 0n) throw new Error('ChunkSize cannot be zero')
-
     // Process historical blocks if not in WebSocket-only live sync mode
-    while (endHeight && currentHeight < endHeight) {
+    while (currentHeight <= endHeight) {
       const batchEndHeight = minBigInt(currentHeight + chunkSize, endHeight)
       const requestId = `iterator_${currentHeight}_${batchEndHeight}`
       const logs = await this.#connectionManager.submitRequest(
@@ -197,7 +195,7 @@ export class JSONRPCProvider<T extends EVMBlock> implements DataSource<T> {
           yield blockData as T
         }
       }
-      currentHeight = batchEndHeight
+      currentHeight = batchEndHeight + 1n
     }
 
     if (liveSync) {

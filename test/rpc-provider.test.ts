@@ -413,7 +413,7 @@ describe('RPCProvider[Ethereum]', () => {
 
     // Wait until the next block is available
     await new Promise((resolve) => {
-      setTimeout(resolve, 12_000)
+      setTimeout(resolve, 13_000)
     })
     const newHead = await provider.head()
 
@@ -542,6 +542,7 @@ describe('RPCProvider[Ethereum]', () => {
     const latestHeight = await provider.head()
     setTimeout(() => {
       provider.destroy()
+      assert.ok(true)
     }, 5000)
 
     const iterator = provider.from({
@@ -553,6 +554,5 @@ describe('RPCProvider[Ethereum]', () => {
     for await (const blockInfo of iterator) {
       console.log(blockInfo)
     }
-    assert.ok(true)
   })
 })

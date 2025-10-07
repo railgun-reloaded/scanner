@@ -56,7 +56,7 @@ class SourceAggregator<T extends EVMBlock> {
 
       // Check if the source is upto date and discard it
       if (sourceEnd && startHeight > sourceEnd) {
-        console.log('Skipping source, source is not upto date')
+        console.log(`Skipping source: ${source.constructor.name}, source is not upto date`)
         continue
       }
 
