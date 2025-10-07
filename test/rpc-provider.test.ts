@@ -16,7 +16,7 @@ const RAILGUN_DEPLOYMENT_V2 = 16076750n
 // TODO: Keep track of range of pre defined set of events
 // Verify that both iterators assert same amount of events
 
-describe('RPCProvider', () => {
+describe('RPCProvider[Ethereum]', () => {
   test('Should create an iterator from a provider', async () => {
     const connectionManager = new RPCConnectionManager(3)
     const provider = new RPCProvider(
@@ -409,15 +409,15 @@ describe('RPCProvider', () => {
   test('Should continously update the head', async () => {
     const connectionManager = new RPCConnectionManager(1)
     const provider = new RPCProvider(RAILGUN_PROXY_ADDRESS, MOCK_RPC_URL, connectionManager)
-    const lastHead = provider.head
+    const lastHead = await provider.head()
 
     // Wait until the next block is available
     await new Promise((resolve) => {
       setTimeout(resolve, 12_000)
     })
-    const newHead = provider.head
+    const newHead = await provider.head()
 
-    await provider.destroy()
+    provider.destroy()
     assert.notEqual(lastHead, newHead)
   })
 
@@ -539,12 +539,7 @@ describe('RPCProvider', () => {
     const provider = new RPCProvider(RAILGUN_PROXY_ADDRESS, MOCK_RPC_URL, connectionManager)
 
     // Provider need to setup poller to get latest head which takes some time
-    const latestHeight = await new Promise<bigint>((resolve) => {
-      setTimeout(() => {
-        resolve(provider.head)
-      }, 5000)
-    })
-
+    const latestHeight = await provider.head()
     setTimeout(() => {
       provider.destroy()
     }, 5000)

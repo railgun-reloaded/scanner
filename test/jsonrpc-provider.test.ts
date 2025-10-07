@@ -9,7 +9,7 @@ dotenv.config()
 
 const RAILGUN_PROXY_ADDRESS = '0xFA7093CDD9EE6932B4eb2c9e1cde7CE00B1FA4b9'
 
-describe('JSONRPCProvider', () => {
+describe('JSONRPCProvider[ETHEREUM]', () => {
   const RPC_URL = process.env['RPC_API_KEY']!
   const WS_URL = process.env['WS_API_KEY']!
 
@@ -35,8 +35,7 @@ describe('JSONRPCProvider', () => {
         assert.ok(typeof subscriptionId === 'string', 'WebSocket channel should work')
 
         client.destroy()
-
-  } catch (error) {
+      } catch (error) {
         client.destroy()
         assert.ok(true, 'HTTP channel works, WebSocket may fail in test env')
       }
@@ -112,6 +111,17 @@ describe('JSONRPCProvider', () => {
   })
 
   describe('JSONRPCProvider', () => {
+    test('Should create provider and fetch head', async () => {
+      const provider = new JSONRPCProvider(
+        RAILGUN_PROXY_ADDRESS,
+        RPC_URL,
+        1000,
+        true
+      )
+      const head = await provider.head()
+      assert.ok(head)
+    })
+
     test('Should create provider and retrieve blockchain data', async () => {
       const provider = new JSONRPCProvider(
         RAILGUN_PROXY_ADDRESS,
@@ -306,7 +316,7 @@ describe('JSONRPCProvider', () => {
     })
 
     test('Should handle unknown events gracefully without breaking', async () => {
-      const provider = new JSONRPCProvider(RAILGUN_PROXY_ADDRESS, RPC_URL,1000, false)
+      const provider = new JSONRPCProvider(RAILGUN_PROXY_ADDRESS, RPC_URL, 1000, false)
 
       const startBlock = 14777791n
       const endBlock = 14777795n
@@ -425,7 +435,6 @@ describe('JSONRPCProvider', () => {
         client.destroy()
 
         assert.ok(true, 'Should handle subscription lifecycle without errors')
-
       } catch (error) {
         client.destroy()
         console.log('WebSocket lifecycle test failed (may be expected):', error instanceof Error ? error.message : error)
@@ -453,7 +462,7 @@ describe('JSONRPCProvider', () => {
           liveSync: true
         })
 
-        const timeoutPromise = new Promise((_, reject) => {
+        const timeoutPromise = new Promise((_resolve, reject) => {
           setTimeout(() => reject(new Error('Test timeout - no live events received')), timeout)
         })
 
@@ -477,7 +486,6 @@ describe('JSONRPCProvider', () => {
 
         assert.ok(eventCount > 0, 'Should receive at least one live event')
         assert.ok(eventCount >= 1, `Should receive events, got ${eventCount}`)
-
       } catch (error) {
         if (error instanceof Error && error.message.includes('timeout')) {
           console.log('WebSocket test timed out - this may be expected if network is quiet')

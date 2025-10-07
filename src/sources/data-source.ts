@@ -20,7 +20,7 @@ interface DataSource<T extends EVMBlock> {
    * For a live RPC provider this would be the last block processed
    * or the tip of the chain
    */
-  head: bigint;
+  head() : Promise<bigint>
 
   /**
    * Is the source still ingesting data, ie can you expect it to update?

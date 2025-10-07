@@ -26,9 +26,6 @@ interface JsonRPCProviderLog {
  * JSON RPC Provider that manages connections and provides iterators for blockchain data
  */
 export class JSONRPCProvider<T extends EVMBlock> implements DataSource<T> {
-  /** The latest height up to which this provider can get data */
-  head = 0n
-
   /** Name of datasource */
   name = 'JSONRPCProvider'
 
@@ -67,6 +64,18 @@ export class JSONRPCProvider<T extends EVMBlock> implements DataSource<T> {
     const combinedAbi = [...RailgunV1, ...RailgunV2, ...RailgunV2_1]
     // @TODO remove duplicate events
     this.#eventAbis = combinedAbi.filter(item => item.type === 'event')
+  }
+
+  /**
+   * Get latest height from the RPC
+   * @returns - Latest block height
+   */
+  head () {
+    return this.#connectionManager.submitRequest<bigint>(async () => {
+      const client = this.#connectionManager.client
+      const blockNumber = await client.call<bigint>('eth_blockNumber')
+      return blockNumber
+    }, 'block_id_' + Date.now())
   }
 
   /**
@@ -188,7 +197,6 @@ export class JSONRPCProvider<T extends EVMBlock> implements DataSource<T> {
           yield blockData as T
         }
       }
-      this.head = batchEndHeight
       currentHeight = batchEndHeight
     }
 

@@ -100,6 +100,12 @@ describe('GraphProvider[Ethereum]', () => {
     assert.ok(iterator2Count >= 0, 'Iterator2 should process events (may be 0 if no events in range)')
   })
 
+  test('Should fetch the current head', async () => {
+    const provider = new SubsquidProvider(MOCK_SQUID_URL)
+    const head = await provider.head()
+    assert.ok(head)
+  })
+
   test('Should retrieve exact number of events from fixed set of blocks', async () => {
     const provider = new SubsquidProvider(MOCK_SQUID_URL)
 
