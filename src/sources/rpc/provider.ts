@@ -269,7 +269,7 @@ export class RPCProvider<T extends EVMBlock> implements DataSource<T> {
     endHeight = endHeight ? minBigInt(endHeight, BigInt(latestHeight)) : BigInt(latestHeight)
 
     // Process historical blocks
-    while (currentHeight < endHeight) {
+    while (currentHeight <= endHeight) {
       const batchEndHeight = minBigInt(currentHeight + chunkSize, endHeight)
       const requestId = `iterator_${currentHeight}_${batchEndHeight}`
       // Use connection manager for log requests
@@ -283,7 +283,7 @@ export class RPCProvider<T extends EVMBlock> implements DataSource<T> {
           yield blockData as T
         }
       }
-      currentHeight = batchEndHeight
+      currentHeight = batchEndHeight + 1n
     }
 
     // if it is a live source, we should wait until new events are available
