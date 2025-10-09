@@ -14,11 +14,24 @@ class SourceAggregator<T extends EVMBlock> {
   #sources: DataSource<T>[] = []
 
   /**
+   * Latest source syncing the data
+   */
+  #activeSource: DataSource<T> | undefined
+
+  /**
    * Initialize the aggregated source list of data source
    * @param sources - Sources to aggregate
    */
   constructor (sources: DataSource<T>[]) {
     this.#sources = sources
+  }
+
+  /**
+   * Get latest source syncing data
+   * @returns activeSource
+   */
+  get activeSource () {
+    return this.#activeSource
   }
 
   /**
@@ -42,6 +55,7 @@ class SourceAggregator<T extends EVMBlock> {
     const minBigInt = (a: bigint, b: bigint) => a < b ? a : b
 
     for (const source of this.#sources) {
+      this.#activeSource = source
       const sourceHead = await source.head()
       // We need to set the endHeight for the provider if it is not a live provider
       // We set the endHeight to the minimum of head of the source and provided endHeight
