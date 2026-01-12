@@ -13,10 +13,9 @@ describe('Graph Provider', () => {
     const provider = new SubsquidProvider(MOCK_SQUID_URL)
     const iterator = provider.from({
       startHeight: RAILGUN_PROXY_DEPLOYMENT_BLOCK,
-      endHeight: RAILGUN_PROXY_DEPLOYMENT_BLOCK + 30_000n,
       liveSync: false
     })
-
+    const start = performance.now()
     try {
       for await (const entry of iterator) {
         console.log(entry.number)
@@ -24,5 +23,7 @@ describe('Graph Provider', () => {
     } catch (err) {
       console.error(err)
     }
+    const elapsed = performance.now() - start
+    console.log('Time taken: ', elapsed)
   })
 })
