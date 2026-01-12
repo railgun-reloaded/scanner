@@ -5,23 +5,6 @@ import type { DataSource, SyncOptions } from '../data-source'
 
 import { autoPaginateBlockQuery } from './query'
 
-type SubsquidEvmBlock = {
-  number: string;
-  hash: string;
-  timestamp: string;
-  transactions: {
-    hash: string;
-    index: string;
-    from: string;
-    logs: {
-      index: string
-      address: string
-      name: string
-      args: string
-    }[]
-  }[],
-}
-
 /**
  * Subsquid Provider for fetching data from Subsquid indexers
  * This is a placeholder for future implementation
@@ -38,6 +21,10 @@ export class SubsquidProvider<T extends EVMBlock> implements DataSource<T> {
    * @param endpoint - Subsquid endpoint URL
    */
   constructor (endpoint: string) {
+    if (!endpoint || endpoint.length === 0) {
+      throw new Error('Invalid subsquid endpoint provided')
+    }
+
     this.#client = new SubsquidClient({
       customSubsquidUrl: endpoint
     })
@@ -79,20 +66,26 @@ export class SubsquidProvider<T extends EVMBlock> implements DataSource<T> {
       throw new Error("Subsquid doesn't support liveSync")
     }
 
-    const result = await autoPaginateBlockQuery<SubsquidEvmBlock>(this.#client, _options.startHeight, _options.endHeight)
+    const pageIterator = autoPaginateBlockQuery<EVMBlock>(this.#client, _options.startHeight, _options.endHeight)
+    for await (const page of pageIterator) {
+      for (const entry of page) {
+        yield entry as T
+      }
+    }
     /**
      * Check if input is number or not
      * Casting string to number gives NaN
      * @param v - Input to the function
      * @returns - true is the input is number
      */
-    const isNumberString = (v: any) => typeof v === 'string' && /^[+-]?\d+$/.test(v.trim())
+    // const isNumberString = (v: any) => typeof v === 'string' && /^[+-]?\d+$/.test(v.trim())
 
     /**
      * Convert subsquid data to standard format
      * @param input - Subsquid representation of BlockData
      * @returns Standard representation of EVMBlockData
      */
+    /*
     const formatResult = (input : SubsquidEvmBlock) : EVMBlock => {
       return {
         number: BigInt(input.number),
@@ -117,10 +110,7 @@ export class SubsquidProvider<T extends EVMBlock> implements DataSource<T> {
         internalTransaction: []
       }
     }
-
-    for (const entry of result) {
-      yield formatResult(entry) as T
-    }
+    */
   }
 
   /**
