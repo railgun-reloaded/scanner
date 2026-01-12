@@ -1,55 +1,110 @@
-/*
-enum RailgunFunctions {
-  CGenerateDepositV1,
-  CTransactV1,
-  CShieldV2,
-  CTransactV2,
-  CShieldV2_1,
-  CTransactV2_1
+type ActionType = {
+  actionType: string
 }
 
-enum RailgunEvents {
-  ECommitmentBatchV1,
-  EGeneratedCommitmentBatchV1,
-  ENullifiersV1,
-  ETransactV2,
-  EShieldV2,
-  EUnshieldV2,
-  ENullifiedV2,
-  ETransactV2_1,
-  EShieldV2_1,
-  EUnshieldV2_1,
-  ENullifiedV2_1
-}
-*/
-type EVMLog = {
-  index: number
-  address: string
-  name: string
-  args: Record<string, any>
-  // transactionHash: string
+type TokenInfo = {
+  id: Uint8Array
+  tokenType: string
+  tokenSubID: Uint8Array
+  tokenAddress: Uint8Array
 }
 
-// Only intended for the data obtained from the call traces
-type RailgunTransactionBatch = {
-  tracePath: number[]
-  from: string;
+type CommitmentPreimage = {
+  npk: Uint8Array
+  token: TokenInfo
+  value: BigInt
 }
+
+type RailgunGeneratedCommitment = {
+  hash: Uint8Array
+  treeNumber: number
+  treePosition: number
+  preimage: CommitmentPreimage
+  encryptedRandom: Uint8Array[]
+}
+
+type RailgunShieldCommitment = {
+  hash: Uint8Array
+  treeNumber: number;
+  treePosition: number
+  preimage: CommitmentPreimage
+  encryptedBundle: Uint8Array[]
+  shieldKey: Uint8Array
+  fee: BigInt
+}
+
+type RailgunShield = {
+  batchStartTreePosition: number;
+  commitment: RailgunGeneratedCommitment | RailgunShieldCommitment
+} & ActionType
+
+type RailgunUnshield = {
+  to: Uint8Array;
+  token: TokenInfo
+  amount: BigInt
+  fee: BigInt
+  eventLogIndex: number
+} & ActionType
+
+type RailgunCiphertext = {
+  iv: Uint8Array
+  tag: Uint8Array
+  data: Uint8Array[]
+}
+
+type RailgunEncryptedCommitment = {
+  hash: Uint8Array
+  ciphertext: RailgunCiphertext
+  memo: Uint8Array[]
+  ephemeralKeys: Uint8Array[]
+  treeNumber: number
+  treePosition: number
+}
+
+type RailgunTransactCommitment = {
+  hash: Uint8Array
+  ciphertext: RailgunCiphertext
+  blindedSenderViewingKey: Uint8Array
+  blindedReceiverViewingKey: Uint8Array
+  annotationData: Uint8Array
+  memo: Uint8Array[]
+  treeNumber: number
+  treePosition: number
+}
+
+type TransactCommitment = RailgunTransactCommitment | RailgunEncryptedCommitment
+
+type RailgunTransact = {
+  txID: Uint8Array
+  nullifiers: Uint8Array[]
+  commitments: TransactCommitment[]
+  unshieldCommitment: Uint8Array
+  boundParamsHash: Uint8Array
+  utxoBatchStartPositionOut: BigInt
+  utxoTreeIn: BigInt
+  utxoTreeOut: BigInt
+  hasUnshield: boolean
+
+  // Optional unshield params
+  unshieldToAddress: Uint8Array
+  unshieldToken: TokenInfo
+  unshieldValue: BigInt
+} & ActionType
+
+type RailgunAction = RailgunShield | RailgunUnshield | RailgunTransact
 
 type EVMTransaction = {
   hash: string;
-  index: number;
-  from: string;
-  logs: EVMLog[]
+  index: number
+  from: string
+  actions: RailgunAction[][]
 }
 
 type EVMBlock = {
-  number: bigint;
-  hash: string;
-  timestamp: bigint;
+  number: BigInt
+  hash: string
+  timestamp: BigInt
   transactions: EVMTransaction[];
-  // Optional only intended for call traces
-  internalTransaction: RailgunTransactionBatch[]
 }
 
-export type { EVMBlock, EVMLog, EVMTransaction }
+export type { EVMBlock, EVMTransaction, RailgunAction, RailgunShield, RailgunUnshield, RailgunTransact }
