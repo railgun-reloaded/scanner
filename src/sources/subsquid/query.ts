@@ -8,7 +8,7 @@ import type { SubsquidClient } from '@railgun-reloaded/subsquid-client'
  * @param limit - The number of entries to return
  * @returns EvmBlockData query
  */
-const getEvmBlockQuery = (fromBlock: bigint, offset: number, toBlock?: bigint, limit = 5_000n) => {
+const getEvmBlockQuery = (fromBlock: bigint, offset: number, toBlock?: bigint, limit = 10_000n) => {
   const offsetQuery = offset > 0 ? ` after: "${offset}", ` : ''
   const endBlockQuery = toBlock ? `number_lte: "${toBlock}"` : ''
   return `query MyQuery {
@@ -16,7 +16,6 @@ const getEvmBlockQuery = (fromBlock: bigint, offset: number, toBlock?: bigint, l
     edges {
       node {
         hash
-        id
         number
         timestamp
         transactions {
@@ -147,18 +146,29 @@ const getEvmBlockQuery = (fromBlock: bigint, offset: number, toBlock?: bigint, l
 async function * autoPaginateBlockQuery<T> (client: SubsquidClient, startBlock: bigint, endBlock?: bigint) : AsyncGenerator<T[]> {
   let hasNextPage = true
   let offset = 0
-  while (hasNextPage) {
-    const query = getEvmBlockQuery(startBlock, offset, endBlock)
-    // @TODO replace this with  client.query
-    const data = await client.request({ query })
-    // @ts-ignore - Types are not available for now
-    const { pageInfo, edges } = data.evmBlocksConnection
-    hasNextPage = pageInfo.hasNextPage
-    offset = pageInfo.endCursor
+  let retryCount = 0
+  const maxRetryCount = 5
 
-    // @ts-ignore - Types are not available for now
-    const entries = edges.map(e => e.node) as T[]
-    yield entries
+  while (hasNextPage && retryCount < maxRetryCount) {
+    const query = getEvmBlockQuery(startBlock, offset, endBlock)
+    try {
+      // @TODO replace this with  client.query
+      const data = await client.request({ query })
+      // @ts-ignore - Types are not available for now
+      const { pageInfo, edges } = data.evmBlocksConnection
+      hasNextPage = pageInfo.hasNextPage
+      offset = pageInfo.endCursor
+
+      // Reset retry count after each successful attempt
+      retryCount = 0
+      // @ts-ignore - Types are not available for now
+      const entries = edges.map(e => e.node) as T[]
+      yield entries
+    } catch (err) {
+      retryCount += 1
+      console.log(err)
+      console.log('Failed to get response for query, Retrying:', retryCount)
+    }
   }
 }
 
