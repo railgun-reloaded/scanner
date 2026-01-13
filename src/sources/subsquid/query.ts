@@ -1,16 +1,19 @@
 import type { SubsquidClient } from '@railgun-reloaded/subsquid-client'
 
+const SUBSQUID_DEFAULT_PAGE_SIZE = 5_000
+
 /**
  * Create a graphql query to get blockData from the subsquid
  * @param fromBlock - Start block height to get data from
  * @param offset - Offset/Cursor to the data
  * @param toBlock - End block height to get data from
- * @param limit - The number of entries to return
+ * @param pageSize - The number of entries to return in single request
  * @returns EvmBlockData query
  */
-const getEvmBlockQuery = (fromBlock: bigint, offset: number, toBlock?: bigint, limit = 10_000n) => {
+const getEvmBlockQuery = (fromBlock: bigint, offset: number, toBlock?: bigint, pageSize? : bigint) => {
   const offsetQuery = offset > 0 ? ` after: "${offset}", ` : ''
   const endBlockQuery = toBlock ? `number_lte: "${toBlock}"` : ''
+  const limit = Number(pageSize) || SUBSQUID_DEFAULT_PAGE_SIZE
   return `query MyQuery {
   evmBlocksConnection(orderBy: number_ASC, first: ${limit} ${offsetQuery} where: {number_gte: "${fromBlock}" ${endBlockQuery}}) {
     edges {
@@ -140,17 +143,18 @@ const getEvmBlockQuery = (fromBlock: bigint, offset: number, toBlock?: bigint, l
  * @param client - Subsquid client instance
  * @param startBlock - Starting height
  * @param endBlock - End height
+ * @param pageSize - Total number of data to fetch in single request
  * @returns - The results of the query
  * @yields - Array of Subsquid result
  */
-async function * autoPaginateBlockQuery<T> (client: SubsquidClient, startBlock: bigint, endBlock?: bigint) : AsyncGenerator<T[]> {
+async function * autoPaginateBlockQuery<T> (client: SubsquidClient, startBlock: bigint, endBlock?: bigint, pageSize?: bigint) : AsyncGenerator<T[]> {
   let hasNextPage = true
   let offset = 0
   let retryCount = 0
   const maxRetryCount = 5
 
   while (hasNextPage && retryCount < maxRetryCount) {
-    const query = getEvmBlockQuery(startBlock, offset, endBlock)
+    const query = getEvmBlockQuery(startBlock, offset, endBlock, pageSize)
     try {
       // @TODO replace this with  client.query
       const data = await client.request({ query })
