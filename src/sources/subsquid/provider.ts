@@ -66,7 +66,7 @@ export class SubsquidProvider<T extends EVMBlock> implements DataSource<T> {
       throw new Error("Subsquid doesn't support liveSync")
     }
 
-    const pageIterator = autoPaginateBlockQuery<EVMBlock>(this.#client, _options.startHeight, _options.endHeight)
+    const pageIterator = autoPaginateBlockQuery<EVMBlock>(this.#client, _options.startHeight, _options.endHeight, _options.chunkSize)
     for await (const page of pageIterator) {
       for (const entry of page) {
         yield entry as T
