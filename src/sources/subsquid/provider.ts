@@ -72,45 +72,6 @@ export class SubsquidProvider<T extends EVMBlock> implements DataSource<T> {
         yield entry as T
       }
     }
-    /**
-     * Check if input is number or not
-     * Casting string to number gives NaN
-     * @param v - Input to the function
-     * @returns - true is the input is number
-     */
-    // const isNumberString = (v: any) => typeof v === 'string' && /^[+-]?\d+$/.test(v.trim())
-
-    /**
-     * Convert subsquid data to standard format
-     * @param input - Subsquid representation of BlockData
-     * @returns Standard representation of EVMBlockData
-     */
-    /*
-    const formatResult = (input : SubsquidEvmBlock) : EVMBlock => {
-      return {
-        number: BigInt(input.number),
-        hash: input.hash,
-        timestamp: BigInt(input.timestamp),
-        transactions: input.transactions.map(tx => ({
-          index: Number(tx.index),
-          hash: tx.hash,
-          from: tx.from,
-          logs: tx.logs.map((log) => (
-            {
-              index: Number(log.index),
-              name: log.name,
-              address: log.address,
-              args: {
-                // Handle the parsing of bigint string to bigint
-                ...JSON.parse(log.args as unknown as string, (_, v) => isNumberString(v) ? BigInt(v) : v)
-              }
-            }
-          ))
-        })),
-        internalTransaction: []
-      }
-    }
-    */
   }
 
   /**

@@ -3,34 +3,34 @@ type ActionType = {
 }
 
 type TokenInfo = {
-  id: Uint8Array
+  id: string
   tokenType: string
-  tokenSubID: Uint8Array
-  tokenAddress: Uint8Array
+  tokenSubID: string
+  tokenAddress: string
 }
 
 type CommitmentPreimage = {
-  npk: Uint8Array
+  npk: string
   token: TokenInfo
-  value: BigInt
+  value: string
 }
 
 type RailgunGeneratedCommitment = {
-  hash: Uint8Array
+  hash: string
   treeNumber: number
   treePosition: number
   preimage: CommitmentPreimage
-  encryptedRandom: Uint8Array[]
+  encryptedRandom: string[]
 }
 
 type RailgunShieldCommitment = {
-  hash: Uint8Array
+  hash: string
   treeNumber: number;
   treePosition: number
   preimage: CommitmentPreimage
-  encryptedBundle: Uint8Array[]
-  shieldKey: Uint8Array
-  fee: BigInt
+  encryptedBundle: string[]
+  shieldKey: string
+  fee: string
 }
 
 type RailgunShield = {
@@ -39,35 +39,35 @@ type RailgunShield = {
 } & ActionType
 
 type RailgunUnshield = {
-  to: Uint8Array;
+  to: string;
   token: TokenInfo
-  amount: BigInt
-  fee: BigInt
+  amount: string
+  fee: string
   eventLogIndex: number
 } & ActionType
 
 type RailgunCiphertext = {
-  iv: Uint8Array
-  tag: Uint8Array
-  data: Uint8Array[]
+  iv: string
+  tag: string
+  data: string[]
 }
 
 type RailgunEncryptedCommitment = {
-  hash: Uint8Array
+  hash: string
   ciphertext: RailgunCiphertext
-  memo: Uint8Array[]
-  ephemeralKeys: Uint8Array[]
+  memo: string[]
+  ephemeralKeys: string[]
   treeNumber: number
   treePosition: number
 }
 
 type RailgunTransactCommitment = {
-  hash: Uint8Array
+  hash: string
   ciphertext: RailgunCiphertext
-  blindedSenderViewingKey: Uint8Array
-  blindedReceiverViewingKey: Uint8Array
-  annotationData: Uint8Array
-  memo: Uint8Array[]
+  blindedSenderViewingKey: string
+  blindedReceiverViewingKey: string
+  annotationData: string
+  memo: string[]
   treeNumber: number
   treePosition: number
 }
@@ -75,20 +75,20 @@ type RailgunTransactCommitment = {
 type TransactCommitment = RailgunTransactCommitment | RailgunEncryptedCommitment
 
 type RailgunTransact = {
-  txID: Uint8Array
-  nullifiers: Uint8Array[]
+  txID: string
+  nullifiers: string[]
   commitments: TransactCommitment[]
-  unshieldCommitment: Uint8Array
-  boundParamsHash: Uint8Array
-  utxoBatchStartPositionOut: BigInt
-  utxoTreeIn: BigInt
-  utxoTreeOut: BigInt
+  unshieldCommitment: string
+  boundParamsHash: string
+  utxoBatchStartPositionOut: string
+  utxoTreeIn: string
+  utxoTreeOut: string
   hasUnshield: boolean
 
   // Optional unshield params
-  unshieldToAddress: Uint8Array
+  unshieldToAddress: string
   unshieldToken: TokenInfo
-  unshieldValue: BigInt
+  unshieldValue: string
 } & ActionType
 
 type RailgunAction = RailgunShield | RailgunUnshield | RailgunTransact
@@ -101,9 +101,9 @@ type EVMTransaction = {
 }
 
 type EVMBlock = {
-  number: BigInt
+  number: string
   hash: string
-  timestamp: BigInt
+  timestamp: string
   transactions: EVMTransaction[];
 }
 
