@@ -1,5 +1,11 @@
 import type { SubsquidClient } from '@railgun-reloaded/subsquid-client'
 
+/**
+ * Subsquid has a limit for max output size and sql query timeout. We
+ * have a very deeply nested query and it may takes sometime.
+ * Based on my test, the range of 5_000 worked fine in development.
+ * Test for 10_000 entries sometime resulted in timeout.
+ */
 const SUBSQUID_DEFAULT_PAGE_SIZE = 5_000
 
 /**
@@ -153,7 +159,7 @@ async function * autoPaginateBlockQuery<T> (client: SubsquidClient, startBlock: 
   let retryCount = 0
   const maxRetryCount = 5
 
-  while (hasNextPage && retryCount < maxRetryCount) {
+  while (hasNextPage) {
     const query = getEvmBlockQuery(startBlock, offset, endBlock, pageSize)
     try {
       // @TODO replace this with  client.query
@@ -172,6 +178,9 @@ async function * autoPaginateBlockQuery<T> (client: SubsquidClient, startBlock: 
       retryCount += 1
       console.log(err)
       console.log('Failed to get response for query, Retrying:', retryCount)
+      if (retryCount === maxRetryCount) {
+        throw new Error('Subsquid query request timed out')
+      }
     }
   }
 }

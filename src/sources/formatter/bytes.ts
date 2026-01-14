@@ -20,11 +20,22 @@ function padEven (hex: string) : string {
 
 /**
  * Convert hex string without 0x prefix to Uint8Array
- * @param hex - Input hex string
+ * @param input - Input hex string
  * @returns - Uint8Array representation of hex string
  */
-function hexToBytes (hex: string) : Uint8Array {
-  hex = padEven(strip0x(hex))
+function hexToBytes (input: string) : Uint8Array {
+  if (!input) {
+    throw new Error(`Invalid hexadecimal input ${input}`)
+  }
+
+  const hex = padEven(strip0x(input))
+
+  // Regex to test for hex, also passes for '0x' string
+  const isHex = /^[0-9a-fA-F]*$/.test(hex)
+  if (!isHex) {
+    throw new Error(`${hex} is not a valid hexadecimal string`)
+  }
+
   const bytes = new Uint8Array(hex.length / 2)
   for (let i = 0; i < bytes.length; i++) {
     bytes[i] = parseInt(hex.substring(i * 2, i * 2 + 2), 16)
