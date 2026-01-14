@@ -2,6 +2,7 @@ import { SubsquidClient } from '@railgun-reloaded/subsquid-client'
 
 import type { EVMBlock } from '../../models'
 import type { DataSource, SyncOptions } from '../data-source'
+import { formatBlockData } from '../formatter/blockdata-formatter'
 
 import { autoPaginateBlockQuery } from './query'
 
@@ -66,10 +67,18 @@ export class SubsquidProvider<T extends EVMBlock> implements DataSource<T> {
       throw new Error("Subsquid doesn't support liveSync")
     }
 
+    if (_options.endHeight && _options.endHeight < _options.startHeight) {
+      throw new Error('EndHeight cannot be smaller than StartHeight')
+    }
+
+    if (_options.chunkSize === 0n) {
+      throw new Error('ChunkSize should be greater than zero')
+    }
+
     const pageIterator = autoPaginateBlockQuery<EVMBlock>(this.#client, _options.startHeight, _options.endHeight, _options.chunkSize)
     for await (const page of pageIterator) {
       for (const entry of page) {
-        yield entry as T
+        yield formatBlockData(entry) as T
       }
     }
   }

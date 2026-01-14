@@ -1,110 +1,130 @@
-type ActionType = {
-  actionType: string
+enum ActionType {
+  Unshield = 'Unshield',
+  GeneratedCommitment = 'GeneratedCommitment',
+  ShieldCommitment = 'ShieldCommitment',
+  EncryptedCommitment = 'EncryptedCommitment',
+  TransactCommitment = 'TransactCommitment'
 }
 
-type TokenInfo = {
-  id: string
+type Token = {
+  id: Uint8Array
   tokenType: string
-  tokenSubID: string
-  tokenAddress: string
+  tokenSubID: Uint8Array
+  tokenAddress: Uint8Array
 }
 
 type CommitmentPreimage = {
-  npk: string
-  token: TokenInfo
-  value: string
+  npk: Uint8Array
+  token: Token
+  value: bigint
 }
 
-type RailgunGeneratedCommitment = {
-  hash: string
+type GeneratedCommitment = {
+  hash: Uint8Array
   treeNumber: number
   treePosition: number
   preimage: CommitmentPreimage
-  encryptedRandom: string[]
+  encryptedRandom: Uint8Array[]
 }
 
-type RailgunShieldCommitment = {
-  hash: string
-  treeNumber: number;
+type ShieldCommitment = {
+  hash: Uint8Array
+  treeNumber: number
   treePosition: number
   preimage: CommitmentPreimage
-  encryptedBundle: string[]
-  shieldKey: string
-  fee: string
+  encryptedBundle: Uint8Array[]
+  shieldKey: Uint8Array
+  fee: bigint
 }
 
-type RailgunShield = {
-  batchStartTreePosition: number;
-  commitment: RailgunGeneratedCommitment | RailgunShieldCommitment
-} & ActionType
+type Shield = {
+  actionType: ActionType
+  batchStartTreePosition: number
+  commitment: GeneratedCommitment | ShieldCommitment
+}
 
-type RailgunUnshield = {
-  to: string;
-  token: TokenInfo
-  amount: string
-  fee: string
+type Unshield = {
+  actionType: ActionType
+  to: Uint8Array;
+  token: Token
+  amount: bigint
+  fee: bigint
   eventLogIndex: number
-} & ActionType
-
-type RailgunCiphertext = {
-  iv: string
-  tag: string
-  data: string[]
 }
 
-type RailgunEncryptedCommitment = {
-  hash: string
-  ciphertext: RailgunCiphertext
-  memo: string[]
-  ephemeralKeys: string[]
+type Ciphertext = {
+  iv: Uint8Array
+  tag: Uint8Array
+  data: Uint8Array[]
+}
+
+type EncryptedCommitment = {
+  hash: Uint8Array
+  ciphertext: Ciphertext
+  memo: Uint8Array[]
+  ephemeralKeys: Uint8Array[]
   treeNumber: number
   treePosition: number
 }
 
-type RailgunTransactCommitment = {
-  hash: string
-  ciphertext: RailgunCiphertext
-  blindedSenderViewingKey: string
-  blindedReceiverViewingKey: string
-  annotationData: string
+type TransactCommitment = {
+  hash: Uint8Array
+  ciphertext: Ciphertext
+  blindedSenderViewingKey: Uint8Array
+  blindedReceiverViewingKey: Uint8Array
+  annotationData: Uint8Array
   memo: string[]
   treeNumber: number
   treePosition: number
 }
 
-type TransactCommitment = RailgunTransactCommitment | RailgunEncryptedCommitment
-
-type RailgunTransact = {
-  txID: string
-  nullifiers: string[]
-  commitments: TransactCommitment[]
-  unshieldCommitment: string
-  boundParamsHash: string
-  utxoBatchStartPositionOut: string
-  utxoTreeIn: string
-  utxoTreeOut: string
+type Transact = {
+  actionType: ActionType
+  txID: Uint8Array
+  nullifiers: Uint8Array[]
+  commitments: (TransactCommitment | EncryptedCommitment)[]
+  unshieldCommitment?: Uint8Array
+  boundParamsHash: Uint8Array
+  utxoBatchStartPositionOut: bigint
+  utxoTreeIn: number
+  utxoTreeOut: number
   hasUnshield: boolean
 
   // Optional unshield params
-  unshieldToAddress: string
-  unshieldToken: TokenInfo
-  unshieldValue: string
-} & ActionType
+  unshieldToAddress?: Uint8Array
+  unshieldToken?: Token
+  unshieldValue?: bigint
+}
 
-type RailgunAction = RailgunShield | RailgunUnshield | RailgunTransact
+type Action = Shield | Unshield | Transact
 
 type EVMTransaction = {
-  hash: string;
+  hash: Uint8Array
   index: number
-  from: string
-  actions: RailgunAction[][]
+  from: Uint8Array
+  actions: Action[][]
 }
 
 type EVMBlock = {
-  number: string
-  hash: string
-  timestamp: string
-  transactions: EVMTransaction[];
+  number: bigint,
+  hash: Uint8Array
+  timestamp: bigint
+  transactions: EVMTransaction[]
 }
 
-export type { EVMBlock, EVMTransaction, RailgunAction, RailgunShield, RailgunUnshield, RailgunTransact }
+export type {
+  EVMBlock,
+  EVMTransaction,
+  Action,
+  Shield,
+  GeneratedCommitment,
+  ShieldCommitment,
+  Ciphertext,
+  EncryptedCommitment,
+  TransactCommitment,
+  CommitmentPreimage,
+  Unshield,
+  Transact,
+  Token
+}
+export { ActionType }
