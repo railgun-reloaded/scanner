@@ -32,15 +32,4 @@ function hexToBytes (hex: string) : Uint8Array {
   return bytes
 }
 
-/**
- * Convert bigint number to bytes
- * @param n - Input bigint/string number
- * @returns - Uint8Array representation of bigint
- */
-function bigIntToBytes (n: bigint) : Uint8Array {
-  // Convert bigint to hex and pad it to even
-  const hex = padEven(n.toString(16))
-  return hexToBytes(hex)
-}
-
-export { hexToBytes, bigIntToBytes }
+export { hexToBytes }

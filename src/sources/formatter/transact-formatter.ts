@@ -86,7 +86,7 @@ function formatTransact (transact: Record<string, any>) : Transact {
     nullifiers: transact['nullifiers'].map(hexToBytes),
     commitments,
     boundParamsHash: hexToBytes(transact['boundParamsHash']),
-    utxoBatchStartPositionOut: BigInt(transact['utxoBatchStartPositionOut']),
+    utxoBatchStartPositionOut: Number(transact['utxoBatchStartPositionOut']),
     utxoTreeIn: Number(transact['utxoTreeIn']),
     utxoTreeOut: Number(transact['utxoTreeOut']),
     hasUnshield
