@@ -38,15 +38,20 @@ function formatRailgunGeneratedCommitment (commitment: Record<string, any>) : Ge
  * @returns - Formatted ShieldCommitment
  */
 function formatRailgunShieldCommitment (commitment: Record<string, any>) : ShieldCommitment {
-  return {
+  const formattedShield : ShieldCommitment = {
     hash: hexToBytes(commitment['hash']),
     treeNumber: Number(commitment['treeNumber']),
     treePosition: Number(commitment['treePosition']),
     preimage: formatCommitmentPreimage(commitment['preimage']),
     encryptedBundle: commitment['encryptedBundle'].map(hexToBytes),
     shieldKey: hexToBytes(commitment['shieldKey']),
-    fee: BigInt(commitment['fee'])
   }
+
+  if (commitment['fee']) {
+    formattedShield.fee = BigInt(commitment['fee'])
+  }
+
+  return formattedShield
 }
 
 /**

@@ -34,7 +34,7 @@ type ShieldCommitment = {
   preimage: CommitmentPreimage
   encryptedBundle: Uint8Array[]
   shieldKey: Uint8Array
-  fee: bigint
+  fee?: bigint
 }
 
 type Shield = {
@@ -73,7 +73,7 @@ type TransactCommitment = {
   blindedSenderViewingKey: Uint8Array
   blindedReceiverViewingKey: Uint8Array
   annotationData: Uint8Array
-  memo: string[]
+  memo: Uint8Array[]
   treeNumber: number
   treePosition: number
 }
@@ -85,7 +85,7 @@ type Transact = {
   commitments: (TransactCommitment | EncryptedCommitment)[]
   unshieldCommitment?: Uint8Array
   boundParamsHash: Uint8Array
-  utxoBatchStartPositionOut: bigint
+  utxoBatchStartPositionOut: number
   utxoTreeIn: number
   utxoTreeOut: number
   hasUnshield: boolean

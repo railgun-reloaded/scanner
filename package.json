@@ -20,7 +20,7 @@
     "build": "tsc --build",
     "clean": "tsc --build --clean",
     "pretest": "npm run build",
-    "test": "node --test --enable-source-maps test/*.js",
+    "test": "node --test --enable-source-maps test/*.test.js",
     "coverage": "c8 --reporter=text --reporter=html --exclude=test npm test"
   },
   "keywords": [
