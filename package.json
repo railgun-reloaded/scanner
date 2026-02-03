@@ -2,13 +2,13 @@
   "name": "scanner",
   "version": "0.0.1",
   "description": "DataSync Repo for RAILGUN",
-  "homepage": "https://github.com/railgun-community/scanner#readme",
+  "homepage": "https://github.com/railgun-reloaded/scanner#readme",
   "bugs": {
-    "url": "https://github.com/railgun-community/scanner/issues"
+    "url": "https://github.com/railgun-reloaded/scanner/issues"
   },
   "repository": {
     "type": "git",
-    "url": "git+ssh://git@github.com/railgun-community/scanner.git"
+    "url": "git+ssh://git@github.com/railgun-reloaded/scanner.git"
   },
   "license": "MIT",
   "author": "Railgun Project Contributors",
@@ -40,7 +40,6 @@
     "@railgun-reloaded/eslint-config": "^1.1.0",
     "@railgun-reloaded/tsconfig": "^1.2.0",
     "@railgun-reloaded/subsquid-client": "https://github.com/railgun-reloaded/subsquid-client.git#v0.0.1",
-    "@types/node": "^24.0.3",
     "dotenv": "^16.5.0",
     "eslint": "^9.29.0",
     "typescript": "^5.8.3"
