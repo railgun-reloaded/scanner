@@ -1,14 +1,14 @@
 {
-  "name": "fafo-scanner",
+  "name": "scanner",
   "version": "0.0.1",
   "description": "DataSync Repo for RAILGUN",
-  "homepage": "https://github.com/railgun-community/fafo-scanner#readme",
+  "homepage": "https://github.com/railgun-community/scanner#readme",
   "bugs": {
-    "url": "https://github.com/railgun-community/fafo-scanner/issues"
+    "url": "https://github.com/railgun-community/scanner/issues"
   },
   "repository": {
     "type": "git",
-    "url": "git+ssh://git@github.com/railgun-community/fafo-scanner.git"
+    "url": "git+ssh://git@github.com/railgun-community/scanner.git"
   },
   "license": "MIT",
   "author": "Railgun Project Contributors",
