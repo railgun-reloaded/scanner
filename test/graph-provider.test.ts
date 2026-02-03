@@ -3,15 +3,13 @@ import { describe, test } from 'node:test'
 
 import dotenv from 'dotenv'
 
-import { RPCProvider, SubsquidProvider } from '../src'
-import { RPCConnectionManager } from '../src/sources/rpc'
+import { SubsquidProvider } from '../src'
 
 dotenv.config()
 
-const MOCK_RPC_URL = process.env['RPC_API_KEY']!
 const MOCK_SQUID_URL = process.env['SQUID_ENDPOINT']!
-const RAILGUN_PROXY_ADDRESS = '0xFA7093CDD9EE6932B4eb2c9e1cde7CE00B1FA4b9' as `0x${string}`
 const RAILGUN_PROXY_DEPLOYMENT_BLOCK = 14737691n
+const DEFAULT_CHUNK_SIZE = 5_000n
 const RAILGUN_DEPLOYMENT_V2 = 16076750n
 
 describe('GraphProvider[Ethereum]', () => {
@@ -22,8 +20,8 @@ describe('GraphProvider[Ethereum]', () => {
 
     const iterator = provider.from({
       startHeight: RAILGUN_PROXY_DEPLOYMENT_BLOCK,
-      endHeight: RAILGUN_PROXY_DEPLOYMENT_BLOCK + 10_000n,
-      chunkSize: 499n,
+      endHeight: RAILGUN_PROXY_DEPLOYMENT_BLOCK + 20_000n,
+      chunkSize: DEFAULT_CHUNK_SIZE,
       liveSync: false
     })
 
@@ -54,15 +52,15 @@ describe('GraphProvider[Ethereum]', () => {
 
     const iterator1 = provider.from({
       startHeight: RAILGUN_PROXY_DEPLOYMENT_BLOCK,
-      endHeight: RAILGUN_PROXY_DEPLOYMENT_BLOCK + 1000n,
-      chunkSize: 499n,
+      endHeight: RAILGUN_PROXY_DEPLOYMENT_BLOCK + 10_000n,
+      chunkSize: DEFAULT_CHUNK_SIZE,
       liveSync: false
     })
 
     const iterator2 = provider.from({
-      startHeight: RAILGUN_PROXY_DEPLOYMENT_BLOCK + 1000n,
-      endHeight: RAILGUN_PROXY_DEPLOYMENT_BLOCK + 2000n,
-      chunkSize: 499n,
+      startHeight: RAILGUN_PROXY_DEPLOYMENT_BLOCK + 10_000n,
+      endHeight: RAILGUN_PROXY_DEPLOYMENT_BLOCK + 20_000n,
+      chunkSize: DEFAULT_CHUNK_SIZE,
       liveSync: false
     })
 
@@ -113,15 +111,15 @@ describe('GraphProvider[Ethereum]', () => {
     const knownBlockStart = 14777791n
 
     const knownNumberOfBlocks = 4
-    const knownNumberOfLogs = 9
+    const knownNumberOfActions = 5
 
     const knownNumberOfBlocks2 = 8
-    const knownNumberOfLogs2 = 16
+    const knownNumberOfActions2 = 11
 
     const iterator = provider.from({
       startHeight: knownBlockStart,
       endHeight: knownBlockEnd,
-      chunkSize: 499n,
+      chunkSize: DEFAULT_CHUNK_SIZE,
       liveSync: false
     })
 
@@ -131,31 +129,55 @@ describe('GraphProvider[Ethereum]', () => {
     const iterator2 = provider.from({
       startHeight: knownBlockStart2,
       endHeight: knownBlockEnd2,
-      chunkSize: 499n,
+      chunkSize: DEFAULT_CHUNK_SIZE,
       liveSync: false
     })
 
     let blockCount = 0
-    let logCount = 0
+    let actionCount = 0
 
     for await (const _data of iterator) {
       blockCount++
-      logCount += _data.transactions.reduce((acc, tx) => acc + tx.logs.length, 0)
+      actionCount += _data.transactions.reduce((acc, tx) => acc + tx.actions.flat().length, 0)
     }
 
     let blockCount2 = 0
-    let logCount2 = 0
+    let actionCount2 = 0
     for await (const _data of iterator2) {
       blockCount2++
-      logCount2 += _data.transactions.reduce((acc, tx) => acc + tx.logs.length, 0)
+      actionCount2 += _data.transactions.reduce((acc, tx) => acc + tx.actions.flat().length, 0)
     }
-
     assert.ok(blockCount === knownNumberOfBlocks, 'Should retrieve exact number of blocks from fixed set of block range')
     assert.ok(blockCount2 === knownNumberOfBlocks2, 'Should retrieve exact number of blocks from fixed set of block range')
-    assert.ok(logCount === knownNumberOfLogs, 'Should retrieve exact number of logs from fixed set of block range')
-    assert.ok(logCount2 === knownNumberOfLogs2, 'Should retrieve exact number of logs from fixed set of block range')
+    assert.ok(actionCount === knownNumberOfActions, 'Should retrieve exact number of logs from fixed set of block range')
+    assert.ok(actionCount2 === knownNumberOfActions2, 'Should retrieve exact number of logs from fixed set of block range')
   })
 
+  test('Should fetch data sorted by blockNumber', async () => {
+    const startHeight = RAILGUN_DEPLOYMENT_V2
+    const endHeight = startHeight + 100_000n
+
+    const graphProvider = new SubsquidProvider(MOCK_SQUID_URL)
+    const graphIterator = graphProvider.from({
+      startHeight,
+      endHeight,
+      chunkSize: 499n,
+      liveSync: false
+    })
+
+    let lastBlockNumber = startHeight
+    for await (const blockInfo of graphIterator) {
+      if (BigInt(blockInfo.number) >= lastBlockNumber) {
+        lastBlockNumber = BigInt(blockInfo.number)
+      } else {
+        assert.fail('[SubsquidProvider]: Block are not in sorted order')
+      }
+    }
+    assert.ok(true)
+  })
+
+  // Should enable this test after new contract upgrade
+  /*
   test('Should fetch same data as RPC Provider [V1]', async () => {
     const startHeight = RAILGUN_PROXY_DEPLOYMENT_BLOCK + 10_000n
     const endHeight = startHeight + 10_000n
@@ -221,4 +243,5 @@ describe('GraphProvider[Ethereum]', () => {
     }
     assert.deepEqual(rpcBlockData, graphBlockData)
   })
+  */
 })

@@ -2,25 +2,9 @@ import { SubsquidClient } from '@railgun-reloaded/subsquid-client'
 
 import type { EVMBlock } from '../../models'
 import type { DataSource, SyncOptions } from '../data-source'
+import { formatBlockData } from '../formatter/blockdata-formatter'
 
 import { autoPaginateBlockQuery } from './query'
-
-type SubsquidEvmBlock = {
-  number: string;
-  hash: string;
-  timestamp: string;
-  transactions: {
-    hash: string;
-    index: string;
-    from: string;
-    logs: {
-      index: string
-      address: string
-      name: string
-      args: string
-    }[]
-  }[],
-}
 
 /**
  * Subsquid Provider for fetching data from Subsquid indexers
@@ -38,6 +22,10 @@ export class SubsquidProvider<T extends EVMBlock> implements DataSource<T> {
    * @param endpoint - Subsquid endpoint URL
    */
   constructor (endpoint: string) {
+    if (!endpoint || endpoint.length === 0) {
+      throw new Error('Invalid subsquid endpoint provided')
+    }
+
     this.#client = new SubsquidClient({
       customSubsquidUrl: endpoint
     })
@@ -79,47 +67,19 @@ export class SubsquidProvider<T extends EVMBlock> implements DataSource<T> {
       throw new Error("Subsquid doesn't support liveSync")
     }
 
-    const result = await autoPaginateBlockQuery<SubsquidEvmBlock>(this.#client, _options.startHeight, _options.endHeight)
-    /**
-     * Check if input is number or not
-     * Casting string to number gives NaN
-     * @param v - Input to the function
-     * @returns - true is the input is number
-     */
-    const isNumberString = (v: any) => typeof v === 'string' && /^[+-]?\d+$/.test(v.trim())
-
-    /**
-     * Convert subsquid data to standard format
-     * @param input - Subsquid representation of BlockData
-     * @returns Standard representation of EVMBlockData
-     */
-    const formatResult = (input : SubsquidEvmBlock) : EVMBlock => {
-      return {
-        number: BigInt(input.number),
-        hash: input.hash,
-        timestamp: BigInt(input.timestamp),
-        transactions: input.transactions.map(tx => ({
-          index: Number(tx.index),
-          hash: tx.hash,
-          from: tx.from,
-          logs: tx.logs.map((log) => (
-            {
-              index: Number(log.index),
-              name: log.name,
-              address: log.address,
-              args: {
-                // Handle the parsing of bigint string to bigint
-                ...JSON.parse(log.args as unknown as string, (_, v) => isNumberString(v) ? BigInt(v) : v)
-              }
-            }
-          ))
-        })),
-        internalTransaction: []
-      }
+    if (_options.endHeight && _options.endHeight < _options.startHeight) {
+      throw new Error('EndHeight cannot be smaller than StartHeight')
     }
 
-    for (const entry of result) {
-      yield formatResult(entry) as T
+    if (_options.chunkSize === 0n) {
+      throw new Error('ChunkSize should be greater than zero')
+    }
+
+    const pageIterator = autoPaginateBlockQuery<EVMBlock>(this.#client, _options.startHeight, _options.endHeight, _options.chunkSize)
+    for await (const page of pageIterator) {
+      for (const entry of page) {
+        yield formatBlockData(entry) as T
+      }
     }
   }
 
