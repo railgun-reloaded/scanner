@@ -25,6 +25,19 @@ type Req = ReturnType<typeof jsonrpc>
 let i = 1
 
 /**
+ * WebSocket subscription handler
+ */
+type SubscriptionHandler = (data: any) => void
+
+/**
+ * WebSocket subscription info
+ */
+interface Subscription {
+  id: string
+  handler: SubscriptionHandler
+}
+
+/**
  * JSON-RPC client with automatic request batching based on railgun-data-sync pattern.
  * To take full advantage of batching, care must be taken around awaiting requests.
  * Normally one would be would `await` an async call to suspend execution, such that async code reads in a linear fashion.
@@ -57,6 +70,21 @@ class JSONRPCClient {
    * Enable logging for batch operations
    */
   #enableLogging: boolean
+
+  /**
+   * WebSocket connection for subscriptions
+   */
+  #ws: WebSocket | null = null
+
+  /**
+   * Active subscriptions
+   */
+  #subscriptions: Map<string, Subscription> = new Map()
+
+  /**
+   * WebSocket connection promise
+   */
+  #wsConnected: Promise<void> | null = null
 
   /**
    * Create a new RPC client.
@@ -166,7 +194,7 @@ class JSONRPCClient {
    * @returns Promise resolving to the method result
    */
   async call<T>(method: string, params?: any): Promise<T> {
-    return this.#request<T>(jsonrpc(method, params))
+    return this.request<T>(jsonrpc(method, params))
   }
 
   /**
@@ -191,7 +219,7 @@ class JSONRPCClient {
       return this.#wsConnected
     }
 
-    this.#wsConnected = new Promise((resolve, reject) => {
+    this.#wsConnected = new Promise<void>((resolve, reject) => {
       const wsUrl = this.#url.toString()
       this.#log(`[JSONRPCClient] Connecting to WebSocket: ${wsUrl}`)
 
@@ -210,7 +238,7 @@ class JSONRPCClient {
        * Websocket error callback
        * @param error - Error description
        */
-      this.#ws.onerror = (error) => {
+      this.#ws.onerror = (error: Event) => {
         this.#log(`[JSONRPCClient] WebSocket error: ${error}`)
         reject(error)
       }
@@ -219,7 +247,7 @@ class JSONRPCClient {
        * Websocket event callback
        * @param event - Event data
        */
-      this.#ws.onmessage = (event) => {
+      this.#ws.onmessage = (event: MessageEvent) => {
         try {
           // Receives new message, parse data
           const data = JSON.parse(event.data)
