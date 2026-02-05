@@ -1,4 +1,4 @@
-import { brotliDecompressSync } from 'node:zlib'
+import { brotliDecompressSync } from 'zlib'
 
 import { decode } from 'cbor2'
 
@@ -13,6 +13,8 @@ type Snapshot = {
   entryCount: number
   blocks: EVMBlock[]
 }
+
+const DEFAULT_IPFS_GATEWAY = 'https://ipfs.io/ipfs/'
 
 /**
  * SnapshotProvider fetches snapshot from IPFS and parses/decodes its contents.
@@ -52,7 +54,7 @@ export class SnapshotProvider<T extends EVMBlock> implements DataSource<T> {
    */
   async #fetchSnapshot () {
     try {
-      const url = 'https://ipfs.io/ipfs/' + this.#ipfsHash
+      const url = DEFAULT_IPFS_GATEWAY + this.#ipfsHash
       const response = await fetch(url)
       if (!response.ok) { throw new Error(`Failed to get snapshot status: ${response.status}`) }
       const buffer = await response.arrayBuffer()

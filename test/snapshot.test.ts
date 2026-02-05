@@ -3,21 +3,50 @@ import { describe, test } from 'node:test'
 
 import dotenv from 'dotenv'
 
-import { SnapshotProvider } from '../src/sources'
+import { SnapshotProvider, SubsquidProvider } from '../src/sources'
 
 dotenv.config()
 
-describe('SnapshotProvider[Ethereum]', () => {
-  test('Should fetch snapshot and validate head', async () => {
-    const ipfsHash = 'Qmc6pYwTse9B3ggCX75PzS8fXpNVcg1bCf5AuNHkV2DhxV'
-    const provider = new SnapshotProvider(ipfsHash)
-    /*
-    const iterator = provider.from({
-      startHeight: 14737691n,
-      liveSync: false
-    })
-    */
+const SUBSQUID_SEPOLIA_ENDPOINT = 'https://rail-squid.squids.live/squid-railgun-eth-sepolia-v2/graphql'
+const TEST_IPFS_HASH = 'QmNmjsFruGJ7dVtMPHA5EwikWapBoTz3jzUg6xoNCSGcR4'
+const TEST_START_HEIGHT = 5784866n
+const TEST_END_HEIGHT = 6066713n
+
+const provider = new SnapshotProvider(TEST_IPFS_HASH)
+
+describe('SnapshotProvider[EthereumSepolia]', () => {
+  test('Should retrieve valid head for snapshot', async () => {
     const head = await provider.head()
-    assert(head === 24266500n, 'Head is invalid')
+    assert(head === TEST_END_HEIGHT, 'Head is invalid')
+  })
+
+  test('Should retrieve valid metadata for snapshot', async () => {
+    const snapshot = provider.snapshotContent
+
+    assert(snapshot != null)
+    assert(snapshot.version === 1)
+    assert(snapshot.chainID === 11155111)
+    assert(BigInt(snapshot.endHeight) === TEST_END_HEIGHT)
+    assert(BigInt(snapshot.startHeight) === TEST_START_HEIGHT)
+    assert(snapshot.entryCount === 14)
+    assert(snapshot.blocks.length === 10)
+  })
+
+  test('Should retrieve same data as graph provider for given block range', async () => {
+    const graphProvider = new SubsquidProvider(SUBSQUID_SEPOLIA_ENDPOINT)
+
+    const syncOptions = {
+      startHeight: TEST_START_HEIGHT,
+      endHeight: TEST_END_HEIGHT,
+      liveSync: false
+    }
+
+    const graphEventsIterator = graphProvider.from(syncOptions)
+    const graphEvents = await Array.fromAsync(graphEventsIterator)
+
+    const snapshotEventsIterator = provider.from(syncOptions)
+    const snapshotEvents = await Array.fromAsync(snapshotEventsIterator)
+
+    assert.deepEqual(graphEvents, snapshotEvents)
   })
 })
