@@ -8,9 +8,9 @@ import { SubsquidProvider } from '../src'
 dotenv.config()
 
 const MOCK_SQUID_URL = process.env['SQUID_ENDPOINT']!
-const RAILGUN_PROXY_DEPLOYMENT_BLOCK = 14737691n
+const RAILGUN_PROXY_DEPLOYMENT_BLOCK = 5944769n
 const DEFAULT_CHUNK_SIZE = 5_000n
-const RAILGUN_DEPLOYMENT_V2 = 16076750n
+const RAILGUN_DEPLOYMENT_V2 = 5944769n
 
 describe('GraphProvider[Ethereum]', () => {
   test('Should create an iterator from a provider', async () => {
@@ -64,8 +64,6 @@ describe('GraphProvider[Ethereum]', () => {
       liveSync: false
     })
 
-    // assert count of iterator 1 and 2
-
     let iterator1Count = 0
     let iterator2Count = 0
 
@@ -107,14 +105,14 @@ describe('GraphProvider[Ethereum]', () => {
   test('Should retrieve exact number of events from fixed set of blocks', async () => {
     const provider = new SubsquidProvider(MOCK_SQUID_URL)
 
-    const knownBlockEnd = 14779012n
-    const knownBlockStart = 14777791n
+    const knownBlockEnd = 6066713n
+    const knownBlockStart = 5944769n
 
-    const knownNumberOfBlocks = 4
-    const knownNumberOfActions = 5
+    const knownNumberOfBlocks = 10
+    const knownNumberOfActions = 14
 
-    const knownNumberOfBlocks2 = 8
-    const knownNumberOfActions2 = 11
+    const knownNumberOfBlocks2 = 10
+    const knownNumberOfActions2 = 15
 
     const iterator = provider.from({
       startHeight: knownBlockStart,
@@ -123,8 +121,8 @@ describe('GraphProvider[Ethereum]', () => {
       liveSync: false
     })
 
-    const knownBlockEnd2 = 14777438n
-    const knownBlockStart2 = 14771383n
+    const knownBlockEnd2 = 6093952n
+    const knownBlockStart2 = 6093627n
 
     const iterator2 = provider.from({
       startHeight: knownBlockStart2,
