@@ -15,6 +15,11 @@ const TEST_END_HEIGHT = 6066713n
 const provider = new SnapshotProvider(TEST_IPFS_HASH)
 
 describe('SnapshotProvider[EthereumSepolia]', () => {
+  test('Should throw error in case of invalid ipfs hash', async () => {
+    const provider = new SnapshotProvider('Qeieiwqiw')
+    await assert.rejects(provider.head(), /Failed to fetch heads/)
+  })
+
   test('Should retrieve valid head for snapshot', async () => {
     const head = await provider.head()
     assert(head === TEST_END_HEIGHT, 'Head is invalid')

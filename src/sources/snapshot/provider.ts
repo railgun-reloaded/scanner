@@ -74,8 +74,12 @@ export class SnapshotProvider<T extends EVMBlock> implements DataSource<T> {
    */
   async #decodeSnapshot (rawContent: ArrayBuffer) {
     // We can use pipeline stream later
-    const decompressed = brotliDecompressSync(rawContent)
-    return decode(decompressed) as Snapshot
+    try {
+      const decompressed = brotliDecompressSync(rawContent)
+      return decode(decompressed) as Snapshot
+    } catch (err) {
+      throw new Error('Failed to decode snapshot', { cause: err })
+    }
   }
 
   /**
