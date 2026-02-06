@@ -9,8 +9,10 @@ import { minBigInt } from '../formatter/bigint'
 type Snapshot = {
   version: number
   chainID: number
-  startHeight: bigint
-  endHeight: bigint
+  // This is encoded as BigInt while exporting, but cbor encoder
+  // converts it into the number
+  startHeight: number
+  endHeight: number
   entryCount: number
   blocks: EVMBlock[]
 }
@@ -68,6 +70,35 @@ export class SnapshotProvider<T extends EVMBlock> implements DataSource<T> {
   }
 
   /**
+   * Validate the decoded snapshot is in expected format
+   * @param snapshot - Input Snapshot instance
+   */
+  #validateSnapshot (snapshot: Snapshot) {
+    if (!snapshot) {
+      throw new Error('Invalid snapshot: not initalized properly')
+    };
+
+    if (typeof snapshot.chainID !== 'number') {
+      throw new Error('Invalid snapshot: missing or invalid chainID')
+    }
+
+    if (typeof snapshot.startHeight !== 'number') {
+      throw new Error('Invalid snapshot: missing or invalid startHeight')
+    }
+    if (typeof snapshot.endHeight !== 'number') {
+      throw new Error('Invalid snapshot: missing or invalid endHeight')
+    }
+
+    if (snapshot.startHeight > snapshot.endHeight) {
+      throw new Error('Invalid snapshot: startHeight cannot be greater than endHeight')
+    }
+
+    if (!Array.isArray(snapshot.blocks)) {
+      throw new Error('Invalid snapshot: blocks must be an array')
+    }
+  }
+
+  /**
    * Decompress and decode snapshot
    * @param rawContent - Raw content of the snapshot
    * @returns - Decompressed/decoded snapshot
@@ -76,7 +107,9 @@ export class SnapshotProvider<T extends EVMBlock> implements DataSource<T> {
     // We can use pipeline stream later
     try {
       const decompressed = brotliDecompressSync(rawContent)
-      return decode(decompressed) as Snapshot
+      const snapshot = decode(decompressed) as Snapshot
+      this.#validateSnapshot(snapshot)
+      return snapshot
     } catch (err) {
       throw new Error('Failed to decode snapshot', { cause: err })
     }
@@ -121,13 +154,16 @@ export class SnapshotProvider<T extends EVMBlock> implements DataSource<T> {
       throw new Error('Failed to fetch snapshot')
     }
 
+    const snapshotStartHeight = BigInt(this.snapshotContent.startHeight)
+    const snapshotEndHeight = BigInt(this.snapshotContent.endHeight)
+
     if (_options.startHeight < this.snapshotContent.startHeight) {
-      throw new Error(`Requested startHeight ${_options.startHeight} is less than snapshot start height ${this.snapshotContent.startHeight}. Some block range are missing in the snapshot`)
+      throw new Error(`Requested startHeight ${_options.startHeight} is less than snapshot start height ${snapshotStartHeight}. Some block range are missing in the snapshot`)
     }
 
     // If endHeight is given, we use it as endHeight or we use snapshot endHeight as an endHeight
-    const endHeight = _options.endHeight ? minBigInt(_options.endHeight, this.snapshotContent.endHeight) : this.snapshotContent.endHeight
-    const startHeight = _options.startHeight > this.snapshotContent.startHeight ? _options.startHeight : this.snapshotContent.startHeight
+    const endHeight = _options.endHeight ? minBigInt(_options.endHeight, snapshotEndHeight) : snapshotEndHeight
+    const startHeight = _options.startHeight > snapshotStartHeight ? _options.startHeight : snapshotStartHeight
 
     const events = this.snapshotContent.blocks.filter(b => b.number >= startHeight && b.number <= endHeight)
 

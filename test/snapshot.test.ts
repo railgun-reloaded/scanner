@@ -59,6 +59,6 @@ describe('SnapshotProvider[EthereumSepolia]', () => {
 describe('Should handle invalid snapshot[EthereuumSepolia]', async () => {
   test('Should throw error in case of invalid ipfs hash', async () => {
     const provider = new SnapshotProvider('Qeieiwqiw')
-    await assert.rejects(provider.head(), /Failed to fetch heads/)
+    await assert.rejects(provider.head(), /Failed to fetch head/)
   })
 })
