@@ -93,7 +93,7 @@ export class SnapshotProvider<T extends EVMBlock> implements DataSource<T> {
       throw new Error('Invalid snapshot: startHeight cannot be greater than endHeight')
     }
 
-    if (!Array.isArray(snapshot.blocks)) {
+    if (!snapshot.blocks || !Array.isArray(snapshot.blocks)) {
       throw new Error('Invalid snapshot: blocks must be an array')
     }
   }
