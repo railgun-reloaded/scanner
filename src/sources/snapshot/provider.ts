@@ -17,7 +17,12 @@ type Snapshot = {
   blocks: EVMBlock[]
 }
 
-const DEFAULT_IPFS_GATEWAY = 'https://ipfs.io/ipfs/'
+const IPFS_GATEWAYS = [
+  'https://ipfs.io/ipfs/',
+  'https://gateway.pinata.cloud/ipfs/',
+  'https://cloudflare-ipfs.com/ipfs/',
+  'https://ipfs.public.cat/ipfs/'
+]
 
 /**
  * SnapshotProvider fetches snapshot from IPFS and parses/decodes its contents.
@@ -56,17 +61,21 @@ export class SnapshotProvider<T extends EVMBlock> implements DataSource<T> {
    * @returns - Promise to the content of file
    */
   async #fetchSnapshot () {
-    try {
-      const url = DEFAULT_IPFS_GATEWAY + this.#ipfsHash
-      const response = await fetch(url)
-      if (!response.ok) {
-        throw new Error(`Failed to get snapshot status: ${response.status}`)
+    let lastError: Error | null = null
+    for (const gateway of IPFS_GATEWAYS) {
+      try {
+        const url = gateway + this.#ipfsHash
+        const response = await fetch(url)
+        if (!response.ok) {
+          throw new Error(`Failed to get snapshot status: ${response.status}`)
+        }
+        const buffer = await response.arrayBuffer()
+        return this.#decodeSnapshot(buffer)
+      } catch (err) {
+        lastError = err as Error
       }
-      const buffer = await response.arrayBuffer()
-      return this.#decodeSnapshot(buffer)
-    } catch (err) {
-      throw new Error('Failed to fetch head', { cause: err })
     }
+    throw new Error('Failed to fetch snapshot', { cause: lastError })
   }
 
   /**
@@ -127,7 +136,7 @@ export class SnapshotProvider<T extends EVMBlock> implements DataSource<T> {
     if (this.snapshotContent) {
       return BigInt(this.snapshotContent.endHeight)
     } else {
-      throw new Error('Failed to get head')
+      throw new Error('Failed to fetch head')
     }
   }
 

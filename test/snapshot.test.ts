@@ -61,7 +61,7 @@ describe('SnapshotProvider[EthereumSepolia]', () => {
 describe('Should handle invalid snapshot[EthereuumSepolia]', async () => {
   test('Should throw error in case of invalid ipfs hash', async () => {
     const provider = new SnapshotProvider('Qinvalid')
-    await assert.rejects(provider.head(), /Failed to fetch head/)
+    await assert.rejects(provider.head(), /Failed to fetch snapshot/)
   })
 
   test('Should throw error in case of failed HTTP request', async () => {
@@ -76,7 +76,7 @@ describe('Should handle invalid snapshot[EthereuumSepolia]', async () => {
     } as Response))
 
     const provider = new SnapshotProvider('Qinvalid')
-    await assert.rejects(() => provider.head(), /Failed to get snapshot status: 404|Failed to fetch head/)
+    await assert.rejects(() => provider.head(), /Failed to fetch snapshot/)
   })
 
   test('Should throw error on invalid brotli compressed format', async () => {
