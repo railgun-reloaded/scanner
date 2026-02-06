@@ -1,5 +1,5 @@
 import assert from 'node:assert'
-import { describe, test } from 'node:test'
+import { before, describe, test } from 'node:test'
 
 import dotenv from 'dotenv'
 
@@ -15,9 +15,9 @@ const TEST_END_HEIGHT = 6066713n
 const provider = new SnapshotProvider(TEST_IPFS_HASH)
 
 describe('SnapshotProvider[EthereumSepolia]', () => {
-  test('Should throw error in case of invalid ipfs hash', async () => {
-    const provider = new SnapshotProvider('Qeieiwqiw')
-    await assert.rejects(provider.head(), /Failed to fetch heads/)
+  before(async () => {
+    // Trigger lazy fetching of snapshot
+    await provider.head()
   })
 
   test('Should retrieve valid head for snapshot', async () => {
@@ -53,5 +53,12 @@ describe('SnapshotProvider[EthereumSepolia]', () => {
     const snapshotEvents = await Array.fromAsync(snapshotEventsIterator)
 
     assert.deepEqual(graphEvents, snapshotEvents)
+  })
+})
+
+describe('Should handle invalid snapshot[EthereuumSepolia]', async () => {
+  test('Should throw error in case of invalid ipfs hash', async () => {
+    const provider = new SnapshotProvider('Qeieiwqiw')
+    await assert.rejects(provider.head(), /Failed to fetch heads/)
   })
 })
