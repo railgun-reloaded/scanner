@@ -56,13 +56,14 @@ export class SnapshotProvider<T extends EVMBlock> implements DataSource<T> {
     try {
       const url = DEFAULT_IPFS_GATEWAY + this.#ipfsHash
       const response = await fetch(url)
-      if (!response.ok) { throw new Error(`Failed to get snapshot status: ${response.status}`) }
+      if (!response.ok) {
+        throw new Error(`Failed to get snapshot status: ${response.status}`)
+      }
       const buffer = await response.arrayBuffer()
       return this.#decodeSnapshot(buffer)
     } catch (err) {
-      console.log('Failed to fetch snapshot file', err)
+      throw new Error('Failed to fetch head', { cause: err })
     }
-    return null
   }
 
   /**
