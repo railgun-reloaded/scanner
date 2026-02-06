@@ -4,6 +4,7 @@ import { decode } from 'cbor2'
 
 import type { EVMBlock } from '../../models'
 import type { DataSource, SyncOptions } from '../data-source'
+import { minBigInt } from '../formatter/bigint'
 
 type Snapshot = {
   version: number
@@ -121,7 +122,7 @@ export class SnapshotProvider<T extends EVMBlock> implements DataSource<T> {
     }
 
     // If endHeight is given, we use it as endHeight or we use snapshot endHeight as an endHeight
-    const endHeight = _options.endHeight ? _options.endHeight : this.snapshotContent.endHeight
+    const endHeight = _options.endHeight ? minBigInt(_options.endHeight, this.snapshotContent.endHeight) : this.snapshotContent.endHeight
     const startHeight = _options.startHeight > this.snapshotContent.startHeight ? _options.startHeight : this.snapshotContent.startHeight
 
     const events = this.snapshotContent.blocks.filter(b => b.number >= startHeight && b.number <= endHeight)

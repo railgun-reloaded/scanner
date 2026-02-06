@@ -1,6 +1,7 @@
 import type { EVMBlock } from '../models'
 
 import type { DataSource } from './data-source'
+import { minBigInt } from './formatter/bigint'
 
 /**
  * Create an aggregates sources from multiple data source like RPCProvider,
@@ -32,14 +33,6 @@ class SourceAggregator<T extends EVMBlock> {
    */
   async * from (options: { startHeight: bigint, endHeight?: bigint, chunkSize?: bigint }) : AsyncGenerator<T> {
     let { startHeight, endHeight, chunkSize } = options
-
-    /**
-     * Helper function to get minimum of two big ints
-     * @param a - lhs
-     * @param b - rhs
-     * @returns - Return smallest of a and b
-     */
-    const minBigInt = (a: bigint, b: bigint) => a < b ? a : b
 
     for (const source of this.#sources) {
       const sourceHead = await source.head()
