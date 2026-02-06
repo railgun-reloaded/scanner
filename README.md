@@ -38,7 +38,7 @@ import { SubsquidProvider } from '@railgun-reloaded/scanner'
 const provider = new SubsquidProvider('https://squid.subsquid.io/railgun-eth/graphql')
 
 const iterator = provider.from({
-  startHeight: 15000000n,
+  startHeight: 10000000n,
   endHeight: 15001000n,
   chunkSize: 100n,
   liveSync: false // Subsquid does not support live sync
