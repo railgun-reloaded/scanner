@@ -13,8 +13,17 @@ const SUBSQUID_SEPOLIA_ENDPOINT = 'https://rail-squid.squids.live/squid-railgun-
 const TEST_IPFS_HASH = 'QmNmjsFruGJ7dVtMPHA5EwikWapBoTz3jzUg6xoNCSGcR4'
 const TEST_START_HEIGHT = 5784866n
 const TEST_END_HEIGHT = 6066713n
+const TEST_IPFS_GATEWAYS = [
+  'https://ipfs.io/ipfs/',
+  'https://gateway.pinata.cloud/ipfs/',
+  'https://cloudflare-ipfs.com/ipfs/',
+  'https://ipfs.public.cat/ipfs/'
+]
 
-const provider = new SnapshotProvider(TEST_IPFS_HASH)
+const provider = new SnapshotProvider({
+  ipfsHash: TEST_IPFS_HASH,
+  gateways: TEST_IPFS_GATEWAYS,
+})
 
 describe('SnapshotProvider[EthereumSepolia]', () => {
   before(async () => {
@@ -60,7 +69,7 @@ describe('SnapshotProvider[EthereumSepolia]', () => {
 
 describe('Should handle invalid snapshot[EthereuumSepolia]', async () => {
   test('Should throw error in case of invalid ipfs hash', async () => {
-    const provider = new SnapshotProvider('Qinvalid')
+    const provider = new SnapshotProvider({ ipfsHash: 'QInvalid', gateways: TEST_IPFS_GATEWAYS })
     await assert.rejects(provider.head(), /Failed to fetch snapshot/)
   })
 
@@ -75,7 +84,7 @@ describe('Should handle invalid snapshot[EthereuumSepolia]', async () => {
       arrayBuffer: async () => new ArrayBuffer(0),
     } as Response))
 
-    const provider = new SnapshotProvider('Qinvalid')
+    const provider = new SnapshotProvider({ ipfsHash: 'QInvalid', gateways: TEST_IPFS_GATEWAYS })
     await assert.rejects(() => provider.head(), /Failed to fetch snapshot/)
   })
 
@@ -91,7 +100,7 @@ describe('Should handle invalid snapshot[EthereuumSepolia]', async () => {
       arrayBuffer: async () => testResponseBytes.buffer,
     } as Response))
 
-    const provider = new SnapshotProvider('QInvalidFormat')
+    const provider = new SnapshotProvider({ ipfsHash: 'QInvalid', gateways: TEST_IPFS_GATEWAYS })
     await assert.rejects(() => provider.head(), /Failed to decode snapshot/)
   })
 
@@ -109,7 +118,7 @@ describe('Should handle invalid snapshot[EthereuumSepolia]', async () => {
       arrayBuffer: async () => testCompressedBytes.buffer,
     } as Response))
 
-    const provider = new SnapshotProvider('QInvalidHeights')
+    const provider = new SnapshotProvider({ ipfsHash: 'QInvalid', gateways: TEST_IPFS_GATEWAYS })
     await assert.rejects(() => provider.head(), /Failed to decode snapshot/)
   })
 
@@ -134,7 +143,7 @@ describe('Should handle invalid snapshot[EthereuumSepolia]', async () => {
       arrayBuffer: async () => testCompressedBytes.buffer,
     } as Response))
 
-    const provider = new SnapshotProvider('QMissingHeight')
+    const provider = new SnapshotProvider({ ipfsHash: 'QInvalid', gateways: TEST_IPFS_GATEWAYS })
     await assert.rejects(
       () => provider.head(),
       (err) => {
@@ -167,7 +176,7 @@ describe('Should handle invalid snapshot[EthereuumSepolia]', async () => {
       arrayBuffer: async () => testCompressedBytes.buffer,
     } as Response))
 
-    const provider = new SnapshotProvider('QMissingHeight')
+    const provider = new SnapshotProvider({ ipfsHash: 'QInvalid', gateways: TEST_IPFS_GATEWAYS })
     await assert.rejects(
       () => provider.head(),
       (err) => {
@@ -201,7 +210,7 @@ describe('Should handle invalid snapshot[EthereuumSepolia]', async () => {
       arrayBuffer: async () => testCompressedBytes.buffer,
     } as Response))
 
-    const provider = new SnapshotProvider('QinvalidHeights')
+    const provider = new SnapshotProvider({ ipfsHash: 'QInvalid', gateways: TEST_IPFS_GATEWAYS })
     await assert.rejects(
       () => provider.head(),
       (err) => {
@@ -234,7 +243,7 @@ describe('Should handle invalid snapshot[EthereuumSepolia]', async () => {
       arrayBuffer: async () => testCompressedBytes.buffer,
     } as Response))
 
-    const provider = new SnapshotProvider('Qinvalidchain')
+    const provider = new SnapshotProvider({ ipfsHash: 'QInvalid', gateways: TEST_IPFS_GATEWAYS })
     await assert.rejects(
       () => provider.head(),
       (err) => {
@@ -267,7 +276,7 @@ describe('Should handle invalid snapshot[EthereuumSepolia]', async () => {
       arrayBuffer: async () => testCompressedBytes.buffer,
     } as Response))
 
-    const provider = new SnapshotProvider('QinvalidBlock')
+    const provider = new SnapshotProvider({ ipfsHash: 'QInvalid', gateways: TEST_IPFS_GATEWAYS })
     await assert.rejects(
       () => provider.head(),
       (err) => {

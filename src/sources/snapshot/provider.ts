@@ -17,12 +17,15 @@ type Snapshot = {
   blocks: EVMBlock[]
 }
 
-const IPFS_GATEWAYS = [
-  'https://ipfs.io/ipfs/',
-  'https://gateway.pinata.cloud/ipfs/',
-  'https://cloudflare-ipfs.com/ipfs/',
-  'https://ipfs.public.cat/ipfs/'
-]
+/**
+ * Configuration for SnapshotProvider
+ */
+interface SnapshotProviderConfig {
+  /** IPFS hash of the snapshot file */
+  ipfsHash: string
+  /** IPFS gateway URLs (must end with /ipfs/) */
+  gateways: string[]
+}
 
 /**
  * SnapshotProvider fetches snapshot from IPFS and parses/decodes its contents.
@@ -32,6 +35,11 @@ export class SnapshotProvider<T extends EVMBlock> implements DataSource<T> {
    * IPFS hash of the snapshot file
    */
   #ipfsHash: string
+
+  /**
+   * IPFS Gateways URL
+   */
+  #gateways: string[]
 
   /**
    * Flag to indicate if this provider can provide live data
@@ -46,14 +54,20 @@ export class SnapshotProvider<T extends EVMBlock> implements DataSource<T> {
 
   /**
    * Initialize provider with IPFS hash of snapshot
-   * @param ipfsHash - IPFS hash of snapshot file
+   * @param config - SnapshotProvider config options
    */
-  constructor (ipfsHash: string) {
-    if (ipfsHash.length === 0) {
+  constructor (config: SnapshotProviderConfig) {
+    if (!config.ipfsHash || config.ipfsHash.length === 0) {
       throw new Error('IPFS hash is empty')
     }
+    this.#ipfsHash = config.ipfsHash
+
+    if (!config.gateways || config.gateways.length === 0) {
+      throw new Error('Atleast one IPFS Gateway is required')
+    }
+    this.#gateways = config.gateways
+
     this.snapshotContent = null
-    this.#ipfsHash = ipfsHash
   }
 
   /**
@@ -62,7 +76,7 @@ export class SnapshotProvider<T extends EVMBlock> implements DataSource<T> {
    */
   async #fetchSnapshot () {
     let lastError: Error | null = null
-    for (const gateway of IPFS_GATEWAYS) {
+    for (const gateway of this.#gateways) {
       try {
         const url = gateway + this.#ipfsHash
         const response = await fetch(url)
