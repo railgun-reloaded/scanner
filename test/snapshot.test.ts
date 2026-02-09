@@ -67,7 +67,7 @@ describe('SnapshotProvider[EthereumSepolia]', () => {
   })
 })
 
-describe('Should handle invalid snapshot[EthereuumSepolia]', async () => {
+describe('Should handle invalid snapshot[EthereumSepolia]', async () => {
   test('Should throw error in case of invalid ipfs hash', async () => {
     const provider = new SnapshotProvider({ ipfsHash: 'QInvalid', gateways: TEST_IPFS_GATEWAYS })
     await assert.rejects(provider.head(), /Failed to fetch snapshot/)
@@ -104,7 +104,7 @@ describe('Should handle invalid snapshot[EthereuumSepolia]', async () => {
     await assert.rejects(() => provider.head(), /Failed to decode snapshot/)
   })
 
-  test('Should throw error when  cbor encoded payload is invalid', async () => {
+  test('Should throw error when cbor encoded payload is invalid', async () => {
     const testCborEncodedBytes = new Uint8Array([1, 2, 3, 4])
     const testCompressedBytes = brotliCompressSync(testCborEncodedBytes)
 
