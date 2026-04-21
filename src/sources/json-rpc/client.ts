@@ -32,7 +32,7 @@ type SubscriptionHandler = (data: any) => void
 /**
  * WebSocket subscription info
  */
-interface Subscription {
+type Subscription = {
   id: string
   handler: SubscriptionHandler
 }

@@ -13,7 +13,7 @@ type SyncOptions = {
  * however from the examples not all sources will be able to provide all fields,
  * eg txid, so here it’s set as `extends` to allow flexibility
  */
-interface DataSource<T extends EVMBlock> {
+type DataSource<T extends EVMBlock> = {
   /**
    * The most recent block that this source can provide.
    * For a snapshot, this would be the last event saved

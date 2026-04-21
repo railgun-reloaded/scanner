@@ -1,7 +1,7 @@
 /**
  * Request interface for connection manager
  */
-interface RequestData {
+type RequestData = {
   /** Unique identifier for the request */
   id: string
   /** The function that returns a promise (not executed yet) */

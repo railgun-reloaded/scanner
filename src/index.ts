@@ -1,2 +1,2 @@
 export * from './models'
-export { /* RPCProvider, JSONRPCProvider, */ SubsquidProvider } from './sources'
+export { /* RPCProvider, JSONRPCProvider, */ SubsquidProvider, SourceAggregator } from './sources'

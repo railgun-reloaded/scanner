@@ -20,7 +20,7 @@ type Snapshot = {
 /**
  * Configuration for SnapshotProvider
  */
-interface SnapshotProviderConfig {
+type SnapshotProviderConfig = {
   /** IPFS hash of the snapshot file */
   ipfsHash: string
   /** IPFS gateway URLs (must end with /ipfs/) */
