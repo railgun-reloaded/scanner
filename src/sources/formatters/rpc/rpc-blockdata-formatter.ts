@@ -1,21 +1,10 @@
 import type { Action, EVMBlock, EVMTransaction } from '../../../models'
 
+import { hexToBytes } from '../shared'
+
 import { formatShieldFromRPC } from './rpc-shield-formatter'
 import { formatTransactFromRPC } from './rpc-transact-formatter'
 import { formatUnshieldFromRPC } from './rpc-unshield-formatter'
-
-/**
- *
- * @param hex
- */
-function hexToBytes (hex: string): Uint8Array {
-  const cleanHex = hex.startsWith('0x') ? hex.slice(2) : hex
-  const bytes = new Uint8Array(cleanHex.length / 2)
-  for (let i = 0; i < bytes.length; i++) {
-    bytes[i] = parseInt(cleanHex.slice(i * 2, i * 2 + 2), 16)
-  }
-  return bytes
-}
 
 type DecodedLog = {
   eventName: string

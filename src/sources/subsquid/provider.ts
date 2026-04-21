@@ -2,7 +2,7 @@ import { SubsquidClient } from '@railgun-reloaded/subsquid-client'
 
 import type { EVMBlock } from '../../models'
 import type { DataSource, SyncOptions } from '../data-source'
-import { formatBlockData } from '../formatter/blockdata-formatter'
+import { formatBlockData } from '../formatters/subsquid/blockdata-formatter'
 
 import { autoPaginateBlockQuery } from './query'
 

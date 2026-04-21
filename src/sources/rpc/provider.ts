@@ -4,10 +4,10 @@ import { mainnet } from 'viem/chains'
 
 import type { EVMBlock } from '../../models'
 import type { DataSource, SyncOptions } from '../data-source'
+import type { DecodedLog } from '../formatters/rpc/rpc-blockdata-formatter'
+import { groupLogsByBlock } from '../formatters/rpc/rpc-blockdata-formatter'
 
 import type { RPCConnectionManager } from './connection-manager'
-import type { DecodedLog } from './formatters'
-import { groupLogsByBlock } from './formatters'
 
 const DEFAULT_CHUNK_SIZE = 500n
 
