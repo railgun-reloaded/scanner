@@ -180,7 +180,7 @@ export class SnapshotProvider<T extends EVMBlock> implements DataSource<T> {
     const snapshotStartHeight = BigInt(this.snapshotContent.startHeight)
     const snapshotEndHeight = BigInt(this.snapshotContent.endHeight)
 
-    if (_options.startHeight < this.snapshotContent.startHeight) {
+    if (_options.startHeight < snapshotStartHeight) {
       throw new Error(`Requested startHeight ${_options.startHeight} is less than snapshot start height ${snapshotStartHeight}. Some block range are missing in the snapshot`)
     }
 

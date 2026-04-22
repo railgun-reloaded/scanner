@@ -176,8 +176,6 @@ async function * autoPaginateBlockQuery<T> (client: SubsquidClient, startBlock: 
       yield entries
     } catch (err) {
       retryCount += 1
-      console.log(err)
-      console.log('Failed to get response for query, Retrying:', retryCount)
       if (retryCount === maxRetryCount) {
         throw new Error('Subsquid query request timed out')
       }

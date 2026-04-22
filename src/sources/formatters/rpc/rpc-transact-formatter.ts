@@ -105,7 +105,7 @@ function formatTransactFromRPC (eventName: string, args: any, txHash: string): T
     txID: hexToBytes(txHash),
     nullifiers: (args.nullifiers || []).map((n: string) => hexToBytes(n)),
     commitments,
-    boundParamsHash: hexToBytes(args.boundParamsHash || '0x00'),
+    boundParamsHash: hexToBytes('0x00'), // not emitted in the event; available only from tx calldata
     utxoBatchStartPositionOut,
     utxoTreeIn,
     utxoTreeOut,

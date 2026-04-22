@@ -103,8 +103,8 @@ export class RPCProvider<T extends EVMBlock> implements DataSource<T> {
           logIndex: log.logIndex,
           address: log.address
         })
-      } catch (err) {
-        console.warn(`Failed to decode log at block ${log.blockNumber}:`, err)
+      } catch {
+        // skip logs that don't decode against the known ABI (e.g. proxy events)
       }
     }
 

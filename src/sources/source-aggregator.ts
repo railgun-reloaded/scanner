@@ -1,6 +1,6 @@
 import type { EVMBlock } from '../models'
 
-import type { DataSource } from './data-source'
+import type { DataSource, SyncOptions } from './data-source'
 import { minBigInt } from './formatters/subsquid/bigint'
 
 /**
@@ -31,7 +31,7 @@ class SourceAggregator<T extends EVMBlock> {
    * @returns AsyncGenerator that returns EVMBlock
    * @yields T
    */
-  async * from (options: { startHeight: bigint, endHeight?: bigint, chunkSize?: bigint }) : AsyncGenerator<T> {
+  async * from (options: SyncOptions) : AsyncGenerator<T> {
     let { startHeight, endHeight, chunkSize } = options
 
     for (const source of this.#sources) {
@@ -49,11 +49,8 @@ class SourceAggregator<T extends EVMBlock> {
 
       // Check if the source is upto date and discard it
       if (sourceEnd && startHeight > sourceEnd) {
-        console.log(`Skipping source: ${source.constructor.name}, source is not upto date`)
         continue
       }
-
-      console.log('Syncing from:', source.constructor.name, ' Start', startHeight, ' End:', sourceEnd)
 
       // The head() value changes for subsquid as well as RPC when new block is indexed or mined,
       // so using it directly before or after syncing data may return an old or new block height

@@ -1,2 +1,2 @@
 export * from './models'
-export { RPCProvider, RPCConnectionManager, SubsquidProvider, SourceAggregator } from './sources'
+export { RPCProvider, RPCConnectionManager, SubsquidProvider, SnapshotProvider, SourceAggregator } from './sources'

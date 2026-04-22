@@ -86,8 +86,8 @@ function groupLogsByBlock (logs: DecodedLog[]): EVMBlock[] {
     try {
       const action = formatActionFromRPC(log)
       block.transactions.get(txKey)!.actions.push(action)
-    } catch (err) {
-      console.warn(`Failed to format action for log ${log.logIndex}:`, err)
+    } catch {
+      // skip logs with unknown event types
     }
   }
 
