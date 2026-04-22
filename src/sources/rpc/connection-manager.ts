@@ -1,5 +1,5 @@
 /**
- * Request interface for connection manager
+ * Request shape for connection manager
  */
 type RequestData = {
   /** Unique identifier for the request */
