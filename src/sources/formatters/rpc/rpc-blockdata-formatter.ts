@@ -23,7 +23,7 @@ type DecodedLog = {
  * @param log
  */
 function formatActionFromRPC (log: DecodedLog): Action {
-  const { eventName, args, logIndex } = log
+  const { eventName, args, logIndex, transactionHash } = log
 
   switch (eventName) {
     case 'Shield':
@@ -32,7 +32,7 @@ function formatActionFromRPC (log: DecodedLog): Action {
 
     case 'Transact':
     case 'CommitmentBatch':
-      return formatTransactFromRPC(eventName, args)
+      return formatTransactFromRPC(eventName, args, transactionHash)
 
     case 'Unshield':
       return formatUnshieldFromRPC(args, logIndex)
