@@ -1,13 +1,15 @@
 import type { CommitmentPreimage, GeneratedCommitment, Shield, ShieldCommitment } from '../../../models'
 import { ActionType } from '../../../models'
-
 import { formatTokenFromRPC, hexToBytes } from '../shared'
 
+import { EventName, TREE_MAX_ITEMS } from './constants'
+
 /**
- *
- * @param npk
- * @param token
- * @param value
+ * Build the canonical CommitmentPreimage from raw RPC args.
+ * @param npk - Note public key (hex)
+ * @param token - Token struct from event args (hex addresses + subID)
+ * @param value - Commitment value as bigint
+ * @returns Canonical CommitmentPreimage
  */
 function formatPreimageFromRPC (npk: string, token: any, value: bigint): CommitmentPreimage {
   return {
@@ -18,15 +20,18 @@ function formatPreimageFromRPC (npk: string, token: any, value: bigint): Commitm
 }
 
 /**
- *
- * @param commitment
- * @param npk
- * @param token
- * @param value
- * @param encryptedRandom
- * @param treeNumber
- * @param batchStartTreePosition
- * @param indexInBatch
+ * Format a V1 `GeneratedCommitmentBatch` entry into the canonical GeneratedCommitment.
+ * The final tree position is computed as `batchStartTreePosition + indexInBatch`
+ * because the batch is laid out sequentially in the merkle tree.
+ * @param commitment - Commitment hash (hex)
+ * @param npk - Note public key (hex)
+ * @param token - Token struct from event args
+ * @param value - Commitment value as bigint
+ * @param encryptedRandom - Encrypted randomness array (hex)
+ * @param treeNumber - Merkle tree index the commitment lives in
+ * @param batchStartTreePosition - Global tree position at which this batch starts
+ * @param indexInBatch - Zero-based offset of this commitment within the batch
+ * @returns Canonical GeneratedCommitment
  */
 function formatGeneratedCommitmentFromRPC (
   commitment: string,
@@ -48,17 +53,19 @@ function formatGeneratedCommitmentFromRPC (
 }
 
 /**
- *
- * @param commitment
- * @param npk
- * @param token
- * @param value
- * @param encryptedBundle
- * @param shieldKey
- * @param fee
- * @param treeNumber
- * @param batchStartTreePosition
- * @param indexInBatch
+ * Format a V2 `Shield` entry into the canonical ShieldCommitment.
+ * `fee` is optional because early V2 shield events didn't emit it.
+ * @param commitment - Commitment hash (hex)
+ * @param npk - Note public key (hex)
+ * @param token - Token struct from event args
+ * @param value - Commitment value as bigint
+ * @param encryptedBundle - Encrypted bundle (hex triplet)
+ * @param shieldKey - Shared shield key (hex)
+ * @param fee - Optional shield fee; undefined when not emitted
+ * @param treeNumber - Merkle tree index the commitment lives in
+ * @param batchStartTreePosition - Global tree position at which this batch starts
+ * @param indexInBatch - Zero-based offset of this commitment within the batch
+ * @returns Canonical ShieldCommitment
  */
 function formatShieldCommitmentFromRPC (
   commitment: string,
@@ -89,15 +96,18 @@ function formatShieldCommitmentFromRPC (
 }
 
 /**
- *
- * @param eventName
- * @param args
+ * Format a decoded shield-family event (`Shield` V2 or `GeneratedCommitmentBatch` V1)
+ * into the canonical Shield action. Tree number is derived from the batch start
+ * position using TREE_MAX_ITEMS because the contract doesn't emit it directly.
+ * @param eventName - One of EventName.Shield / EventName.GeneratedCommitmentBatch
+ * @param args - Decoded event args (field shape varies by version)
+ * @returns Canonical Shield action
  */
 function formatShieldFromRPC (eventName: string, args: any): Shield {
   const batchStartTreePosition = Number(args.startPosition || args.treePosition || 0)
-  const treeNumber = Math.floor(batchStartTreePosition / 65536)
+  const treeNumber = Math.floor(batchStartTreePosition / TREE_MAX_ITEMS)
 
-  if (eventName === 'GeneratedCommitmentBatch') {
+  if (eventName === EventName.GeneratedCommitmentBatch) {
     return {
       actionType: ActionType.GeneratedCommitment,
       batchStartTreePosition,
@@ -114,7 +124,7 @@ function formatShieldFromRPC (eventName: string, args: any): Shield {
     }
   }
 
-  if (eventName === 'Shield') {
+  if (eventName === EventName.Shield) {
     return {
       actionType: ActionType.ShieldCommitment,
       batchStartTreePosition,

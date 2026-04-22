@@ -1,3 +1,4 @@
+export { EventName, TREE_MAX_ITEMS } from './constants'
 export { formatShieldFromRPC } from './rpc-shield-formatter'
 export { formatTransactFromRPC } from './rpc-transact-formatter'
 export { formatUnshieldFromRPC } from './rpc-unshield-formatter'

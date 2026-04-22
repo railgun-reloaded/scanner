@@ -1,7 +1,7 @@
 import type { Action, EVMBlock, EVMTransaction } from '../../../models'
-
 import { hexToBytes } from '../shared'
 
+import { EventName } from './constants'
 import { formatShieldFromRPC } from './rpc-shield-formatter'
 import { formatTransactFromRPC } from './rpc-transact-formatter'
 import { formatUnshieldFromRPC } from './rpc-unshield-formatter'
@@ -18,23 +18,37 @@ type DecodedLog = {
   address: string
 }
 
+type BlockBucket = {
+  number: bigint
+  hash: string
+  timestamp: bigint
+  transactions: Map<string, {
+    hash: string
+    index: number
+    from: string
+    actions: Action[]
+  }>
+}
+
 /**
- *
- * @param log
+ * Dispatch a decoded RAILGUN log to the matching action formatter.
+ * Throws on unknown event names so the caller can decide whether to skip or surface the error.
+ * @param log - Decoded EVM log with event name and typed args
+ * @returns The canonical Action (Shield / Transact / Unshield)
  */
 function formatActionFromRPC (log: DecodedLog): Action {
   const { eventName, args, logIndex, transactionHash } = log
 
   switch (eventName) {
-    case 'Shield':
-    case 'GeneratedCommitmentBatch':
+    case EventName.Shield:
+    case EventName.GeneratedCommitmentBatch:
       return formatShieldFromRPC(eventName, args)
 
-    case 'Transact':
-    case 'CommitmentBatch':
+    case EventName.Transact:
+    case EventName.CommitmentBatch:
       return formatTransactFromRPC(eventName, args, transactionHash)
 
-    case 'Unshield':
+    case EventName.Unshield:
       return formatUnshieldFromRPC(args, logIndex)
 
     default:
@@ -43,49 +57,44 @@ function formatActionFromRPC (log: DecodedLog): Action {
 }
 
 /**
- *
- * @param logs
+ * Bucket a flat list of decoded logs into EVMBlock[] grouped by block,
+ * then by transaction within each block. Logs whose event type is unknown
+ * are silently skipped so unrelated proxy events don't break the stream.
+ * The returned blocks are sorted by block number ascending.
+ * @param logs - Decoded logs from a single range query, in any order
+ * @returns Blocks in ascending order, each with its transactions and actions
  */
 function groupLogsByBlock (logs: DecodedLog[]): EVMBlock[] {
-  const blockMap = new Map<string, {
-    number: bigint
-    hash: string
-    timestamp: bigint
-    transactions: Map<string, {
-      hash: string
-      index: number
-      from: string
-      actions: Action[]
-    }>
-  }>()
+  const blockMap = new Map<string, BlockBucket>()
 
   for (const log of logs) {
     const blockKey = log.blockNumber.toString()
 
-    if (!blockMap.has(blockKey)) {
-      blockMap.set(blockKey, {
+    let block = blockMap.get(blockKey)
+    if (!block) {
+      block = {
         number: log.blockNumber,
         hash: log.blockHash,
         timestamp: log.blockTimestamp,
         transactions: new Map()
-      })
+      }
+      blockMap.set(blockKey, block)
     }
 
-    const block = blockMap.get(blockKey)!
     const txKey = log.transactionHash
-
-    if (!block.transactions.has(txKey)) {
-      block.transactions.set(txKey, {
+    let tx = block.transactions.get(txKey)
+    if (!tx) {
+      tx = {
         hash: log.transactionHash,
         index: log.transactionIndex,
         from: log.address,
         actions: []
-      })
+      }
+      block.transactions.set(txKey, tx)
     }
 
     try {
-      const action = formatActionFromRPC(log)
-      block.transactions.get(txKey)!.actions.push(action)
+      tx.actions.push(formatActionFromRPC(log))
     } catch {
       // skip logs with unknown event types
     }
