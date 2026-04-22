@@ -1,6 +1,5 @@
-import type { Abi, PublicClient } from 'viem'
+import type { Abi, Chain, PublicClient } from 'viem'
 import { createPublicClient, decodeEventLog, http } from 'viem'
-import { mainnet } from 'viem/chains'
 
 import type { EVMBlock } from '../../models'
 import type { DataSource, SyncOptions } from '../data-source'
@@ -46,12 +45,16 @@ export class RPCProvider<T extends EVMBlock> implements DataSource<T> {
    * @param railgunProxyAddress - Address of the RAILGUN proxy contract to watch
    * @param rpcURL - HTTP(S) JSON-RPC endpoint
    * @param abi - Contract ABI used to decode event logs
+   * @param chain - Viem chain descriptor (e.g. `mainnet`, `sepolia`, `arbitrum`);
+   *   must match the network `rpcURL` points at, otherwise viem will reject
+   *   requests on chain-id mismatch
    * @param connectionManager - Shared rate-limiter / batcher for outbound requests
    */
   constructor (
     railgunProxyAddress: `0x${string}`,
     rpcURL: string,
     abi: Abi,
+    chain: Chain,
     connectionManager: RPCConnectionManager
   ) {
     if (rpcURL.length === 0) throw new Error('RPC URL is invalid')
@@ -61,7 +64,7 @@ export class RPCProvider<T extends EVMBlock> implements DataSource<T> {
     this.#railgunProxyAddress = railgunProxyAddress
     this.#abi = abi
     this.#client = createPublicClient({
-      chain: mainnet,
+      chain,
       transport: http(rpcURL)
     })
   }
