@@ -1,4 +1,4 @@
-import type { Action, EVMBlock, EVMTransaction } from '../../models'
+import type { Action, EVMBlock, EVMTransaction } from '../../../models'
 
 import { hexToBytes } from './bytes'
 import { formatShield } from './shield-formatter'

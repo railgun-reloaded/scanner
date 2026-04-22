@@ -1,5 +1,5 @@
-import type { Unshield } from '../../models'
-import { ActionType } from '../../models'
+import type { Unshield } from '../../../models'
+import { ActionType } from '../../../models'
 
 import { hexToBytes } from './bytes'
 import { formatToken } from './token-formatter'

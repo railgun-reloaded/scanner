@@ -1,7 +1,7 @@
 import type { EVMBlock } from '../models'
 
 import type { DataSource } from './data-source'
-import { minBigInt } from './formatter/bigint'
+import { minBigInt } from './formatters/subsquid/bigint'
 
 /**
  * Create an aggregates sources from multiple data source like RPCProvider,

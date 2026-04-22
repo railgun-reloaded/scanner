@@ -2,8 +2,8 @@ import assert from 'assert'
 import { describe, test } from 'node:test'
 
 import type { Transact } from '../src/models'
-import { formatBlockData } from '../src/sources/formatter/blockdata-formatter'
-import { hexToBytes } from '../src/sources/formatter/bytes'
+import { formatBlockData } from '../src/sources/formatters/subsquid/blockdata-formatter'
+import { hexToBytes } from '../src/sources/formatters/subsquid/bytes'
 
 import { TEST_VECTOR_ENCRYPTED_COMMITMENT, TEST_VECTOR_FORMATTED_ENCRYPTED_COMMITMENT, TEST_VECTOR_FORMATTED_GENERATED_COMMITMENT, TEST_VECTOR_GENERATED_COMMITMENT } from './test-vectors-v1'
 import { TEST_VECTOR_COMBINED_ACTION_DATA, TEST_VECTOR_FORMATTED_COMBINED_ACTION_DATA, TEST_VECTOR_FORMATTED_SHIELD, TEST_VECTOR_SHIELD } from './test-vectors-v2'

@@ -4,7 +4,7 @@ import { decode } from 'cbor2'
 
 import type { EVMBlock } from '../../models'
 import type { DataSource, SyncOptions } from '../data-source'
-import { minBigInt } from '../formatter/bigint'
+import { minBigInt } from '../formatters/subsquid/bigint'
 
 type Snapshot = {
   version: number

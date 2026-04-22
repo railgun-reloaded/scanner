@@ -1,4 +1,4 @@
-import type { Token } from '../../models'
+import type { Token } from '../../../models'
 
 import { hexToBytes } from './bytes'
 

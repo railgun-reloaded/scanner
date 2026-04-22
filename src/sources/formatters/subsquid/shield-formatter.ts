@@ -1,5 +1,5 @@
-import type { CommitmentPreimage, GeneratedCommitment, Shield, ShieldCommitment } from '../../models'
-import { ActionType } from '../../models'
+import type { CommitmentPreimage, GeneratedCommitment, Shield, ShieldCommitment } from '../../../models'
+import { ActionType } from '../../../models'
 
 import { hexToBytes } from './bytes'
 import { formatToken } from './token-formatter'
