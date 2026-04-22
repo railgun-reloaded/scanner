@@ -62,6 +62,11 @@ export class RPCConnectionManager {
 
   /**
    * Process the request queue, also responsible of resolving or rejecting the promise
+   *
+   * @TODO: The catch block rejects every request in the batch when any single one fails.
+   * Since batch requests are independent (different block ranges, different iterators),
+   * a transient RPC error on one should not kill the others. Fix by executing each
+   * request individually and resolving/rejecting per-result instead of using Promise.all.
    */
   private async processQueue (): Promise<void> {
     if (this.#requestQueue.length === 0) {
