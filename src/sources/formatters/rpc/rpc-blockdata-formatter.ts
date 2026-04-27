@@ -1,5 +1,6 @@
+import { hexToBytes } from '@railgun-reloaded/bytes'
+
 import type { Action, EVMBlock, EVMTransaction } from '../../../models'
-import { hexToBytes } from '../shared'
 
 import { EventName } from './constants'
 import { formatShieldFromRPC } from './rpc-shield-formatter'

@@ -1,6 +1,8 @@
+import { hexToBytes } from '@railgun-reloaded/bytes'
+
 import type { Ciphertext, EncryptedCommitment, Transact, TransactCommitment } from '../../../models'
 import { ActionType } from '../../../models'
-import { formatTokenFromRPC, hexToBytes } from '../shared'
+import { formatTokenFromRPC } from '../shared'
 
 import { EventName, TREE_MAX_ITEMS } from './constants'
 

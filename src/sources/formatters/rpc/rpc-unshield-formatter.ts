@@ -1,6 +1,8 @@
+import { hexToBytes } from '@railgun-reloaded/bytes'
+
 import type { Unshield } from '../../../models'
 import { ActionType } from '../../../models'
-import { formatTokenFromRPC, hexToBytes } from '../shared'
+import { formatTokenFromRPC } from '../shared'
 
 /**
  * Format a decoded V2 `Unshield` event into the canonical Unshield action.

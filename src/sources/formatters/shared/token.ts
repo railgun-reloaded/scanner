@@ -1,6 +1,6 @@
-import type { Token } from '../../../models'
+import { hexToBytes } from '@railgun-reloaded/bytes'
 
-import { hexToBytes } from './bytes'
+import type { Token } from '../../../models'
 
 /**
  * Format token data from RPC event args
