@@ -32,7 +32,7 @@
     "railgun-reloaded"
   ],
   "dependencies": {
-    "@railgun-reloaded/bytes": "file:../bytes",
+    "@railgun-reloaded/bytes": "git+https://github.com/railgun-reloaded/bytes.git#main",
     "@railgun-reloaded/contract-abis": "^1.0.1",
     "@railgun-reloaded/subsquid-client": "https://github.com/railgun-reloaded/subsquid-client.git#v0.0.1",
     "cbor2": "^2.2.1",
