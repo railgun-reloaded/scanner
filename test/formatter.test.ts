@@ -3,56 +3,11 @@ import { describe, test } from 'node:test'
 
 import type { Transact } from '../src/models'
 import { formatBlockData } from '../src/sources/formatters/subsquid/blockdata-formatter'
-import { hexToBytes } from '../src/sources/formatters/subsquid/bytes'
 
 import { TEST_VECTOR_ENCRYPTED_COMMITMENT, TEST_VECTOR_FORMATTED_ENCRYPTED_COMMITMENT, TEST_VECTOR_FORMATTED_GENERATED_COMMITMENT, TEST_VECTOR_GENERATED_COMMITMENT } from './test-vectors-v1'
 import { TEST_VECTOR_COMBINED_ACTION_DATA, TEST_VECTOR_FORMATTED_COMBINED_ACTION_DATA, TEST_VECTOR_FORMATTED_SHIELD, TEST_VECTOR_SHIELD } from './test-vectors-v2'
 
 describe('Formatter Test', () => {
-  test('Should properly format hex string to bytes', () => {
-    const testVectors = [
-      {
-        input: '0xacbbbb1231',
-        output: new Uint8Array([172, 187, 187, 18, 49]),
-      },
-      {
-        input: '0x4c47554',
-        output: new Uint8Array([4, 196, 117, 84]),
-      },
-      {
-        input: '0x414e4f4e594d495459',
-        output: new Uint8Array([65, 78, 79, 78, 89, 77, 73, 84, 89]),
-      },
-    ]
-
-    for (const { input, output: actualArray } of testVectors) {
-      const expectedArray = hexToBytes(input)
-      assert.deepStrictEqual(actualArray, expectedArray)
-    }
-  })
-
-  test('Should properly format stripped hex string to bytes', () => {
-    const testVectors = [
-      {
-        input: '0138bc',
-        output: new Uint8Array([1, 56, 188]),
-      },
-      {
-        input: '5241494c47554e',
-        output: new Uint8Array([82, 65, 73, 76, 71, 85, 78]),
-      },
-      {
-        input: '50524956414359202620414e4f4e594d495459',
-        output: new Uint8Array([80, 82, 73, 86, 65, 67, 89, 32, 38, 32, 65, 78, 79, 78, 89, 77, 73, 84, 89]),
-      },
-    ]
-
-    for (const { input, output: actualArray } of testVectors) {
-      const expectedArray = hexToBytes(input)
-      assert.deepStrictEqual(actualArray, expectedArray)
-    }
-  })
-
   test('[V1] Should properly format GeneratedCommitment', () => {
     const expectedArray = formatBlockData(TEST_VECTOR_GENERATED_COMMITMENT)
     assert.deepStrictEqual(TEST_VECTOR_FORMATTED_GENERATED_COMMITMENT, expectedArray)

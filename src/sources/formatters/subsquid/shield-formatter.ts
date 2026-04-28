@@ -1,7 +1,8 @@
+import { hexToBytes } from '@railgun-reloaded/bytes'
+
 import type { CommitmentPreimage, GeneratedCommitment, Shield, ShieldCommitment } from '../../../models'
 import { ActionType } from '../../../models'
 
-import { hexToBytes } from './bytes'
 import { formatToken } from './token-formatter'
 
 /**
@@ -11,7 +12,7 @@ import { formatToken } from './token-formatter'
  */
 function formatCommitmentPreimage (preimage: Record<string, any>) : CommitmentPreimage {
   return {
-    npk: hexToBytes(preimage['npk']),
+    npk: hexToBytes(preimage['npk'], { allowOddLength: true }),
     token: formatToken(preimage['token']),
     value: BigInt(preimage['value'])
   }
@@ -24,11 +25,11 @@ function formatCommitmentPreimage (preimage: Record<string, any>) : CommitmentPr
  */
 function formatRailgunGeneratedCommitment (commitment: Record<string, any>) : GeneratedCommitment {
   return {
-    hash: hexToBytes(commitment['hash']),
+    hash: hexToBytes(commitment['hash'], { allowOddLength: true }),
     treeNumber: Number(commitment['treeNumber']),
     treePosition: Number(commitment['treePosition']),
     preimage: formatCommitmentPreimage(commitment['preimage']),
-    encryptedRandom: commitment['encryptedRandom'].map(hexToBytes)
+    encryptedRandom: commitment['encryptedRandom'].map((b: string) => hexToBytes(b))
   }
 }
 
@@ -39,12 +40,12 @@ function formatRailgunGeneratedCommitment (commitment: Record<string, any>) : Ge
  */
 function formatRailgunShieldCommitment (commitment: Record<string, any>) : ShieldCommitment {
   const formattedShield : ShieldCommitment = {
-    hash: hexToBytes(commitment['hash']),
+    hash: hexToBytes(commitment['hash'], { allowOddLength: true }),
     treeNumber: Number(commitment['treeNumber']),
     treePosition: Number(commitment['treePosition']),
     preimage: formatCommitmentPreimage(commitment['preimage']),
-    encryptedBundle: commitment['encryptedBundle'].map(hexToBytes),
-    shieldKey: hexToBytes(commitment['shieldKey']),
+    encryptedBundle: commitment['encryptedBundle'].map((b: string) => hexToBytes(b)),
+    shieldKey: hexToBytes(commitment['shieldKey'], { allowOddLength: true }),
   }
 
   if (commitment['fee']) {

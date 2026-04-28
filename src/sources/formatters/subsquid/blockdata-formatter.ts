@@ -1,6 +1,7 @@
+import { hexToBytes } from '@railgun-reloaded/bytes'
+
 import type { Action, EVMBlock, EVMTransaction } from '../../../models'
 
-import { hexToBytes } from './bytes'
 import { formatShield } from './shield-formatter'
 import { formatTransact } from './transact-formatter'
 import { formatUnshield } from './unshield-formatter'
@@ -34,9 +35,9 @@ function formatActionData (action: Record<string, any>) : Action {
  */
 function formatTransaction (transaction: Record<string, any>) : EVMTransaction {
   return {
-    hash: hexToBytes(transaction['hash']),
+    hash: hexToBytes(transaction['hash'], { allowOddLength: true }),
     index: Number(transaction['index']),
-    from: hexToBytes(transaction['from']),
+    from: hexToBytes(transaction['from'], { allowOddLength: true }),
     actions: transaction['actions'].map(
       (actions: Record<string, any>[]) => actions.map(formatActionData)
     )
@@ -51,7 +52,7 @@ function formatTransaction (transaction: Record<string, any>) : EVMTransaction {
 function formatBlockData (block: Record<string, any>) : EVMBlock {
   return {
     number: BigInt(block['number']),
-    hash: hexToBytes(block['hash']),
+    hash: hexToBytes(block['hash'], { allowOddLength: true }),
     timestamp: BigInt(block['timestamp']),
     transactions: block['transactions'].map(formatTransaction)
   }

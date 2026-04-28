@@ -50,7 +50,7 @@ function formatGeneratedCommitmentFromRPC (
     treeNumber,
     treePosition: batchStartTreePosition + indexInBatch,
     preimage: formatPreimageFromRPC(npk, token, value),
-    encryptedRandom: encryptedRandom.map(hexToBytes)
+    encryptedRandom: encryptedRandom.map((b) => hexToBytes(b))
   }
 }
 
@@ -86,7 +86,7 @@ function formatShieldCommitmentFromRPC (
     treeNumber,
     treePosition: batchStartTreePosition + indexInBatch,
     preimage: formatPreimageFromRPC(npk, token, value),
-    encryptedBundle: encryptedBundle.map(hexToBytes),
+    encryptedBundle: encryptedBundle.map((b) => hexToBytes(b)),
     shieldKey: hexToBytes(shieldKey)
   }
 

@@ -41,7 +41,7 @@ function formatCiphertextFromRPC (packed: string[]): Ciphertext {
   return {
     iv: hexToBytes(ivTag.slice(0, 34)),      // '0x' + 32 hex chars = 16 bytes
     tag: hexToBytes('0x' + ivTag.slice(34)), // remaining 32 hex chars = 16 bytes
-    data: packed.slice(1).map(hexToBytes)
+    data: packed.slice(1).map((b: string) => hexToBytes(b))
   }
 }
 
@@ -67,7 +67,7 @@ function formatTransactCommitmentFromRPC (
     blindedSenderViewingKey: hexToBytes(commitment.blindedSenderViewingKey),
     blindedReceiverViewingKey: hexToBytes(commitment.blindedReceiverViewingKey),
     annotationData: hexToBytes(commitment.annotationData || '0x'),
-    memo: commitment.memo.map(hexToBytes),
+    memo: commitment.memo.map((b: string) => hexToBytes(b)),
     treeNumber,
     treePosition: utxoBatchStartPositionOut + indexInBatch
   }
@@ -92,8 +92,8 @@ function formatEncryptedCommitmentFromRPC (
   return {
     hash: hexToBytes(hash),
     ciphertext: formatCiphertextFromRPC(commitment.ciphertext),
-    memo: commitment.memo.map(hexToBytes),
-    ephemeralKeys: commitment.ephemeralKeys.map(hexToBytes),
+    memo: commitment.memo.map((b: string) => hexToBytes(b)),
+    ephemeralKeys: commitment.ephemeralKeys.map((b: string) => hexToBytes(b)),
     treeNumber,
     treePosition: utxoBatchStartPositionOut + indexInBatch
   }
@@ -136,7 +136,7 @@ function formatTransactFromRPC (eventName: string, args: any, txHash: string): T
   const transact: Transact = {
     actionType,
     txID: hexToBytes(txHash),
-    nullifiers: (args.nullifiers || []).map(hexToBytes),
+    nullifiers: (args.nullifiers || []).map((b: string) => hexToBytes(b)),
     commitments,
     boundParamsHash: hexToBytes('0x00'), // not emitted in the event; available only from tx calldata
     utxoBatchStartPositionOut,

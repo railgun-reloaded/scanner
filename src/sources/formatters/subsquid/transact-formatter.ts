@@ -1,7 +1,8 @@
+import { hexToBytes } from '@railgun-reloaded/bytes'
+
 import type { Ciphertext, EncryptedCommitment, Transact, TransactCommitment } from '../../../models'
 import { ActionType } from '../../../models'
 
-import { hexToBytes } from './bytes'
 import { formatToken } from './token-formatter'
 
 /**
@@ -11,9 +12,9 @@ import { formatToken } from './token-formatter'
  */
 function formatCiphertext (ciphertext: Record<string, any>) : Ciphertext {
   return {
-    iv: hexToBytes(ciphertext['iv']),
-    tag: hexToBytes(ciphertext['tag']),
-    data: ciphertext['data'].map(hexToBytes)
+    iv: hexToBytes(ciphertext['iv'], { allowOddLength: true }),
+    tag: hexToBytes(ciphertext['tag'], { allowOddLength: true }),
+    data: ciphertext['data'].map((b: string) => hexToBytes(b, { allowOddLength: true }))
   }
 }
 
@@ -24,10 +25,10 @@ function formatCiphertext (ciphertext: Record<string, any>) : Ciphertext {
  */
 function formatEncryptedCommitment (commitment : Record<string, any>) : EncryptedCommitment {
   return {
-    hash: hexToBytes(commitment['hash']),
+    hash: hexToBytes(commitment['hash'], { allowOddLength: true }),
     ciphertext: formatCiphertext(commitment['ciphertext']),
-    memo: commitment['memo'].map(hexToBytes),
-    ephemeralKeys: commitment['ephemeralKeys'].map(hexToBytes),
+    memo: commitment['memo'].map((b: string) => hexToBytes(b, { allowOddLength: true })),
+    ephemeralKeys: commitment['ephemeralKeys'].map((b: string) => hexToBytes(b, { allowOddLength: true })),
     treeNumber: Number(commitment['treeNumber']),
     treePosition: Number(commitment['treePosition'])
   }
@@ -40,12 +41,12 @@ function formatEncryptedCommitment (commitment : Record<string, any>) : Encrypte
  */
 function formatTransactCommitment (commitment : Record<string, any>) : TransactCommitment {
   return {
-    hash: hexToBytes(commitment['hash']),
+    hash: hexToBytes(commitment['hash'], { allowOddLength: true }),
     ciphertext: formatCiphertext(commitment['ciphertext']),
-    blindedSenderViewingKey: hexToBytes(commitment['blindedSenderViewingKey']),
-    blindedReceiverViewingKey: hexToBytes(commitment['blindedReceiverViewingKey']),
-    annotationData: hexToBytes(commitment['annotationData']),
-    memo: commitment['memo'].map(hexToBytes),
+    blindedSenderViewingKey: hexToBytes(commitment['blindedSenderViewingKey'], { allowOddLength: true }),
+    blindedReceiverViewingKey: hexToBytes(commitment['blindedReceiverViewingKey'], { allowOddLength: true }),
+    annotationData: hexToBytes(commitment['annotationData'], { allowOddLength: true }),
+    memo: commitment['memo'].map((b: string) => hexToBytes(b, { allowOddLength: true })),
     treeNumber: Number(commitment['treeNumber']),
     treePosition: Number(commitment['treePosition'])
   }
@@ -82,18 +83,18 @@ function formatTransact (transact: Record<string, any>) : Transact {
   const hasUnshield = transact['hasUnshield']
   const formattedTransact : Transact = {
     actionType: rgActionType,
-    txID: hexToBytes(transact['txID']),
-    nullifiers: transact['nullifiers'].map(hexToBytes),
+    txID: hexToBytes(transact['txID'], { allowOddLength: true }),
+    nullifiers: transact['nullifiers'].map((b: string) => hexToBytes(b, { allowOddLength: true })),
     commitments,
-    boundParamsHash: hexToBytes(transact['boundParamsHash']),
+    boundParamsHash: hexToBytes(transact['boundParamsHash'], { allowOddLength: true }),
     utxoBatchStartPositionOut: Number(transact['utxoBatchStartPositionOut']),
     utxoTreeIn: Number(transact['utxoTreeIn']),
     utxoTreeOut: Number(transact['utxoTreeOut']),
     hasUnshield
   }
   if (hasUnshield) {
-    formattedTransact.unshieldCommitment = hexToBytes(transact['unshieldCommitment'])
-    formattedTransact.unshieldToAddress = hexToBytes(transact['unshieldToAddress'])
+    formattedTransact.unshieldCommitment = hexToBytes(transact['unshieldCommitment'], { allowOddLength: true })
+    formattedTransact.unshieldToAddress = hexToBytes(transact['unshieldToAddress'], { allowOddLength: true })
     formattedTransact.unshieldToken = formatToken(transact['unshieldToken'])
     formattedTransact.unshieldValue = BigInt(transact['unshieldValue'])
   }

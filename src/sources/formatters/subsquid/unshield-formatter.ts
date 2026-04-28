@@ -1,7 +1,8 @@
+import { hexToBytes } from '@railgun-reloaded/bytes'
+
 import type { Unshield } from '../../../models'
 import { ActionType } from '../../../models'
 
-import { hexToBytes } from './bytes'
 import { formatToken } from './token-formatter'
 
 /**
@@ -12,7 +13,7 @@ import { formatToken } from './token-formatter'
 function formatUnshield (unshield : Record<string, any>) : Unshield {
   return {
     actionType: ActionType.Unshield,
-    to: hexToBytes(unshield['to']),
+    to: hexToBytes(unshield['to'], { allowOddLength: true }),
     token: formatToken(unshield['token']),
     amount: BigInt(unshield['amount']),
     fee: BigInt(unshield['fee']),
