@@ -15,6 +15,15 @@ class SourceAggregator<T extends EVMBlock> {
   #sources: DataSource<T>[] = []
 
   /**
+   * Highest block number covered by the most recent `from()` walk across all
+   * sources. Updated as each source's bounded range completes — read this
+   * after the iterator exhausts to learn the true coverage end (which can
+   * exceed the last yielded block when the tail of a range emits no events).
+   * `undefined` until the first `from()` call advances at least one source.
+   */
+  lastIteratedHeight: bigint | undefined
+
+  /**
    * Initialize the aggregated source list of data source
    * @param sources - Sources to aggregate
    */
@@ -33,6 +42,7 @@ class SourceAggregator<T extends EVMBlock> {
    */
   async * from (options: SyncOptions) : AsyncGenerator<T> {
     let { startHeight, endHeight, chunkSize } = options
+    this.lastIteratedHeight = undefined
 
     for (const source of this.#sources) {
       const sourceHead = await source.head()
@@ -63,6 +73,9 @@ class SourceAggregator<T extends EVMBlock> {
         endHeight: sourceEnd,
         chunkSize
       })
+      if (sourceEnd !== undefined) {
+        this.lastIteratedHeight = sourceEnd
+      }
       // Shouldn't reach here in case of liveSync
       startHeight = sourceEnd ? sourceEnd + 1n : startHeight
     }
