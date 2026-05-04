@@ -29,7 +29,7 @@ function formatRailgunGeneratedCommitment (commitment: Record<string, any>) : Ge
     treeNumber: Number(commitment['treeNumber']),
     treePosition: Number(commitment['treePosition']),
     preimage: formatCommitmentPreimage(commitment['preimage']),
-    encryptedRandom: commitment['encryptedRandom'].map((b: string) => hexToBytes(b))
+    encryptedRandom: commitment['encryptedRandom'].map((b: string) => hexToBytes(b, { allowOddLength: true }))
   }
 }
 
@@ -44,7 +44,7 @@ function formatRailgunShieldCommitment (commitment: Record<string, any>) : Shiel
     treeNumber: Number(commitment['treeNumber']),
     treePosition: Number(commitment['treePosition']),
     preimage: formatCommitmentPreimage(commitment['preimage']),
-    encryptedBundle: commitment['encryptedBundle'].map((b: string) => hexToBytes(b)),
+    encryptedBundle: commitment['encryptedBundle'].map((b: string) => hexToBytes(b, { allowOddLength: true })),
     shieldKey: hexToBytes(commitment['shieldKey'], { allowOddLength: true }),
   }
 
