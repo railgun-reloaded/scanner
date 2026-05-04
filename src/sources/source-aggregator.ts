@@ -14,6 +14,15 @@ class SourceAggregator<T extends EVMBlock> {
    */
   #sources: DataSource<T>[] = []
 
+  #lastIteratedHeight: bigint | undefined
+
+  /**
+   * Highest block height the aggregator has covered during the latest sync.
+   */
+  get lastIteratedHeight (): bigint | undefined {
+    return this.#lastIteratedHeight
+  }
+
   /**
    * Initialize the aggregated source list of data source
    * @param sources - Sources to aggregate
@@ -31,7 +40,13 @@ class SourceAggregator<T extends EVMBlock> {
    * @returns AsyncGenerator that returns EVMBlock
    * @yields T
    */
-  async * from (options: SyncOptions) : AsyncGenerator<T> {
+  from (options: SyncOptions) : AsyncGenerator<T> {
+    this.#lastIteratedHeight = undefined
+
+    return this.#from(options)
+  }
+
+  async * #from (options: SyncOptions) : AsyncGenerator<T> {
     let { startHeight, endHeight, chunkSize } = options
 
     for (const source of this.#sources) {
@@ -48,7 +63,8 @@ class SourceAggregator<T extends EVMBlock> {
       }
 
       // Check if the source is upto date and discard it
-      if (sourceEnd && startHeight > sourceEnd) {
+      if (sourceEnd !== undefined && startHeight > sourceEnd) {
+        this.#setLastIteratedHeight(sourceEnd)
         continue
       }
 
@@ -57,14 +73,28 @@ class SourceAggregator<T extends EVMBlock> {
       // which leads to missing data or duplicate data
       // To prevent that, we query the block height before syncing and set endHeight to that height
       // for provider that doesn't use liveSync
-      yield * source.from({
+      for await (const block of source.from({
         startHeight,
-        liveSync: !sourceEnd,
+        liveSync: sourceEnd === undefined,
         endHeight: sourceEnd,
         chunkSize
-      })
+      })) {
+        this.#setLastIteratedHeight(block.number)
+        yield block
+      }
+
+      if (sourceEnd !== undefined) {
+        this.#setLastIteratedHeight(sourceEnd)
+      }
+
       // Shouldn't reach here in case of liveSync
-      startHeight = sourceEnd ? sourceEnd + 1n : startHeight
+      startHeight = sourceEnd !== undefined ? sourceEnd + 1n : startHeight
+    }
+  }
+
+  #setLastIteratedHeight (height: bigint) {
+    if (this.#lastIteratedHeight === undefined || height > this.#lastIteratedHeight) {
+      this.#lastIteratedHeight = height
     }
   }
 
