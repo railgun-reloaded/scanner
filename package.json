@@ -19,6 +19,7 @@
     "lint:fix": "eslint --fix",
     "build": "tsc --build",
     "clean": "tsc --build --clean",
+    "prepare": "tsc --build",
     "pretest": "npm run build",
     "test": "node --test --enable-source-maps test/*.test.js",
     "coverage": "c8 --reporter=text --reporter=html --exclude=test npm test"
