@@ -61,7 +61,7 @@ type Ciphertext = {
 type EncryptedCommitment = {
   hash: Uint8Array
   ciphertext: Ciphertext
-  memo: Uint8Array[]
+  memo: Uint8Array
   ephemeralKeys: Uint8Array[]
   treeNumber: number
   treePosition: number
@@ -73,7 +73,7 @@ type TransactCommitment = {
   blindedSenderViewingKey: Uint8Array
   blindedReceiverViewingKey: Uint8Array
   annotationData: Uint8Array
-  memo: Uint8Array[]
+  memo: Uint8Array
   treeNumber: number
   treePosition: number
 }

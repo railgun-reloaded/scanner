@@ -50,7 +50,7 @@ export class SubsquidProvider<T extends EVMBlock> implements DataSource<T> {
       squidStatus: {
         fields: ['height'],
       }
-    })
+    }) as { squidStatus?: { height?: number | bigint | string } }
     if (!squidStatus?.height) throw new Error('Failed to get height from subsquid')
 
     return BigInt(squidStatus.height)

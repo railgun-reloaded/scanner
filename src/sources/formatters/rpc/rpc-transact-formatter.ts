@@ -2,6 +2,7 @@ import { hexToBytes } from '@railgun-reloaded/bytes'
 
 import type { Ciphertext, EncryptedCommitment, Transact, TransactCommitment } from '../../../models'
 import { ActionType } from '../../../models'
+import { flattenMemo } from '../memo'
 import { formatTokenFromRPC } from '../shared'
 
 import { EventName, TREE_MAX_ITEMS } from './constants'
@@ -67,7 +68,7 @@ function formatTransactCommitmentFromRPC (
     blindedSenderViewingKey: hexToBytes(commitment.blindedSenderViewingKey),
     blindedReceiverViewingKey: hexToBytes(commitment.blindedReceiverViewingKey),
     annotationData: hexToBytes(commitment.annotationData || '0x'),
-    memo: commitment.memo.map((b: string) => hexToBytes(b)),
+    memo: flattenMemo(commitment.memo),
     treeNumber,
     treePosition: utxoBatchStartPositionOut + indexInBatch
   }
@@ -92,7 +93,7 @@ function formatEncryptedCommitmentFromRPC (
   return {
     hash: hexToBytes(hash),
     ciphertext: formatCiphertextFromRPC(commitment.ciphertext),
-    memo: commitment.memo.map((b: string) => hexToBytes(b)),
+    memo: flattenMemo(commitment.memo),
     ephemeralKeys: commitment.ephemeralKeys.map((b: string) => hexToBytes(b)),
     treeNumber,
     treePosition: utxoBatchStartPositionOut + indexInBatch

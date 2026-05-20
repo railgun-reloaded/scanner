@@ -1,7 +1,5 @@
 import { brotliDecompressSync } from 'zlib'
 
-import { decode } from 'cbor2'
-
 import type { EVMBlock } from '../../models'
 import type { DataSource, SyncOptions } from '../data-source'
 import { minBigInt } from '../formatters/subsquid/bigint'
@@ -129,6 +127,7 @@ export class SnapshotProvider<T extends EVMBlock> implements DataSource<T> {
   async #decodeSnapshot (rawContent: ArrayBuffer) {
     // We can use pipeline stream later
     try {
+      const { decode } = await import('cbor2')
       const decompressed = brotliDecompressSync(rawContent)
       const snapshot = decode(decompressed) as Snapshot
       this.#validateSnapshot(snapshot)

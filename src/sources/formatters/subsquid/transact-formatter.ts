@@ -2,6 +2,7 @@ import { hexToBytes } from '@railgun-reloaded/bytes'
 
 import type { Ciphertext, EncryptedCommitment, Transact, TransactCommitment } from '../../../models'
 import { ActionType } from '../../../models'
+import { flattenMemo } from '../memo'
 
 import { formatToken } from './token-formatter'
 
@@ -27,7 +28,7 @@ function formatEncryptedCommitment (commitment : Record<string, any>) : Encrypte
   return {
     hash: hexToBytes(commitment['hash'], { allowOddLength: true }),
     ciphertext: formatCiphertext(commitment['ciphertext']),
-    memo: commitment['memo'].map((b: string) => hexToBytes(b, { allowOddLength: true })),
+    memo: flattenMemo(commitment['memo']),
     ephemeralKeys: commitment['ephemeralKeys'].map((b: string) => hexToBytes(b, { allowOddLength: true })),
     treeNumber: Number(commitment['treeNumber']),
     treePosition: Number(commitment['treePosition'])
@@ -46,7 +47,7 @@ function formatTransactCommitment (commitment : Record<string, any>) : TransactC
     blindedSenderViewingKey: hexToBytes(commitment['blindedSenderViewingKey'], { allowOddLength: true }),
     blindedReceiverViewingKey: hexToBytes(commitment['blindedReceiverViewingKey'], { allowOddLength: true }),
     annotationData: hexToBytes(commitment['annotationData'], { allowOddLength: true }),
-    memo: commitment['memo'].map((b: string) => hexToBytes(b, { allowOddLength: true })),
+    memo: flattenMemo(commitment['memo']),
     treeNumber: Number(commitment['treeNumber']),
     treePosition: Number(commitment['treePosition'])
   }

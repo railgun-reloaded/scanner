@@ -191,7 +191,7 @@ const TEST_VECTOR_FORMATTED_ENCRYPTED_COMMITMENT : EVMBlock = {
                 ],
                 hash: new Uint8Array([21, 213, 109, 214, 188, 72, 175, 167, 22, 93, 252, 225, 153, 79, 4, 52, 121, 107, 38, 78, 42, 58, 185, 41, 214, 246, 154, 121, 167, 246, 234, 8
                 ]),
-                memo: [],
+                memo: new Uint8Array(),
                 treeNumber: 0,
                 treePosition: 5
               },
@@ -211,7 +211,7 @@ const TEST_VECTOR_FORMATTED_ENCRYPTED_COMMITMENT : EVMBlock = {
                   new Uint8Array([91, 7, 19, 70, 238, 28, 120, 103, 245, 50, 121, 52, 253, 117, 110, 103, 255, 195, 178, 116, 96, 138, 236, 238, 232, 173, 153, 130, 144, 184, 209, 89])
                 ],
                 hash: new Uint8Array([6, 57, 24, 152, 74, 233, 190, 242, 234, 56, 253, 19, 233, 235, 248, 26, 165, 95, 15, 82, 42, 186, 79, 65, 182, 121, 45, 253, 111, 243, 159, 97]),
-                memo: [],
+                memo: new Uint8Array(),
                 treeNumber: 0,
                 treePosition: 6
               }

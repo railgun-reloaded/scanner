@@ -183,7 +183,7 @@ const TEST_VECTOR_FORMATTED_COMBINED_ACTION_DATA : EVMBlock = {
                   tag: new Uint8Array([76, 97, 154, 197, 38, 126, 231, 192, 196, 157, 223, 14, 178, 185, 192, 44])
                 },
                 hash: new Uint8Array([14, 210, 102, 47, 100, 159, 197, 221, 139, 248, 134, 230, 141, 195, 167, 107, 16, 116, 4, 10, 250, 203, 199, 90, 209, 167, 81, 131, 229, 41, 209, 168]),
-                memo: [new Uint8Array()],
+                memo: new Uint8Array(),
                 treeNumber: 1,
                 treePosition: 46210
               },
@@ -201,7 +201,7 @@ const TEST_VECTOR_FORMATTED_COMBINED_ACTION_DATA : EVMBlock = {
                   tag: new Uint8Array([225, 33, 67, 101, 38, 72, 255, 198, 116, 156, 161, 76, 69, 40, 205, 173])
                 },
                 hash: new Uint8Array([22, 170, 222, 35, 75, 199, 242, 99, 244, 0, 192, 167, 83, 161, 3, 239, 160, 121, 221, 128, 219, 251, 47, 51, 41, 204, 129, 90, 4, 87, 220, 188]),
-                memo: [new Uint8Array()],
+                memo: new Uint8Array(),
                 treeNumber: 1,
                 treePosition: 46211
               }
