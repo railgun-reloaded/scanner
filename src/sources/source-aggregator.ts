@@ -8,7 +8,7 @@ import { minBigInt } from './formatters/subsquid/bigint'
  * GraphProvider.
  * Aggregates multiple data sources into single complete source of railgun events
  */
-class SourceAggregator<T extends EVMBlock> {
+class SourceAggregator<T extends EVMBlock> implements DataSource<T> {
   /**
    * List of data sources
    */
@@ -29,6 +29,28 @@ class SourceAggregator<T extends EVMBlock> {
    */
   constructor (sources: DataSource<T>[]) {
     this.#sources = sources
+  }
+
+  /**
+   * Whether this aggregator can yield live (continuously updated) data.
+   * Delegates to the last (highest-cost) source, which by convention is the live provider.
+   * @returns True if the last source is a live provider, false otherwise.
+   */
+  get isLiveProvider (): boolean {
+    return this.#sources[this.#sources.length - 1]?.isLiveProvider ?? false
+  }
+
+  /**
+   * Latest height that this aggregator can return data for.
+   * Delegates to the last (highest-cost) source, which determines the freshest reachable height.
+   * @returns Latest available block height across the aggregated sources.
+   */
+  async head (): Promise<bigint> {
+    const last = this.#sources[this.#sources.length - 1]
+    if (!last) {
+      throw new Error('SourceAggregator has no sources')
+    }
+    return last.head()
   }
 
   /**
