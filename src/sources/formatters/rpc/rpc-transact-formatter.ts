@@ -2,6 +2,7 @@ import { hexToBytes } from '@railgun-reloaded/bytes'
 
 import type { Ciphertext, EncryptedCommitment, Transact, TransactCommitment } from '../../../models'
 import { ActionType } from '../../../models'
+import type { RawMemoPayload } from '../memo'
 import { flattenMemo } from '../memo'
 import { formatTokenFromRPC } from '../shared'
 
@@ -16,7 +17,7 @@ type RPCTransactCommitment = {
   blindedSenderViewingKey: string
   blindedReceiverViewingKey: string
   annotationData?: string
-  memo: string[]
+  memo: RawMemoPayload
 }
 
 /**
@@ -25,7 +26,7 @@ type RPCTransactCommitment = {
  */
 type RPCEncryptedCommitment = {
   ciphertext: string[]
-  memo: string[]
+  memo: RawMemoPayload
   ephemeralKeys: string[]
 }
 

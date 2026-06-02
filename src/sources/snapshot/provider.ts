@@ -1,7 +1,9 @@
 import { brotliDecompressSync } from 'zlib'
 
-import type { EVMBlock } from '../../models'
+import type { EVMBlock, Transact } from '../../models'
+import { ActionType } from '../../models'
 import type { DataSource, SyncOptions } from '../data-source'
+import { flattenMemo } from '../formatters/memo'
 import { minBigInt } from '../formatters/subsquid/bigint'
 
 type Snapshot = {
@@ -23,6 +25,30 @@ type SnapshotProviderConfig = {
   ipfsHash: string
   /** IPFS gateway URLs (must end with /ipfs/) */
   gateways: string[]
+}
+
+/**
+ * Normalize memo fields in a decoded snapshot block in place.
+ * @param block - Decoded snapshot block.
+ * @returns The same block with canonical memo bytes.
+ */
+function canonicalizeSnapshotBlockMemos<T extends EVMBlock> (block: T): T {
+  for (const tx of block.transactions) {
+    const actions = tx.actions.flat()
+    for (const action of actions) {
+      if (
+        action.actionType !== ActionType.TransactCommitment &&
+        action.actionType !== ActionType.EncryptedCommitment
+      ) {
+        continue
+      }
+      const transact = action as Transact
+      for (const commitment of transact.commitments) {
+        commitment.memo = flattenMemo(commitment.memo)
+      }
+    }
+  }
+  return block
 }
 
 /**
@@ -131,6 +157,7 @@ export class SnapshotProvider<T extends EVMBlock> implements DataSource<T> {
       const decompressed = brotliDecompressSync(rawContent)
       const snapshot = decode(decompressed) as Snapshot
       this.#validateSnapshot(snapshot)
+      snapshot.blocks = snapshot.blocks.map(canonicalizeSnapshotBlockMemos)
       return snapshot
     } catch (err) {
       throw new Error('Failed to decode snapshot', { cause: err })

@@ -177,7 +177,10 @@ async function * autoPaginateBlockQuery<T> (client: SubsquidClient, startBlock: 
     } catch (err) {
       retryCount += 1
       if (retryCount === maxRetryCount) {
-        throw new Error('Subsquid query request timed out')
+        throw new Error(
+          `Subsquid query failed after ${maxRetryCount} attempts (blocks from ${startBlock}, offset ${offset}): ${err instanceof Error ? err.message : String(err)}`,
+          { cause: err }
+        )
       }
     }
   }
