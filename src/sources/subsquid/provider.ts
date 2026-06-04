@@ -48,12 +48,16 @@ export class SubsquidProvider<T extends EVMBlock> implements DataSource<T> {
   async #getBlockHeight () {
     const { squidStatus } = await this.#client.query({
       squidStatus: {
-        fields: ['height'],
+        fields: ['height'] as const,
       }
-    }) as { squidStatus?: { height?: number | bigint | string } }
-    if (!squidStatus?.height) throw new Error('Failed to get height from subsquid')
+    })
 
-    return BigInt(squidStatus.height)
+    const height = squidStatus?.height
+    if (height == null) {
+      throw new Error('Failed to get height from subsquid')
+    }
+
+    return BigInt(height)
   }
 
   /**
