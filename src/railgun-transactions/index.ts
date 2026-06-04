@@ -1,3 +1,4 @@
+import { padBytesLeft } from '@railgun-reloaded/bytes'
 import type { EVMBlock, Token, Transact } from '../models'
 import { ActionType } from '../models'
 
@@ -45,15 +46,7 @@ function isBytes32 (value: Uint8Array): boolean {
  * @returns 32-byte array.
  */
 function normalizeBytes32 (value: Uint8Array): Uint8Array {
-  if (value.length > RAILGUN_TXID_BYTE_LENGTH) {
-    throw new Error(`Expected at most ${RAILGUN_TXID_BYTE_LENGTH} bytes`)
-  }
-  if (value.length === RAILGUN_TXID_BYTE_LENGTH) {
-    return value
-  }
-  const padded = new Uint8Array(RAILGUN_TXID_BYTE_LENGTH)
-  padded.set(value, RAILGUN_TXID_BYTE_LENGTH - value.length)
-  return padded
+  return padBytesLeft(value, RAILGUN_TXID_BYTE_LENGTH, { strict: true })
 }
 
 /**
