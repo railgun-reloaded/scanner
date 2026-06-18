@@ -6,13 +6,13 @@ import type { DataSource, SyncOptions } from '../data-source'
 import { flattenMemo } from '../formatters/memo'
 import { minBigInt } from '../formatters/subsquid/bigint'
 
+import { verifyDagCborCID } from './cid'
+
 type Snapshot = {
   version: number
   chainID: number
-  // This is encoded as BigInt while exporting, but cbor encoder
-  // converts it into the number
-  startHeight: number
-  endHeight: number
+  startHeight: bigint
+  endHeight: bigint
   entryCount: number
   blocks: EVMBlock[]
 }
@@ -49,6 +49,85 @@ function canonicalizeSnapshotBlockMemos<T extends EVMBlock> (block: T): T {
     }
   }
   return block
+}
+
+/**
+ * Convert a decoded snapshot height to the scanner's bigint representation.
+ * @param value - Decoded height value.
+ * @param fieldName - Field name used in validation errors.
+ * @returns Normalized bigint height.
+ */
+function normalizeHeight (value: unknown, fieldName: string): bigint {
+  if (typeof value === 'bigint') {
+    return value
+  }
+
+  if (typeof value === 'number' && Number.isSafeInteger(value)) {
+    return BigInt(value)
+  }
+
+  throw new Error(`Invalid snapshot: missing or invalid ${fieldName}`)
+}
+
+/**
+ * Normalize snapshot range metadata.
+ * @param snapshot - Decoded snapshot.
+ * @returns Snapshot with bigint range metadata.
+ */
+function normalizeSnapshotHeights (snapshot: Snapshot): Snapshot {
+  snapshot.startHeight = normalizeHeight(snapshot.startHeight, 'startHeight')
+  snapshot.endHeight = normalizeHeight(snapshot.endHeight, 'endHeight')
+  return snapshot
+}
+
+/**
+ * Normalize every decoded block number.
+ * @param snapshot - Validated decoded snapshot.
+ * @returns Snapshot with bigint block numbers.
+ */
+function normalizeSnapshotBlockHeights (snapshot: Snapshot): Snapshot {
+  snapshot.blocks = snapshot.blocks.map(block => {
+    block.number = normalizeHeight(block.number, 'block number')
+    return block
+  })
+  return snapshot
+}
+
+/**
+ * Decode DAG-CBOR with the producer's extended BigInt tag support.
+ * @param data - Decompressed snapshot bytes.
+ * @returns Decoded DAG-CBOR value.
+ */
+async function decodeDagCbor<T> (data: Uint8Array): Promise<T> {
+  const [
+    dagCbor,
+    { decode },
+    { bigIntDecoder, bigNegIntDecoder }
+  ] = await Promise.all([
+    import('@ipld/dag-cbor'),
+    import('cborg'),
+    import('cborg/taglib')
+  ])
+
+  try {
+    return dagCbor.decode(data) as T
+  } catch (err) {
+    if (
+      !(err instanceof Error) ||
+      !/tag not supported \([23]\)/.test(err.message)
+    ) {
+      throw err
+    }
+  }
+
+  return decode(dagCbor.toByteView(data), {
+    ...dagCbor.decodeOptions,
+    tags: {
+      ...dagCbor.decodeOptions.tags,
+      2: bigIntDecoder,
+      3: bigNegIntDecoder
+    }
+  }) as T
 }
 
 /**
@@ -108,12 +187,16 @@ export class SnapshotProvider<T extends EVMBlock> implements DataSource<T> {
           throw new Error(`Failed to get snapshot status: ${response.status}`)
         }
         const buffer = await response.arrayBuffer()
+        await verifyDagCborCID(new Uint8Array(buffer), this.#ipfsHash)
         return this.#decodeSnapshot(buffer)
       } catch (err) {
         lastError = err as Error
       }
     }
-    throw new Error('Failed to fetch snapshot', { cause: lastError })
+    const causeMessage = lastError ? `: ${lastError.message}` : ''
+    throw new Error(`Failed to fetch snapshot${causeMessage}`, {
+      cause: lastError
+    })
   }
 
   /**
@@ -129,10 +212,10 @@ export class SnapshotProvider<T extends EVMBlock> implements DataSource<T> {
       throw new Error('Invalid snapshot: missing or invalid chainID')
     }
 
-    if (typeof snapshot.startHeight !== 'number') {
+    if (typeof snapshot.startHeight !== 'bigint') {
       throw new Error('Invalid snapshot: missing or invalid startHeight')
     }
-    if (typeof snapshot.endHeight !== 'number') {
+    if (typeof snapshot.endHeight !== 'bigint') {
       throw new Error('Invalid snapshot: missing or invalid endHeight')
     }
 
@@ -153,10 +236,10 @@ export class SnapshotProvider<T extends EVMBlock> implements DataSource<T> {
   async #decodeSnapshot (rawContent: ArrayBuffer) {
     // We can use pipeline stream later
     try {
-      const { decode } = await import('cbor2')
       const decompressed = brotliDecompressSync(rawContent)
-      const snapshot = decode(decompressed) as Snapshot
+      const snapshot = normalizeSnapshotHeights(await decodeDagCbor<Snapshot>(decompressed))
       this.#validateSnapshot(snapshot)
+      normalizeSnapshotBlockHeights(snapshot)
       snapshot.blocks = snapshot.blocks.map(canonicalizeSnapshotBlockMemos)
       return snapshot
     } catch (err) {
@@ -174,7 +257,7 @@ export class SnapshotProvider<T extends EVMBlock> implements DataSource<T> {
     }
 
     if (this.snapshotContent) {
-      return BigInt(this.snapshotContent.endHeight)
+      return this.snapshotContent.endHeight
     } else {
       throw new Error('Failed to fetch head')
     }
@@ -203,8 +286,8 @@ export class SnapshotProvider<T extends EVMBlock> implements DataSource<T> {
       throw new Error('Failed to fetch snapshot')
     }
 
-    const snapshotStartHeight = BigInt(this.snapshotContent.startHeight)
-    const snapshotEndHeight = BigInt(this.snapshotContent.endHeight)
+    const snapshotStartHeight = this.snapshotContent.startHeight
+    const snapshotEndHeight = this.snapshotContent.endHeight
 
     if (_options.startHeight < snapshotStartHeight) {
       throw new Error(`Requested startHeight ${_options.startHeight} is less than snapshot start height ${snapshotStartHeight}. Some block range are missing in the snapshot`)

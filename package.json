@@ -33,10 +33,12 @@
     "railgun-reloaded"
   ],
   "dependencies": {
+    "@ipld/dag-cbor": "^9.2.7",
     "@railgun-reloaded/bytes": "git+https://github.com/railgun-reloaded/bytes.git#dev",
     "@railgun-reloaded/contract-abis": "^1.0.1",
     "@railgun-reloaded/subsquid-client": "https://github.com/railgun-reloaded/subsquid-client.git#v0.0.1",
-    "cbor2": "^2.2.1",
+    "cborg": "^5.1.1",
+    "multiformats": "^13.4.2",
     "viem": "^2.31.4"
   },
   "devDependencies": {
