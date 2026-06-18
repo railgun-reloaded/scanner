@@ -1,12 +1,12 @@
 import { hexToBytes } from '@railgun-reloaded/bytes'
 
-import type { Ciphertext, EncryptedCommitment, Transact, TransactCommitment } from '../../../models'
-import { ActionType } from '../../../models'
-import type { RawMemoPayload } from '../memo'
-import { flattenMemo } from '../memo'
-import { formatTokenFromRPC } from '../shared'
+import type { Ciphertext, EncryptedCommitment, Transact, TransactCommitment } from '../../../models/index.js'
+import { ActionType } from '../../../models/index.js'
+import type { RawMemoPayload } from '../memo.js'
+import { flattenMemo } from '../memo.js'
+import { formatTokenFromRPC } from '../shared/index.js'
 
-import { EventName, TREE_MAX_ITEMS } from './constants'
+import { EventName, TREE_MAX_ITEMS } from './constants.js'
 
 /**
  * Raw ciphertext commitment as it arrives from a decoded V2 `Transact` event.

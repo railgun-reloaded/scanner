@@ -1,7 +1,7 @@
-import type { EVMBlock } from '../models'
+import type { EVMBlock } from '../models/index.js'
 
-import type { DataSource, SyncOptions } from './data-source'
-import { minBigInt } from './formatters/subsquid/bigint'
+import type { DataSource, SyncOptions } from './data-source.js'
+import { minBigInt } from './formatters/subsquid/bigint.js'
 
 /**
  * Create an aggregates sources from multiple data source like RPCProvider,

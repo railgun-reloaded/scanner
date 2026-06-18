@@ -3,7 +3,7 @@
 
 // import dotenv from 'dotenv'
 
-// import { JSONRPCClient, JSONRPCProvider } from '../src/sources/json-rpc'
+// import { JSONRPCClient, JSONRPCProvider } from '../src/sources/json-rpc.js'
 
 // dotenv.config()
 

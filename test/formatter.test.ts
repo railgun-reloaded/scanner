@@ -1,11 +1,11 @@
 import assert from 'assert'
 import { describe, test } from 'node:test'
 
-import type { Transact } from '../src/models'
-import { formatBlockData } from '../src/sources/formatters/subsquid/blockdata-formatter'
+import type { Transact } from '../src/models/index.js'
+import { formatBlockData } from '../src/sources/formatters/subsquid/blockdata-formatter.js'
 
-import { TEST_VECTOR_ENCRYPTED_COMMITMENT, TEST_VECTOR_FORMATTED_ENCRYPTED_COMMITMENT, TEST_VECTOR_FORMATTED_GENERATED_COMMITMENT, TEST_VECTOR_GENERATED_COMMITMENT } from './test-vectors-v1'
-import { TEST_VECTOR_COMBINED_ACTION_DATA, TEST_VECTOR_FORMATTED_COMBINED_ACTION_DATA, TEST_VECTOR_FORMATTED_SHIELD, TEST_VECTOR_SHIELD } from './test-vectors-v2'
+import { TEST_VECTOR_ENCRYPTED_COMMITMENT, TEST_VECTOR_FORMATTED_ENCRYPTED_COMMITMENT, TEST_VECTOR_FORMATTED_GENERATED_COMMITMENT, TEST_VECTOR_GENERATED_COMMITMENT } from './test-vectors-v1.js'
+import { TEST_VECTOR_COMBINED_ACTION_DATA, TEST_VECTOR_FORMATTED_COMBINED_ACTION_DATA, TEST_VECTOR_FORMATTED_SHIELD, TEST_VECTOR_SHIELD } from './test-vectors-v2.js'
 
 describe('Formatter Test', () => {
   test('[V1] Should properly format GeneratedCommitment', () => {

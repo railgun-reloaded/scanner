@@ -1,13 +1,13 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 
-import type { EVMBlock, Transact } from '../src/models'
+import type { EVMBlock, Transact } from '../src/models/index.js'
 import {
   extractRailgunTransactions,
   RailgunTxidVersion
-} from '../src/railgun-transactions'
+} from '../src/railgun-transactions/index.js'
 
-import { TEST_VECTOR_ALL_ACTIONS, TEST_VECTOR_TRANSACT } from './railgun-transactions-vectors'
+import { TEST_VECTOR_ALL_ACTIONS, TEST_VECTOR_TRANSACT } from './railgun-transactions-vectors.js'
 
 /**
  * Compare two byte arrays by byte content only.

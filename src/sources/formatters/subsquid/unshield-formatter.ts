@@ -1,9 +1,9 @@
 import { hexToBytes } from '@railgun-reloaded/bytes'
 
-import type { Unshield } from '../../../models'
-import { ActionType } from '../../../models'
+import type { Unshield } from '../../../models/index.js'
+import { ActionType } from '../../../models/index.js'
 
-import { formatToken } from './token-formatter'
+import { formatToken } from './token-formatter.js'
 
 /**
  * Format input unshield object to Unshield

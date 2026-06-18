@@ -1,10 +1,10 @@
 import { hexToBytes } from '@railgun-reloaded/bytes'
 
-import type { CommitmentPreimage, GeneratedCommitment, Shield, ShieldCommitment } from '../../../models'
-import { ActionType } from '../../../models'
-import { formatTokenFromRPC } from '../shared'
+import type { CommitmentPreimage, GeneratedCommitment, Shield, ShieldCommitment } from '../../../models/index.js'
+import { ActionType } from '../../../models/index.js'
+import { formatTokenFromRPC } from '../shared/index.js'
 
-import { EventName, TREE_MAX_ITEMS } from './constants'
+import { EventName, TREE_MAX_ITEMS } from './constants.js'
 
 /**
  * Build the canonical CommitmentPreimage from raw RPC args.

@@ -1,10 +1,10 @@
 // import { RailgunV1, RailgunV2, RailgunV2_1 } from '@railgun-reloaded/contract-abis'
 // import { decodeEventLog } from 'viem'
 
-// import type { EVMBlock, EVMLog } from '../../models'
-// import type { DataSource, SyncOptions } from '../data-source'
+// import type { EVMBlock, EVMLog } from '../../models/index.js'
+// import type { DataSource, SyncOptions } from '../data-source.js'
 
-// import { JSONRPCConnectionManager } from './connection-manager'
+// import { JSONRPCConnectionManager } from './connection-manager.js'
 
 // const DEFAULT_CHUNK_SIZE = 500n
 

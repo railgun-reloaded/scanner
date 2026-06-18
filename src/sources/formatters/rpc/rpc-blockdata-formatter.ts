@@ -1,11 +1,11 @@
 import { hexToBytes } from '@railgun-reloaded/bytes'
 
-import type { Action, EVMBlock, EVMTransaction } from '../../../models'
+import type { Action, EVMBlock, EVMTransaction } from '../../../models/index.js'
 
-import { EventName } from './constants'
-import { formatShieldFromRPC } from './rpc-shield-formatter'
-import { formatTransactFromRPC } from './rpc-transact-formatter'
-import { formatUnshieldFromRPC } from './rpc-unshield-formatter'
+import { EventName } from './constants.js'
+import { formatShieldFromRPC } from './rpc-shield-formatter.js'
+import { formatTransactFromRPC } from './rpc-transact-formatter.js'
+import { formatUnshieldFromRPC } from './rpc-unshield-formatter.js'
 
 type DecodedLog = {
   eventName: string

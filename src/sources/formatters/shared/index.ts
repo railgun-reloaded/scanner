@@ -1,1 +1,1 @@
-export { formatTokenFromRPC } from './token'
+export { formatTokenFromRPC } from './token.js'

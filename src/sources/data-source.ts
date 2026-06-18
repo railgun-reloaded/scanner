@@ -1,4 +1,4 @@
-import type { EVMBlock } from '../models'
+import type { EVMBlock } from '../models/index.js'
 
 type SyncOptions = {
   startHeight: bigint;

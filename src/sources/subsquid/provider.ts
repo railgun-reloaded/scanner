@@ -1,10 +1,10 @@
 import { SubsquidClient } from '@railgun-reloaded/subsquid-client'
 
-import type { EVMBlock } from '../../models'
-import type { DataSource, SyncOptions } from '../data-source'
-import { formatBlockData } from '../formatters/subsquid/blockdata-formatter'
+import type { EVMBlock } from '../../models/index.js'
+import type { DataSource, SyncOptions } from '../data-source.js'
+import { formatBlockData } from '../formatters/subsquid/blockdata-formatter.js'
 
-import { autoPaginateBlockQuery } from './query'
+import { autoPaginateBlockQuery } from './query.js'
 
 /**
  * Subsquid Provider for fetching data from Subsquid indexers

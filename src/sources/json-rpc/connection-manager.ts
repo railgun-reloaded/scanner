@@ -1,4 +1,4 @@
-import { JSONRPCClient } from './client'
+import { JSONRPCClient } from './client.js'
 
 /**
  * JSON RPC Connection Manager handles JSON RPC requests using the custom JSONRPCClient

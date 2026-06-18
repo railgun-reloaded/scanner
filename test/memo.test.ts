@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 
-import { MEMO_NO_MEMO_SENTINEL, flattenMemo } from '../src/sources/formatters/memo'
+import { MEMO_NO_MEMO_SENTINEL, flattenMemo } from '../src/sources/formatters/memo.js'
 
 test('flattenMemo treats the 32-byte-zero sentinel as empty', () => {
   const sentinelHex = '0x' + '00'.repeat(32)

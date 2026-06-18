@@ -1,4 +1,4 @@
-export { RPCProvider, RPCConnectionManager } from './rpc'
-export { SubsquidProvider } from './subsquid'
-export { SnapshotProvider } from './snapshot'
-export { SourceAggregator } from './source-aggregator'
+export { RPCProvider, RPCConnectionManager } from './rpc/index.js'
+export { SubsquidProvider } from './subsquid/index.js'
+export { SnapshotProvider } from './snapshot/index.js'
+export { SourceAggregator } from './source-aggregator.js'

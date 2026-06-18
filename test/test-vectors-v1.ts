@@ -1,5 +1,5 @@
-import type { EVMBlock } from '../src/models'
-import { ActionType } from '../src/models'
+import type { EVMBlock } from '../src/models/index.js'
+import { ActionType } from '../src/models/index.js'
 
 const TEST_VECTOR_GENERATED_COMMITMENT = {
   hash: '0x7f82a10418572922c3aa723cc6606ec3ce54b46d0df606881b2f4a34efe9c558',

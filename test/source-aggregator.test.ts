@@ -1,9 +1,9 @@
 import assert from 'node:assert'
 import { describe, test } from 'node:test'
 
-import type { EVMBlock } from '../src/models'
-import type { DataSource, SyncOptions } from '../src/sources/data-source'
-import { SourceAggregator } from '../src/sources/source-aggregator'
+import type { EVMBlock } from '../src/models/index.js'
+import type { DataSource, SyncOptions } from '../src/sources/data-source.js'
+import { SourceAggregator } from '../src/sources/source-aggregator.js'
 
 class MockSource implements DataSource<EVMBlock> {
   fromCalls: SyncOptions[] = []

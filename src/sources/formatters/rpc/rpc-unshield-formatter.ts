@@ -1,8 +1,8 @@
 import { hexToBytes } from '@railgun-reloaded/bytes'
 
-import type { Unshield } from '../../../models'
-import { ActionType } from '../../../models'
-import { formatTokenFromRPC } from '../shared'
+import type { Unshield } from '../../../models/index.js'
+import { ActionType } from '../../../models/index.js'
+import { formatTokenFromRPC } from '../shared/index.js'
 
 /**
  * Format a decoded V2 `Unshield` event into the canonical Unshield action.

@@ -1,12 +1,12 @@
 import type { Abi, Chain, PublicClient } from 'viem'
 import { createPublicClient, decodeEventLog, http } from 'viem'
 
-import type { EVMBlock } from '../../models'
-import type { DataSource, SyncOptions } from '../data-source'
-import type { DecodedLog } from '../formatters/rpc/rpc-blockdata-formatter'
-import { groupLogsByBlock } from '../formatters/rpc/rpc-blockdata-formatter'
+import type { EVMBlock } from '../../models/index.js'
+import type { DataSource, SyncOptions } from '../data-source.js'
+import type { DecodedLog } from '../formatters/rpc/rpc-blockdata-formatter.js'
+import { groupLogsByBlock } from '../formatters/rpc/rpc-blockdata-formatter.js'
 
-import type { RPCConnectionManager } from './connection-manager'
+import type { RPCConnectionManager } from './connection-manager.js'
 
 const DEFAULT_CHUNK_SIZE = 500n
 

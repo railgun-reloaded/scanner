@@ -1,10 +1,10 @@
 import { hexToBytes } from '@railgun-reloaded/bytes'
 
-import type { Ciphertext, EncryptedCommitment, Transact, TransactCommitment } from '../../../models'
-import { ActionType } from '../../../models'
-import { flattenMemo } from '../memo'
+import type { Ciphertext, EncryptedCommitment, Transact, TransactCommitment } from '../../../models/index.js'
+import { ActionType } from '../../../models/index.js'
+import { flattenMemo } from '../memo.js'
 
-import { formatToken } from './token-formatter'
+import { formatToken } from './token-formatter.js'
 
 /**
  * Format input ciphertex to Ciphertext

@@ -1,6 +1,6 @@
 import { hexToBytes } from '@railgun-reloaded/bytes'
 
-import type { Token } from '../../../models'
+import type { Token } from '../../../models/index.js'
 
 /**
  * Format token data from RPC event args

@@ -1,5 +1,5 @@
-import type { EVMBlock } from '../src/models'
-import { ActionType } from '../src/models'
+import type { EVMBlock } from '../src/models/index.js'
+import { ActionType } from '../src/models/index.js'
 
 const TEST_VECTOR_SHIELD : EVMBlock = {
   number: 6035105n,

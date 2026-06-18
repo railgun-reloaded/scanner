@@ -1,1 +1,1 @@
-export { SubsquidProvider } from './provider'
+export { SubsquidProvider } from './provider.js'

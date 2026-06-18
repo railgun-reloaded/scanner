@@ -1,3 +1,3 @@
-export { JSONRPCClient } from './client'
-export { JSONRPCConnectionManager } from './connection-manager'
-// export { JSONRPCProvider } from './provider'
+export { JSONRPCClient } from './client.js'
+export { JSONRPCConnectionManager } from './connection-manager.js'
+// export { JSONRPCProvider } from './provider.js'

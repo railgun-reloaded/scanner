@@ -1,10 +1,10 @@
 import { brotliDecompressSync } from 'zlib'
 
-import type { EVMBlock, Transact } from '../../models'
-import { ActionType } from '../../models'
-import type { DataSource, SyncOptions } from '../data-source'
-import { flattenMemo } from '../formatters/memo'
-import { minBigInt } from '../formatters/subsquid/bigint'
+import type { EVMBlock, Transact } from '../../models/index.js'
+import { ActionType } from '../../models/index.js'
+import type { DataSource, SyncOptions } from '../data-source.js'
+import { flattenMemo } from '../formatters/memo.js'
+import { minBigInt } from '../formatters/subsquid/bigint.js'
 
 type Snapshot = {
   version: number

@@ -1,9 +1,9 @@
 import { hexToBytes } from '@railgun-reloaded/bytes'
 
-import type { CommitmentPreimage, GeneratedCommitment, Shield, ShieldCommitment } from '../../../models'
-import { ActionType } from '../../../models'
+import type { CommitmentPreimage, GeneratedCommitment, Shield, ShieldCommitment } from '../../../models/index.js'
+import { ActionType } from '../../../models/index.js'
 
-import { formatToken } from './token-formatter'
+import { formatToken } from './token-formatter.js'
 
 /**
  * Format input preimage to CommitmentPreimage

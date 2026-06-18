@@ -1,5 +1,5 @@
-import type { EVMBlock } from '../src/models'
-import { ActionType } from '../src/models'
+import type { EVMBlock } from '../src/models/index.js'
+import { ActionType } from '../src/models/index.js'
 
 const TEST_VECTOR_COMBINED_ACTION_DATA = {
   hash: '0x72934086331d253986cb496a8e54256c3dd1af8f6e5e97b7afd3e4f8840b68c9',

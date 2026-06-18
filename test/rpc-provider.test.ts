@@ -3,8 +3,8 @@
 
 // import dotenv from 'dotenv'
 
-// import { RPCProvider } from '../src/sources'
-// import { RPCConnectionManager } from '../src/sources/rpc/connection-manager'
+// import { RPCProvider } from '../src/sources/index.js'
+// import { RPCConnectionManager } from '../src/sources/rpc/connection-manager.js'
 
 // dotenv.config()
 

@@ -5,7 +5,7 @@ import { brotliCompressSync } from 'node:zlib'
 import { encode } from 'cbor2'
 import dotenv from 'dotenv'
 
-import { SnapshotProvider, SubsquidProvider } from '../src/sources'
+import { SnapshotProvider, SubsquidProvider } from '../src/sources/index.js'
 
 dotenv.config()
 

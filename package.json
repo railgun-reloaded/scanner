@@ -2,6 +2,7 @@
   "name": "@railgun-reloaded/scanner",
   "version": "0.0.1",
   "description": "DataSync Repo for RAILGUN",
+  "type": "module",
   "homepage": "https://github.com/railgun-reloaded/scanner#readme",
   "bugs": {
     "url": "https://github.com/railgun-reloaded/scanner/issues"

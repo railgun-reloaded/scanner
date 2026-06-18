@@ -3,7 +3,7 @@ import { describe, test } from 'node:test'
 
 import dotenv from 'dotenv'
 
-import { SubsquidProvider } from '../src'
+import { SubsquidProvider } from '../src/index.js'
 
 dotenv.config()
 

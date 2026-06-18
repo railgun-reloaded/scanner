@@ -4,8 +4,8 @@
 
 // import dotenv from 'dotenv'
 
-// import { JSONRPCClient, JSONRPCProvider } from '../src/sources/json-rpc'
-// import { RPCConnectionManager, RPCProvider } from '../src/sources/rpc'
+// import { JSONRPCClient, JSONRPCProvider } from '../src/sources/json-rpc.js'
+// import { RPCConnectionManager, RPCProvider } from '../src/sources/rpc/index.js'
 
 // dotenv.config()
 

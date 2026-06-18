@@ -1,10 +1,10 @@
 import { hexToBytes } from '@railgun-reloaded/bytes'
 
-import type { Action, EVMBlock, EVMTransaction } from '../../../models'
+import type { Action, EVMBlock, EVMTransaction } from '../../../models/index.js'
 
-import { formatShield } from './shield-formatter'
-import { formatTransact } from './transact-formatter'
-import { formatUnshield } from './unshield-formatter'
+import { formatShield } from './shield-formatter.js'
+import { formatTransact } from './transact-formatter.js'
+import { formatUnshield } from './unshield-formatter.js'
 
 /**
  * Format input action data to Action

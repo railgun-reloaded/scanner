@@ -1,1 +1,1 @@
-export { SnapshotProvider } from './provider'
+export { SnapshotProvider } from './provider.js'
