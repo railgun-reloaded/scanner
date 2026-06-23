@@ -1,9 +1,9 @@
 import { hexToBytes } from '@railgun-reloaded/bytes'
 
-import type { Action, EVMBlock, EVMTransaction } from '../../../models'
-import { ActionType } from '../../../models'
-import type { RawMemoPayload } from '../memo'
-import { flattenMemo } from '../memo'
+import type { Action, EVMBlock, EVMTransaction } from '../../../models/index.js'
+import { ActionType } from '../../../models/index.js'
+import type { RawMemoPayload } from '../memo.js'
+import { flattenMemo } from '../memo.js'
 
 type SnapshotBytes = Uint8Array | string
 

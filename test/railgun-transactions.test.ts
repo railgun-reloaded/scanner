@@ -5,7 +5,7 @@ import type { EVMBlock, Transact } from '../src/models/index.js'
 import {
   RailgunTxidVersion,
   extractRailgunTransactions
-} from '../src/railgun-transactions.js'
+} from '../src/railgun-transactions/index.js'
 
 import { TEST_VECTOR_ALL_ACTIONS, TEST_VECTOR_TRANSACT } from './railgun-transactions-vectors.js'
 

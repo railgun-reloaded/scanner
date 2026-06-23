@@ -1,11 +1,11 @@
-import type { EVMBlock } from '../../models'
-import type { DataSource, SyncOptions } from '../data-source'
+import type { EVMBlock } from '../../models/index.js'
+import type { DataSource, SyncOptions } from '../data-source.js'
 import type {
   SnapshotContent,
   SnapshotData
-} from '../formatters/snapshot/blockdata-formatter'
-import { formatSnapshot } from '../formatters/snapshot/blockdata-formatter'
-import { minBigInt } from '../formatters/subsquid/bigint'
+} from '../formatters/snapshot/blockdata-formatter.js'
+import { formatSnapshot } from '../formatters/snapshot/blockdata-formatter.js'
+import { minBigInt } from '../formatters/subsquid/bigint.js'
 
 /**
  * Decode and verify snapshot artifact bytes.

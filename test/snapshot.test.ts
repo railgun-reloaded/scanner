@@ -1,6 +1,8 @@
 import assert from 'node:assert'
 import { afterEach, describe, mock, test } from 'node:test'
 
+import type { EVMBlock, Transact } from '../src/models/index.js'
+import { ActionType } from '../src/models/index.js'
 import { SnapshotProvider } from '../src/sources/index.js'
 
 afterEach(() => {
