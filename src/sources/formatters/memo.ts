@@ -105,6 +105,12 @@ function decodeMemoBytes (entry: RawMemoBytes): Uint8Array {
   return bytes
 }
 
+/**
+ * Determine whether a memo entry is the "no memo" sentinel (all zero bytes
+ * no longer than the sentinel length).
+ * @param entry - Raw memo entry bytes.
+ * @returns True when the entry is the no-memo sentinel.
+ */
 function isNoMemoSentinel (entry: Uint8Array): boolean {
   if (entry.length > MEMO_NO_MEMO_SENTINEL.length) return false
   for (let i = 0; i < entry.length; i++) {

@@ -1,21 +1,22 @@
-import { brotliDecompressSync } from 'zlib'
+import type { EVMBlock } from '../../models'
+import type { DataSource, SyncOptions } from '../data-source'
+import type {
+  SnapshotContent,
+  SnapshotData
+} from '../formatters/snapshot/blockdata-formatter'
+import { formatSnapshot } from '../formatters/snapshot/blockdata-formatter'
+import { minBigInt } from '../formatters/subsquid/bigint'
 
-import type { EVMBlock, Transact } from '../../models/index.js'
-import { ActionType } from '../../models/index.js'
-import type { DataSource, SyncOptions } from '../data-source.js'
-import { flattenMemo } from '../formatters/memo.js'
-import { minBigInt } from '../formatters/subsquid/bigint.js'
-
-import { verifyDagCborCID } from './cid.js'
-
-type Snapshot = {
-  version: number
-  chainID: number
-  startHeight: bigint
-  endHeight: bigint
-  entryCount: number
-  blocks: EVMBlock[]
-}
+/**
+ * Decode and verify snapshot artifact bytes.
+ * @param bytes - Compressed snapshot artifact bytes.
+ * @param expectedCid - CID the bytes must content-address to.
+ * @returns Snapshot-owned decoded data.
+ */
+type SnapshotDecoder = (
+  bytes: Uint8Array,
+  expectedCid: string
+) => Promise<SnapshotData>
 
 /**
  * Configuration for SnapshotProvider
@@ -25,113 +26,12 @@ type SnapshotProviderConfig = {
   ipfsHash: string
   /** IPFS gateway URLs (must end with /ipfs/) */
   gateways: string[]
+  /** Snapshot-owned decoder that verifies and decodes artifact bytes. */
+  decodeArtifact: SnapshotDecoder
 }
 
 /**
- * Normalize memo fields in a decoded snapshot block in place.
- * @param block - Decoded snapshot block.
- * @returns The same block with canonical memo bytes.
- */
-function canonicalizeSnapshotBlockMemos<T extends EVMBlock> (block: T): T {
-  for (const tx of block.transactions) {
-    const actions = tx.actions.flat()
-    for (const action of actions) {
-      if (
-        action.actionType !== ActionType.TransactCommitment &&
-        action.actionType !== ActionType.EncryptedCommitment
-      ) {
-        continue
-      }
-      const transact = action as Transact
-      for (const commitment of transact.commitments) {
-        commitment.memo = flattenMemo(commitment.memo)
-      }
-    }
-  }
-  return block
-}
-
-/**
- * Convert a decoded snapshot height to the scanner's bigint representation.
- * @param value - Decoded height value.
- * @param fieldName - Field name used in validation errors.
- * @returns Normalized bigint height.
- */
-function normalizeHeight (value: unknown, fieldName: string): bigint {
-  if (typeof value === 'bigint') {
-    return value
-  }
-
-  if (typeof value === 'number' && Number.isSafeInteger(value)) {
-    return BigInt(value)
-  }
-
-  throw new Error(`Invalid snapshot: missing or invalid ${fieldName}`)
-}
-
-/**
- * Normalize snapshot range metadata.
- * @param snapshot - Decoded snapshot.
- * @returns Snapshot with bigint range metadata.
- */
-function normalizeSnapshotHeights (snapshot: Snapshot): Snapshot {
-  snapshot.startHeight = normalizeHeight(snapshot.startHeight, 'startHeight')
-  snapshot.endHeight = normalizeHeight(snapshot.endHeight, 'endHeight')
-  return snapshot
-}
-
-/**
- * Normalize every decoded block number.
- * @param snapshot - Validated decoded snapshot.
- * @returns Snapshot with bigint block numbers.
- */
-function normalizeSnapshotBlockHeights (snapshot: Snapshot): Snapshot {
-  snapshot.blocks = snapshot.blocks.map(block => {
-    block.number = normalizeHeight(block.number, 'block number')
-    return block
-  })
-  return snapshot
-}
-
-/**
- * Decode DAG-CBOR with the producer's extended BigInt tag support.
- * @param data - Decompressed snapshot bytes.
- * @returns Decoded DAG-CBOR value.
- */
-async function decodeDagCbor<T> (data: Uint8Array): Promise<T> {
-  const [
-    dagCbor,
-    { decode },
-    { bigIntDecoder, bigNegIntDecoder }
-  ] = await Promise.all([
-    import('@ipld/dag-cbor'),
-    import('cborg'),
-    import('cborg/taglib')
-  ])
-
-  try {
-    return dagCbor.decode(data) as T
-  } catch (err) {
-    if (
-      !(err instanceof Error) ||
-      !/tag not supported \([23]\)/.test(err.message)
-    ) {
-      throw err
-    }
-  }
-
-  return decode(dagCbor.toByteView(data), {
-    ...dagCbor.decodeOptions,
-    tags: {
-      ...dagCbor.decodeOptions.tags,
-      2: bigIntDecoder,
-      3: bigNegIntDecoder
-    }
-  }) as T
-}
-
-/**
- * SnapshotProvider fetches snapshot from IPFS and parses/decodes its contents.
+ * Fetch snapshot artifacts and adapt their decoded blocks to `EVMBlock`.
  */
 export class SnapshotProvider<T extends EVMBlock> implements DataSource<T> {
   /**
@@ -145,15 +45,20 @@ export class SnapshotProvider<T extends EVMBlock> implements DataSource<T> {
   #gateways: string[]
 
   /**
+   * Snapshot-owned artifact decoder.
+   */
+  #decodeArtifact: SnapshotDecoder
+
+  /**
    * Flag to indicate if this provider can provide live data
    */
   isLiveProvider = false
 
   /**
-   * Decompressed/Decoded content of the snapshot
+   * Decoded content of the snapshot.
    * The snapshot is lazily fetched and populated
    */
-  snapshotContent: Snapshot | null
+  snapshotContent: SnapshotContent | null
 
   /**
    * Initialize provider with IPFS hash of snapshot
@@ -170,12 +75,17 @@ export class SnapshotProvider<T extends EVMBlock> implements DataSource<T> {
     }
     this.#gateways = config.gateways
 
+    if (typeof config.decodeArtifact !== 'function') {
+      throw new Error('A snapshot decodeArtifact function is required')
+    }
+    this.#decodeArtifact = config.decodeArtifact
+
     this.snapshotContent = null
   }
 
   /**
-   * Fetch snasphot from the hash
-   * @returns - Promise to the content of file
+   * Fetch and decode the snapshot artifact.
+   * @returns - Decoded snapshot adapted for the scanner
    */
   async #fetchSnapshot () {
     let lastError: Error | null = null
@@ -187,8 +97,9 @@ export class SnapshotProvider<T extends EVMBlock> implements DataSource<T> {
           throw new Error(`Failed to get snapshot status: ${response.status}`)
         }
         const buffer = await response.arrayBuffer()
-        await verifyDagCborCID(new Uint8Array(buffer), this.#ipfsHash)
-        return this.#decodeSnapshot(buffer)
+        const bytes = new Uint8Array(buffer)
+        const snapshot = await this.#decodeArtifact(bytes, this.#ipfsHash)
+        return formatSnapshot(snapshot)
       } catch (err) {
         lastError = err as Error
       }
@@ -197,54 +108,6 @@ export class SnapshotProvider<T extends EVMBlock> implements DataSource<T> {
     throw new Error(`Failed to fetch snapshot${causeMessage}`, {
       cause: lastError
     })
-  }
-
-  /**
-   * Validate the decoded snapshot is in expected format
-   * @param snapshot - Input Snapshot instance
-   */
-  #validateSnapshot (snapshot: Snapshot) {
-    if (!snapshot) {
-      throw new Error('Invalid snapshot: not initalized properly')
-    };
-
-    if (typeof snapshot.chainID !== 'number') {
-      throw new Error('Invalid snapshot: missing or invalid chainID')
-    }
-
-    if (typeof snapshot.startHeight !== 'bigint') {
-      throw new Error('Invalid snapshot: missing or invalid startHeight')
-    }
-    if (typeof snapshot.endHeight !== 'bigint') {
-      throw new Error('Invalid snapshot: missing or invalid endHeight')
-    }
-
-    if (snapshot.startHeight > snapshot.endHeight) {
-      throw new Error('Invalid snapshot: startHeight cannot be greater than endHeight')
-    }
-
-    if (!snapshot.blocks || !Array.isArray(snapshot.blocks)) {
-      throw new Error('Invalid snapshot: blocks must be an array')
-    }
-  }
-
-  /**
-   * Decompress and decode snapshot
-   * @param rawContent - Raw content of the snapshot
-   * @returns - Decompressed/decoded snapshot
-   */
-  async #decodeSnapshot (rawContent: ArrayBuffer) {
-    // We can use pipeline stream later
-    try {
-      const decompressed = brotliDecompressSync(rawContent)
-      const snapshot = normalizeSnapshotHeights(await decodeDagCbor<Snapshot>(decompressed))
-      this.#validateSnapshot(snapshot)
-      normalizeSnapshotBlockHeights(snapshot)
-      snapshot.blocks = snapshot.blocks.map(canonicalizeSnapshotBlockMemos)
-      return snapshot
-    } catch (err) {
-      throw new Error('Failed to decode snapshot', { cause: err })
-    }
   }
 
   /**
@@ -311,3 +174,5 @@ export class SnapshotProvider<T extends EVMBlock> implements DataSource<T> {
 
   }
 }
+
+export type { SnapshotDecoder, SnapshotProviderConfig }

@@ -1,130 +1,152 @@
 import assert from 'node:assert'
 import { afterEach, describe, mock, test } from 'node:test'
-import { brotliCompressSync } from 'node:zlib'
 
 import { SnapshotProvider } from '../src/sources/index.js'
-import { dagCborCIDFromBytes } from '../src/sources/snapshot/cid.js'
-
-import { SNAPSHOT_CID_FIXTURE } from './fixtures/snapshot-cid-fixture.js'
 
 afterEach(() => {
   mock.restoreAll()
 })
 
+const TEST_CID = 'bafyreigennh5c6abpgadzpwjooykj67jvbii5cl5hjjhzq5dtesl3rgqgu'
 const TEST_IPFS_GATEWAYS = ['https://gateway.test/ipfs/']
 
-/**
- * Encode a producer-compatible DAG-CBOR fixture.
- * @param value - Fixture value to encode.
- * @returns DAG-CBOR bytes.
- */
-async function encodeDagCbor (value: unknown): Promise<Uint8Array> {
-  const [
-    dagCbor,
-    { encode },
-    { bigIntEncoder }
-  ] = await Promise.all([
-    import('@ipld/dag-cbor'),
-    import('cborg'),
-    import('cborg/taglib')
-  ])
+type SnapshotActionFixture = {
+  actionType: string
+  commitments?: Array<{
+    memo: Uint8Array | Uint8Array[]
+  } & Record<string, unknown>>
+} & Record<string, unknown>
 
-  return encode(value, {
-    ...dagCbor.encodeOptions,
-    typeEncoders: {
-      ...dagCbor.encodeOptions.typeEncoders,
-      bigint: bigIntEncoder
-    }
-  })
+type SnapshotFixture = {
+  version: number
+  chainID: number
+  startHeight: bigint
+  endHeight: bigint
+  entryCount: number
+  blocks: Array<{
+    number: bigint
+    hash: Uint8Array
+    timestamp: bigint
+    transactions: Array<{
+      hash: Uint8Array
+      index: number
+      from: Uint8Array
+      actions: SnapshotActionFixture[][]
+    }>
+  }>
 }
 
 /**
- * Copy bytes into an ArrayBuffer suitable for a mocked fetch response.
- * @param bytes - Response bytes.
- * @returns Copied ArrayBuffer.
- */
-function arrayBufferFromBytes (bytes: Uint8Array): ArrayBuffer {
-  return Uint8Array.from(bytes).buffer
-}
-
-/**
- * Mock fetch with a successful binary response.
+ * Mock a successful artifact fetch.
  * @param bytes - Response bytes.
  */
 function mockFetchBytes (bytes: Uint8Array) {
-  mock.method(globalThis, 'fetch', async () => ({
-    ok: true,
-    status: 200,
-    /**
-     * Resolve to array buffer
-     * @returns - Array buffer
-     */
-    arrayBuffer: async () => arrayBufferFromBytes(bytes),
-  } as Response))
+  mock.method(
+    globalThis,
+    'fetch',
+    async () => new Response(Uint8Array.from(bytes), { status: 200 })
+  )
 }
 
 /**
- * Create a provider whose expected CID matches mocked response bytes.
- * @param bytes - Mocked response bytes.
- * @param expectedCid - Optional expected CID override.
- * @returns Configured snapshot provider.
+ * Build decoded snapshot fixture data.
+ * @param overrides - Fixture overrides.
+ * @returns Snapshot fixture.
  */
-async function createProviderForBytes (
+function buildSnapshot (
+  overrides: Partial<SnapshotFixture> = {}
+): SnapshotFixture {
+  return {
+    version: 1,
+    chainID: 1,
+    startHeight: 17000000n,
+    endHeight: 17000001n,
+    entryCount: 0,
+    blocks: [{
+      number: 17000000n,
+      hash: new Uint8Array([1]),
+      timestamp: 100n,
+      transactions: []
+    }],
+    ...overrides
+  }
+}
+
+/**
+ * Build a decoder returning fixed snapshot data.
+ * @param snapshot - Snapshot fixture.
+ * @returns Decoder function.
+ */
+function decoderReturning (snapshot: SnapshotFixture) {
+  /**
+   * Return the fixed snapshot.
+   * @returns Snapshot fixture.
+   */
+  return async () => snapshot
+}
+
+/**
+ * Reject artifact decoding.
+ * @returns Never.
+ */
+async function failingDecoder (): Promise<never> {
+  throw new Error('Failed to decode snapshot')
+}
+
+/**
+ * Build a provider with mocked fetched bytes.
+ * @param bytes - Fetched bytes.
+ * @param snapshot - Decoded snapshot fixture.
+ * @returns Snapshot provider.
+ */
+function createProvider (
   bytes: Uint8Array,
-  expectedCid?: string
-): Promise<SnapshotProvider<any>> {
+  snapshot: SnapshotFixture
+): SnapshotProvider<EVMBlock> {
   mockFetchBytes(bytes)
   return new SnapshotProvider({
-    ipfsHash: expectedCid ?? await dagCborCIDFromBytes(bytes),
-    gateways: TEST_IPFS_GATEWAYS
+    ipfsHash: TEST_CID,
+    gateways: TEST_IPFS_GATEWAYS,
+    decodeArtifact: decoderReturning(snapshot)
   })
 }
 
-describe('SnapshotProvider DAG-CBOR decoding', () => {
-  test('Should match the shared producer CID fixture', async () => {
-    const bytes = Uint8Array.from(
-      Buffer.from(SNAPSHOT_CID_FIXTURE.artifactHex, 'hex')
-    )
-
-    assert.equal(
-      await dagCborCIDFromBytes(bytes),
-      SNAPSHOT_CID_FIXTURE.cid
-    )
-  })
-
-  test('Should reject a CID mismatch before decoding', async () => {
-    const invalidSnapshotBytes = new Uint8Array([1, 2, 3, 4])
-    const provider = await createProviderForBytes(
-      invalidSnapshotBytes,
-      SNAPSHOT_CID_FIXTURE.cid
-    )
-
-    await assert.rejects(
-      () => provider.head(),
-      (err) => {
-        return err instanceof Error &&
-          err.message.includes('Snapshot CID mismatch') &&
-          !err.message.includes('Failed to decode snapshot')
-      }
+describe('SnapshotProvider adapter', () => {
+  test('Should require a decodeArtifact function', () => {
+    assert.throws(
+      () => new SnapshotProvider({
+        ipfsHash: TEST_CID,
+        gateways: TEST_IPFS_GATEWAYS,
+        // @ts-expect-error - intentionally missing decoder
+        decodeArtifact: undefined
+      }),
+      /decodeArtifact function is required/
     )
   })
 
-  test('Should decode DAG-CBOR snapshots and preserve bigint height fields', async () => {
-    const testSnapshot = {
-      version: 1,
-      chainID: 1,
-      startHeight: 17000000n,
-      endHeight: 17000001n,
-      entryCount: 0,
-      blocks: [{
-        number: 17000000n,
-        hash: new Uint8Array([1]),
-        timestamp: 100n,
-        transactions: []
-      }]
-    }
-    const testCompressedBytes = brotliCompressSync(await encodeDagCbor(testSnapshot))
-    const provider = await createProviderForBytes(testCompressedBytes)
+  test('Should pass fetched bytes and expected CID to the decoder', async () => {
+    const responseBytes = new Uint8Array([5, 6, 7, 8])
+    const decodeArtifact = mock.fn(
+      async (_bytes: Uint8Array, _expectedCid: string) => buildSnapshot()
+    )
+    mockFetchBytes(responseBytes)
+    const provider = new SnapshotProvider({
+      ipfsHash: TEST_CID,
+      gateways: TEST_IPFS_GATEWAYS,
+      decodeArtifact
+    })
+
+    await provider.head()
+
+    assert.equal(decodeArtifact.mock.callCount(), 1)
+    const [bytesArg, cidArg] = decodeArtifact.mock.calls[0]!.arguments
+    assert.deepEqual(bytesArg, responseBytes)
+    assert.equal(cidArg, TEST_CID)
+  })
+
+  test('Should expose head and iterate the snapshot range', async () => {
+    const provider = createProvider(new Uint8Array([9, 9, 9]), buildSnapshot())
+
     const head = await provider.head()
     const events = await Array.fromAsync(provider.from({
       startHeight: 17000000n,
@@ -133,22 +155,14 @@ describe('SnapshotProvider DAG-CBOR decoding', () => {
     }))
 
     assert.equal(head, 17000001n)
-    assert.equal(typeof provider.snapshotContent?.startHeight, 'bigint')
-    assert.equal(typeof provider.snapshotContent?.endHeight, 'bigint')
-    assert.equal(typeof provider.snapshotContent?.blocks[0]?.number, 'bigint')
     assert.equal(events[0]?.number, 17000000n)
   })
 
-  test('Should decode DAG-CBOR bignum tags emitted by the snapshot producer patch', async () => {
-    const largeAmount = 18446744073709551616n
-    const testSnapshot = {
-      version: 1,
-      chainID: 1,
-      startHeight: 1n,
-      endHeight: 1n,
-      entryCount: 1,
+  test('Should map commitment memos to canonical EVMBlock bytes', async () => {
+    const nestedMemo = [new Uint8Array([1, 2]), new Uint8Array([3, 4])]
+    const snapshot = buildSnapshot({
       blocks: [{
-        number: 1n,
+        number: 17000000n,
         hash: new Uint8Array([1]),
         timestamp: 100n,
         transactions: [{
@@ -156,197 +170,56 @@ describe('SnapshotProvider DAG-CBOR decoding', () => {
           index: 0,
           from: new Uint8Array([3]),
           actions: [[{
-            actionType: 'Unshield',
-            amount: largeAmount
+            actionType: ActionType.TransactCommitment,
+            commitments: [{ memo: nestedMemo }]
           }]]
         }]
       }]
-    }
-    const testCompressedBytes = brotliCompressSync(await encodeDagCbor(testSnapshot))
-    const provider = await createProviderForBytes(testCompressedBytes)
+    })
+    const provider = createProvider(new Uint8Array([4, 2]), snapshot)
+
     const events = await Array.fromAsync(provider.from({
-      startHeight: 1n,
-      endHeight: 1n,
+      startHeight: 17000000n,
+      endHeight: 17000001n,
       liveSync: false
     }))
 
-    assert.equal((events[0]?.transactions[0]?.actions[0]?.[0] as any).amount, largeAmount)
+    const action = events[0]?.transactions[0]?.actions[0]?.[0] as Transact
+    assert.deepEqual(action.commitments[0]?.memo, new Uint8Array([1, 2, 3, 4]))
+  })
+
+  test('Should reject liveSync', async () => {
+    const provider = createProvider(new Uint8Array([1]), buildSnapshot())
+    await assert.rejects(
+      () => Array.fromAsync(provider.from({ startHeight: 0n, liveSync: true })),
+      /doesn't support liveSync/
+    )
   })
 })
 
-describe('Should handle invalid snapshot', async () => {
-  test('Should throw error for an invalid expected CID', async () => {
-    const bytes = Uint8Array.from(
-      Buffer.from(SNAPSHOT_CID_FIXTURE.artifactHex, 'hex')
-    )
-    const provider = await createProviderForBytes(bytes, 'QInvalid')
-
-    await assert.rejects(
-      () => provider.head(),
-      /Invalid expected snapshot CID/
-    )
-  })
-
+describe('SnapshotProvider fetch failures', () => {
   test('Should throw error in case of failed HTTP request', async () => {
-    mock.method(globalThis, 'fetch', async () => ({
-      ok: false,
-      status: 404,
-      /**
-       * Resolve to empy array buffer
-       * @returns - Empty Array buffer
-       */
-      arrayBuffer: async () => new ArrayBuffer(0),
-    } as Response))
+    mock.method(
+      globalThis,
+      'fetch',
+      async () => new Response(null, { status: 404 })
+    )
 
     const provider = new SnapshotProvider({
-      ipfsHash: SNAPSHOT_CID_FIXTURE.cid,
-      gateways: TEST_IPFS_GATEWAYS
+      ipfsHash: TEST_CID,
+      gateways: TEST_IPFS_GATEWAYS,
+      decodeArtifact: decoderReturning(buildSnapshot())
     })
     await assert.rejects(() => provider.head(), /Failed to fetch snapshot/)
   })
 
-  test('Should throw error on invalid brotli compressed format', async () => {
-    const testResponseBytes = new Uint8Array([1, 2, 3, 4])
-    const provider = await createProviderForBytes(testResponseBytes)
+  test('Should surface a decoder failure as a fetch failure', async () => {
+    mockFetchBytes(new Uint8Array([1, 2, 3]))
+    const provider = new SnapshotProvider({
+      ipfsHash: TEST_CID,
+      gateways: TEST_IPFS_GATEWAYS,
+      decodeArtifact: failingDecoder
+    })
     await assert.rejects(() => provider.head(), /Failed to decode snapshot/)
-  })
-
-  test('Should throw error when DAG-CBOR encoded payload is invalid', async () => {
-    const testCborEncodedBytes = new Uint8Array([1, 2, 3, 4])
-    const testCompressedBytes = brotliCompressSync(testCborEncodedBytes)
-    const provider = await createProviderForBytes(testCompressedBytes)
-    await assert.rejects(() => provider.head(), /Failed to decode snapshot/)
-  })
-
-  test('Should throw error when startHeight is missing', async () => {
-    const testSnapshot = {
-      version: 1,
-      chainID: 1,
-      endHeight: 50,
-      blocks: []
-    }
-
-    const testEncodedSnapshot = await encodeDagCbor(testSnapshot)
-    const testCompressedBytes = brotliCompressSync(testEncodedSnapshot)
-    const provider = await createProviderForBytes(testCompressedBytes)
-    await assert.rejects(
-      () => provider.head(),
-      (err) => {
-        return err instanceof Error &&
-          err.message.includes('Failed to decode snapshot') &&
-          err.cause instanceof Error &&
-          err.cause.message.includes('missing or invalid startHeight')
-      }
-    )
-  })
-
-  test('Should throw error when endHeight is missing', async () => {
-    const testSnapshot = {
-      version: 1,
-      chainID: 1,
-      startHeight: 50,
-      blocks: []
-    }
-
-    const testEncodedSnapshot = await encodeDagCbor(testSnapshot)
-    const testCompressedBytes = brotliCompressSync(testEncodedSnapshot)
-    const provider = await createProviderForBytes(testCompressedBytes)
-    await assert.rejects(
-      () => provider.head(),
-      (err) => {
-        return err instanceof Error &&
-          err.message.includes('Failed to decode snapshot') &&
-          err.cause instanceof Error &&
-          err.cause.message.includes('missing or invalid endHeight')
-      }
-    )
-  })
-
-  test('Should throw error when startHeight is greater than endHeight', async () => {
-    const testSnapshot = {
-      version: 1,
-      chainID: 1,
-      startHeight: 100,
-      endHeight: 50,
-      blocks: []
-    }
-
-    const testEncodedSnapshot = await encodeDagCbor(testSnapshot)
-    const testCompressedBytes = brotliCompressSync(testEncodedSnapshot)
-    const provider = await createProviderForBytes(testCompressedBytes)
-    await assert.rejects(
-      () => provider.head(),
-      (err) => {
-        return err instanceof Error &&
-          err.message.includes('Failed to decode snapshot') &&
-          err.cause instanceof Error &&
-          err.cause.message.includes('startHeight cannot be greater than endHeight')
-      }
-    )
-  })
-
-  test('Should throw error when a numeric height is not a safe integer', async () => {
-    const testSnapshot = {
-      version: 1,
-      chainID: 1,
-      startHeight: Number.MAX_SAFE_INTEGER + 1,
-      endHeight: Number.MAX_SAFE_INTEGER + 1,
-      blocks: []
-    }
-    const testCompressedBytes = brotliCompressSync(await encodeDagCbor(testSnapshot))
-    const provider = await createProviderForBytes(testCompressedBytes)
-    await assert.rejects(
-      () => provider.head(),
-      (err) => {
-        return err instanceof Error &&
-          err.message.includes('Failed to decode snapshot') &&
-          err.cause instanceof Error &&
-          err.cause.message.includes('missing or invalid startHeight')
-      }
-    )
-  })
-
-  test('Should throw error when chainID is missing', async () => {
-    const testSnapshot = {
-      version: 1,
-      startHeight: 50,
-      endHeight: 100,
-      blocks: []
-    }
-
-    const testEncodedSnapshot = await encodeDagCbor(testSnapshot)
-    const testCompressedBytes = brotliCompressSync(testEncodedSnapshot)
-    const provider = await createProviderForBytes(testCompressedBytes)
-    await assert.rejects(
-      () => provider.head(),
-      (err) => {
-        return err instanceof Error &&
-          err.message.includes('Failed to decode snapshot') &&
-          err.cause instanceof Error &&
-          err.cause.message.includes('missing or invalid chainID')
-      }
-    )
-  })
-
-  test('Should throw error when block is missing', async () => {
-    const testSnapshot = {
-      chainID: 1,
-      version: 1,
-      startHeight: 50,
-      endHeight: 100,
-    }
-
-    const testEncodedSnapshot = await encodeDagCbor(testSnapshot)
-    const testCompressedBytes = brotliCompressSync(testEncodedSnapshot)
-    const provider = await createProviderForBytes(testCompressedBytes)
-    await assert.rejects(
-      () => provider.head(),
-      (err) => {
-        return err instanceof Error &&
-          err.message.includes('Failed to decode snapshot') &&
-          err.cause instanceof Error &&
-          err.cause.message.includes('Invalid snapshot: blocks must be an array')
-      }
-    )
   })
 })

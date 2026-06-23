@@ -5,19 +5,40 @@ import type { EVMBlock } from '../src/models/index.js'
 import type { DataSource, SyncOptions } from '../src/sources/data-source.js'
 import { SourceAggregator } from '../src/sources/source-aggregator.js'
 
+/**
+ * In-memory DataSource used to drive SourceAggregator tests.
+ */
 class MockSource implements DataSource<EVMBlock> {
+  /**
+   * Sync options captured from each from() call.
+   */
   fromCalls: SyncOptions[] = []
 
+  /**
+   * Create a mock source.
+   * @param headHeight - Height returned by head().
+   * @param isLiveProvider - Whether this source reports as live.
+   * @param blocks - Blocks yielded by from().
+   */
   constructor (
     private readonly headHeight: bigint,
     readonly isLiveProvider: boolean,
     private readonly blocks: EVMBlock[] = []
   ) {}
 
+  /**
+   * Return the configured head height.
+   * @returns The head height.
+   */
   async head (): Promise<bigint> {
     return this.headHeight
   }
 
+  /**
+   * Yield the configured blocks, recording the sync options.
+   * @param options - Sync options.
+   * @yields The configured blocks.
+   */
   async * from (options: SyncOptions): AsyncGenerator<EVMBlock> {
     this.fromCalls.push(options)
 
@@ -26,9 +47,17 @@ class MockSource implements DataSource<EVMBlock> {
     }
   }
 
+  /**
+   * No-op destroy.
+   */
   destroy (): void {}
 }
 
+/**
+ * Build a minimal EVMBlock at the given height.
+ * @param number - Block number.
+ * @returns The block.
+ */
 const makeBlock = (number: bigint): EVMBlock => ({
   number,
   hash: new Uint8Array(),
@@ -36,6 +65,11 @@ const makeBlock = (number: bigint): EVMBlock => ({
   transactions: []
 })
 
+/**
+ * Drain an async iterator into an array.
+ * @param iterator - Block iterator.
+ * @returns The collected blocks.
+ */
 const collect = async (iterator: AsyncGenerator<EVMBlock>): Promise<EVMBlock[]> => {
   const blocks: EVMBlock[] = []
 

@@ -1,2 +1,2 @@
-export { SnapshotProvider } from './provider.js'
-export { dagCborCIDFromBytes, verifyDagCborCID } from './cid.js'
+export { SnapshotProvider } from './provider'
+export type { SnapshotDecoder, SnapshotProviderConfig } from './provider'

@@ -14,10 +14,15 @@ class SourceAggregator<T extends EVMBlock> {
    */
   #sources: DataSource<T>[] = []
 
+  /**
+   * Highest block height covered during the latest sync, or undefined before
+   * any sync has run.
+   */
   #lastIteratedHeight: bigint | undefined
 
   /**
    * Highest block height the aggregator has covered during the latest sync.
+   * @returns The last iterated height, or undefined before any sync.
    */
   get lastIteratedHeight (): bigint | undefined {
     return this.#lastIteratedHeight
@@ -32,13 +37,12 @@ class SourceAggregator<T extends EVMBlock> {
   }
 
   /**
-   * Read data from all the sources
+   * Read data from all the sources.
    * @param options - Options to sync data
    * @param options.startHeight - Start height
    * @param options.endHeight - End height
    * @param options.chunkSize - Chunk size for eth_getLogs
    * @returns AsyncGenerator that returns EVMBlock
-   * @yields T
    */
   from (options: SyncOptions) : AsyncGenerator<T> {
     this.#lastIteratedHeight = undefined
@@ -46,6 +50,12 @@ class SourceAggregator<T extends EVMBlock> {
     return this.#from(options)
   }
 
+  /**
+   * Iterate every source in order, yielding their blocks and tracking the
+   * highest height covered.
+   * @param options - Options to sync data.
+   * @yields Blocks from each aggregated source.
+   */
   async * #from (options: SyncOptions) : AsyncGenerator<T> {
     let { startHeight, endHeight, chunkSize } = options
 
@@ -92,6 +102,10 @@ class SourceAggregator<T extends EVMBlock> {
     }
   }
 
+  /**
+   * Advance the tracked last-iterated height if the given height is higher.
+   * @param height - Candidate block height.
+   */
   #setLastIteratedHeight (height: bigint) {
     if (this.#lastIteratedHeight === undefined || height > this.#lastIteratedHeight) {
       this.#lastIteratedHeight = height

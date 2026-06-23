@@ -1,6 +1,7 @@
 import { padBytesLeft } from '@railgun-reloaded/bytes'
-import type { EVMBlock, Token, Transact } from '../models/index.js'
-import { ActionType } from '../models/index.js'
+
+import type { EVMBlock, Token, Transact } from '../models'
+import { ActionType } from '../models'
 
 const RAILGUN_TXID_BYTE_LENGTH = 32
 
