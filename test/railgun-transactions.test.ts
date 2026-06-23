@@ -3,15 +3,9 @@ import { test } from 'node:test'
 
 import type { EVMBlock, Transact } from '../src/models/index.js'
 import {
-<<<<<<< HEAD
-  extractRailgunTransactions,
-  RailgunTxidVersion
-} from '../src/railgun-transactions/index.js'
-=======
   RailgunTxidVersion,
   extractRailgunTransactions
-} from '../src/railgun-transactions'
->>>>>>> 9e6cf24 (refactor: snapshot data integration onto a simple datasource adapter)
+} from '../src/railgun-transactions.js'
 
 import { TEST_VECTOR_ALL_ACTIONS, TEST_VECTOR_TRANSACT } from './railgun-transactions-vectors.js'
 
