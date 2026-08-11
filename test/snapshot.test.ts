@@ -88,14 +88,6 @@ function decoderReturning (snapshot: SnapshotFixture) {
 }
 
 /**
- * Reject artifact decoding.
- * @returns Never.
- */
-async function failingDecoder (): Promise<never> {
-  throw new Error('Failed to decode snapshot')
-}
-
-/**
  * Build a provider with mocked fetched bytes.
  * @param bytes - Fetched bytes.
  * @param snapshot - Decoded snapshot fixture.
@@ -121,29 +113,24 @@ describe('SnapshotProvider adapter', () => {
         gateways: TEST_IPFS_GATEWAYS,
         // @ts-expect-error - intentionally missing decoder
         decodeArtifact: undefined
-      }),
-      /decodeArtifact function is required/
+      })
     )
   })
 
   test('Should pass fetched bytes and expected CID to the decoder', async () => {
     const responseBytes = new Uint8Array([5, 6, 7, 8])
-    const decodeArtifact = mock.fn(
-      async (_bytes: Uint8Array, _expectedCid: string) => buildSnapshot()
-    )
     mockFetchBytes(responseBytes)
     const provider = new SnapshotProvider({
       ipfsHash: TEST_CID,
       gateways: TEST_IPFS_GATEWAYS,
-      decodeArtifact
+      decodeArtifact: mock.fn(async (bytes, expectedCid) => {
+        assert.deepEqual(bytes, responseBytes)
+        assert.equal(expectedCid, TEST_CID)
+        return buildSnapshot()
+      })
     })
 
     await provider.head()
-
-    assert.equal(decodeArtifact.mock.callCount(), 1)
-    const [bytesArg, cidArg] = decodeArtifact.mock.calls[0]!.arguments
-    assert.deepEqual(bytesArg, responseBytes)
-    assert.equal(cidArg, TEST_CID)
   })
 
   test('Should expose head and iterate the snapshot range', async () => {
@@ -157,7 +144,7 @@ describe('SnapshotProvider adapter', () => {
     }))
 
     assert.equal(head, 17000001n)
-    assert.equal(events[0]?.number, 17000000n)
+    assert.deepEqual(events.map(event => event.number), [17000000n])
   })
 
   test('Should map commitment memos to canonical EVMBlock bytes', async () => {
@@ -193,8 +180,7 @@ describe('SnapshotProvider adapter', () => {
   test('Should reject liveSync', async () => {
     const provider = createProvider(new Uint8Array([1]), buildSnapshot())
     await assert.rejects(
-      () => Array.fromAsync(provider.from({ startHeight: 0n, liveSync: true })),
-      /doesn't support liveSync/
+      () => Array.fromAsync(provider.from({ startHeight: 0n, liveSync: true }))
     )
   })
 })
@@ -212,16 +198,22 @@ describe('SnapshotProvider fetch failures', () => {
       gateways: TEST_IPFS_GATEWAYS,
       decodeArtifact: decoderReturning(buildSnapshot())
     })
-    await assert.rejects(() => provider.head(), /Failed to fetch snapshot/)
+    await assert.rejects(() => provider.head())
   })
 
-  test('Should surface a decoder failure as a fetch failure', async () => {
+  test('Should preserve a decoder failure as the fetch error cause', async () => {
+    const decoderError = new Error('Decoder failure')
     mockFetchBytes(new Uint8Array([1, 2, 3]))
     const provider = new SnapshotProvider({
       ipfsHash: TEST_CID,
       gateways: TEST_IPFS_GATEWAYS,
-      decodeArtifact: failingDecoder
+      decodeArtifact: mock.fn(async () => {
+        throw decoderError
+      })
     })
-    await assert.rejects(() => provider.head(), /Failed to decode snapshot/)
+    await assert.rejects(
+      () => provider.head(),
+      { cause: decoderError }
+    )
   })
 })

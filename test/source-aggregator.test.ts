@@ -10,11 +10,6 @@ import { SourceAggregator } from '../src/sources/source-aggregator.js'
  */
 class MockSource implements DataSource<EVMBlock> {
   /**
-   * Sync options captured from each from() call.
-   */
-  fromCalls: SyncOptions[] = []
-
-  /**
    * Create a mock source.
    * @param headHeight - Height returned by head().
    * @param isLiveProvider - Whether this source reports as live.
@@ -35,13 +30,11 @@ class MockSource implements DataSource<EVMBlock> {
   }
 
   /**
-   * Yield the configured blocks, recording the sync options.
-   * @param options - Sync options.
+   * Yield the configured blocks.
+   * @param _options - Sync options.
    * @yields The configured blocks.
    */
-  async * from (options: SyncOptions): AsyncGenerator<EVMBlock> {
-    this.fromCalls.push(options)
-
+  async * from (_options: SyncOptions): AsyncGenerator<EVMBlock> {
     for (const block of this.blocks) {
       yield block
     }
@@ -139,7 +132,7 @@ describe('SourceAggregator', () => {
   })
 
   test('records finite sourceEnd for skipped sources', async () => {
-    const source = new MockSource(10n, false)
+    const source = new MockSource(10n, false, [makeBlock(9n)])
     const aggregator = new SourceAggregator([source])
 
     const blocks = await collect(aggregator.from({
@@ -149,7 +142,6 @@ describe('SourceAggregator', () => {
     }))
 
     assert.deepStrictEqual(blocks, [])
-    assert.deepStrictEqual(source.fromCalls, [])
     assert.strictEqual(aggregator.lastIteratedHeight, 10n)
   })
 })

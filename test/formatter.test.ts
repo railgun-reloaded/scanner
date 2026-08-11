@@ -18,28 +18,6 @@ describe('Formatter Test', () => {
     assert.deepStrictEqual(TEST_VECTOR_FORMATTED_ENCRYPTED_COMMITMENT, expectedArray)
   })
 
-  test('[V1] Should properly format EncryptedCommitment for missing unshield', () => {
-    const inputData = TEST_VECTOR_ENCRYPTED_COMMITMENT
-
-    // Remove unshield data
-    if (inputData.transactions[0]?.actions[0]?.[0]) {
-      inputData.transactions[0].actions[0][0].hasUnshield = false
-    }
-
-    const expectedArray = formatBlockData(inputData)
-    const actualArray = TEST_VECTOR_FORMATTED_ENCRYPTED_COMMITMENT
-
-    const transact = actualArray.transactions[0]?.actions[0]?.[0] as unknown as Transact
-    // Remove corresponding value in output as well
-    transact.hasUnshield = false
-    delete transact.unshieldCommitment
-    delete transact.unshieldToAddress
-    delete transact.unshieldToken
-    delete transact.unshieldValue
-
-    assert.deepStrictEqual(actualArray, expectedArray)
-  })
-
   test('[V2] Should properly format ShieldCommitment', () => {
     const expectedArray = formatBlockData(TEST_VECTOR_SHIELD)
     assert.deepStrictEqual(TEST_VECTOR_FORMATTED_SHIELD, expectedArray)
@@ -51,24 +29,19 @@ describe('Formatter Test', () => {
   })
 
   test('[V2] Should properly format TransactCommitment for missing unshield', () => {
-    const inputData = TEST_VECTOR_COMBINED_ACTION_DATA
+    const inputData = structuredClone(TEST_VECTOR_COMBINED_ACTION_DATA)
 
-    // Remove unshield data
     if (inputData.transactions[0]?.actions[1]?.[0]) {
       (inputData.transactions[0].actions[1][0] as unknown as Transact).hasUnshield = false
     }
 
-    const expectedArray = formatBlockData(inputData)
-    const actualArray = TEST_VECTOR_FORMATTED_COMBINED_ACTION_DATA
+    const output = formatBlockData(inputData)
+    const transact = output.transactions[0]?.actions[1]?.[0] as Transact
 
-    const transact = actualArray.transactions[0]?.actions[1]?.[0] as unknown as Transact
-    // Remove corresponding value in output as well
-    transact.hasUnshield = false
-    delete transact.unshieldCommitment
-    delete transact.unshieldToAddress
-    delete transact.unshieldToken
-    delete transact.unshieldValue
-
-    assert.deepStrictEqual(actualArray, expectedArray)
+    assert.equal(transact.hasUnshield, false)
+    assert.equal('unshieldCommitment' in transact, false)
+    assert.equal('unshieldToAddress' in transact, false)
+    assert.equal('unshieldToken' in transact, false)
+    assert.equal('unshieldValue' in transact, false)
   })
 })

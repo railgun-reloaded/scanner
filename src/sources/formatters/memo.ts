@@ -119,5 +119,5 @@ function isNoMemoSentinel (entry: Uint8Array): boolean {
   return true
 }
 
-export { MEMO_NO_MEMO_SENTINEL, flattenMemo }
+export { flattenMemo }
 export type { RawMemoPayload }
